@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { connectDatabase } from "../../db/client";
+import { handleIdentityRequest } from "../../app/api/auth/http";
 import { createIdentity } from "./server";
+import { createMailAdapter } from "../../integrations/mail/server";
 import type { MailMessage } from "../../integrations/mail/contracts";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -40,7 +42,7 @@ function request(
   cookie?: string,
   instance = identity,
 ) {
-  return instance.handleAuthRequest(
+  return handleIdentityRequest(
     new Request(`http://localhost:3000/api/auth/${path}`, {
       method: body ? "POST" : "GET",
       headers: {
@@ -50,6 +52,7 @@ function request(
       },
       body: body ? JSON.stringify(body) : undefined,
     }),
+    instance,
   );
 }
 function cookieFrom(response: Response) {
@@ -268,4 +271,66 @@ test("退出测试名单后现有会话也不能继续取得应用身份", async
   allowedEmails.delete(email);
   expect(await identity.getCurrentLearner(new Headers({ cookie }))).toBeNull();
   expect((await request("revoke-sessions", {}, cookie)).status).toBe(401);
+});
+
+test("邮件投递失败时注册和密码恢复不返回假成功", async () => {
+  const failing = createIdentity(
+    connection.db,
+    config,
+    createMailAdapter(false),
+  );
+  const email = `failed-mail-${crypto.randomUUID()}@example.com`;
+  allowedEmails.add(email);
+  const signup = await request(
+    "sign-up/email",
+    { email, password, name: "邮件失败" },
+    undefined,
+    failing,
+  );
+  expect(signup.status).toBe(503);
+  const registered = await verifiedAccount();
+  const reset = await request(
+    "request-password-reset",
+    { email: registered },
+    undefined,
+    failing,
+  );
+  expect(reset.status).toBe(503);
+  expect(await reset.json()).toMatchObject({
+    message: "身份服务暂时不可用，请稍后重试或联系维护者检查配置。",
+  });
+});
+
+test("同一实例中一次投递失败不影响并发的其他注册", async () => {
+  const failedEmail = `failed-${crypto.randomUUID()}@example.com`;
+  const successfulEmail = `success-${crypto.randomUUID()}@example.com`;
+  allowedEmails.add(failedEmail);
+  allowedEmails.add(successfulEmail);
+  const mixed = createIdentity(connection.db, config, {
+    async send(message) {
+      if (message.to === failedEmail) throw new Error("模拟文件写入失败");
+      messages.push(message);
+    },
+  });
+  const results = await Promise.all(
+    [failedEmail, successfulEmail].map((email) =>
+      request(
+        "sign-up/email",
+        { email, password, name: "并发投递" },
+        undefined,
+        mixed,
+      ),
+    ),
+  );
+  expect(results.map((result) => result.status)).toEqual([503, 200]);
+  expect(
+    (
+      await request(
+        `verify-email?token=${mailToken(successfulEmail, "verification")}`,
+        undefined,
+        undefined,
+        mixed,
+      )
+    ).status,
+  ).toBe(200);
 });

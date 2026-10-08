@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { betterAuth } from "better-auth";
@@ -6,7 +7,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "../../db/client";
 import type { AppConfig } from "../../server/config";
 import type { MailAdapter } from "../../integrations/mail/contracts";
-import { authErrorMessage, identityMessages, type Learner } from "./contracts";
+import type { Learner } from "./contracts";
 import * as schema from "./schema";
 
 export function createIdentity(
@@ -14,6 +15,18 @@ export function createIdentity(
   config: AppConfig,
   mail: MailAdapter,
 ) {
+  // Better Auth swallows callback errors. Keep delivery outcome request-local,
+  // then reject the public call after Better Auth has awaited its callbacks.
+  const delivery = new AsyncLocalStorage<{ failed: boolean }>();
+  async function deliver(operation: () => Promise<void>) {
+    try {
+      await operation();
+    } catch {
+      const request = delivery.getStore();
+      if (request) request.failed = true;
+      throw new Error("邮件未能发送，请重试。");
+    }
+  }
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -26,30 +39,33 @@ export function createIdentity(
       resetPasswordTokenExpiresIn: 1800,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, token }) =>
-        mail.send({
-          to: user.email,
-          kind: "password-reset",
-          url: `${config.baseURL}/reset-password?token=${encodeURIComponent(token)}`,
-        }),
+        deliver(() =>
+          mail.send({
+            to: user.email,
+            kind: "password-reset",
+            url: `${config.baseURL}/reset-password?token=${encodeURIComponent(token)}`,
+          }),
+        ),
     },
     emailVerification: {
       sendOnSignUp: true,
       expiresIn: 3600,
       autoSignInAfterVerification: false,
-      sendVerificationEmail: async ({ user, token }) => {
-        await db
-          .insert(schema.emailVerificationReceipt)
-          .values({
-            digest: tokenDigest(token),
-            expiresAt: new Date(Date.now() + 3600_000),
-          })
-          .onConflictDoNothing();
-        await mail.send({
-          to: user.email,
-          kind: "verification",
-          url: `${config.baseURL}/verify-email?token=${encodeURIComponent(token)}`,
-        });
-      },
+      sendVerificationEmail: async ({ user, token }) =>
+        deliver(async () => {
+          await db
+            .insert(schema.emailVerificationReceipt)
+            .values({
+              digest: tokenDigest(token),
+              expiresAt: new Date(Date.now() + 3600_000),
+            })
+            .onConflictDoNothing();
+          await mail.send({
+            to: user.email,
+            kind: "verification",
+            url: `${config.baseURL}/verify-email?token=${encodeURIComponent(token)}`,
+          });
+        }),
     },
     session: {
       cookieCache: { enabled: false },
@@ -116,51 +132,14 @@ export function createIdentity(
   }
   return {
     getCurrentLearner,
+    // Opaque Better Auth protocol adapter; HTTP policy belongs to app/api/auth.
     async handleAuthRequest(request: Request): Promise<Response> {
-      const path = new URL(request.url).pathname.replace("/api/auth/", "");
-      const methods: Record<string, string> = {
-        "sign-up/email": "POST",
-        "sign-in/email": "POST",
-        "sign-out": "POST",
-        "send-verification-email": "POST",
-        "verify-email": "GET",
-        "request-password-reset": "POST",
-        "reset-password": "POST",
-        "revoke-sessions": "POST",
-      };
-      if (!methods[path])
-        return Response.json({ message: "该操作未开放。" }, { status: 404 });
-      if (request.method !== methods[path])
-        return Response.json({ message: "请求方式不正确。" }, { status: 405 });
-      try {
-        if (
-          path === "revoke-sessions" &&
-          !(await getCurrentLearner(request.headers))
-        )
-          return Response.json(
-            { message: identityMessages.unauthorized },
-            { status: 401 },
-          );
+      return delivery.run({ failed: false }, async () => {
         const response = await auth.handler(request);
-        if (response.ok || (response.status >= 300 && response.status < 400))
-          return response;
-        const error = await response.json().catch(() => ({}));
-        return Response.json(
-          {
-            code: error.code,
-            message:
-              response.status === 429
-                ? authErrorMessage("TOO_MANY_REQUESTS")
-                : authErrorMessage(error.code),
-          },
-          { status: response.status, headers: response.headers },
-        );
-      } catch {
-        return Response.json(
-          { message: identityMessages.unavailable },
-          { status: 503 },
-        );
-      }
+        if (delivery.getStore()?.failed)
+          throw new Error("邮件未能发送，请重新申请。");
+        return response;
+      });
     },
   };
 }
