@@ -1,32 +1,30 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
-import { Geist } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
-import { getLocale, getMessages } from "next-intl/server";
-import { cn } from "@/lib/utils";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { LoadingOverlayProvider } from "@/components/ui/loading-overlay";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-
-export default async function RootLayout({
+export const metadata: Metadata = {
+  title: "Verlark · 先听后用",
+  description: "从听见一句英语，到说出自己的想法。",
+};
+export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
-  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
-
+}) {
   return (
-    <html
-      lang={locale}
-      data-scroll-behavior="smooth"
-      className={cn("font-sans", geist.variable)}
-    >
+    <html lang="zh-CN">
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <LoadingOverlayProvider>
-            <TooltipProvider>{children}</TooltipProvider>
-          </LoadingOverlayProvider>
-        </NextIntlClientProvider>
+        <header className="site-header">
+          <Link className="brand" href="/">
+            verlark<span>先听后用</span>
+          </Link>
+          <nav aria-label="主导航">
+            <Link href="/account">我的账号</Link>
+            <Link href="/login">登录</Link>
+          </nav>
+        </header>
+        <main>{children}</main>
+        <footer>Verlark · 内部测试阶段 · 学习流程尚未开放</footer>
       </body>
     </html>
   );
