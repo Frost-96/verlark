@@ -71,3 +71,16 @@ Better Auth 1.7.7 的 peerDependencies 接受 Next 16、pg 8、Drizzle 0.45.2+�
 发现本地缺少认证 origin、测试名单和开发邮件配置，经用户同意使用测试邮箱，在被 Git 忽略的 `.env.local` 中补齐 `BETTER_AUTH_URL=http://localhost:3000`、`TESTER_EMAILS=local-desktop@example.com`、`DEVELOPMENT_MAIL=true`。原有数据库连接与认证密钥未改动。
 
 配置测试 2 项、类型检查、lint、修改文件格式检查通过。使用实际本地开发服务器及用户配置的数据库，复用现有桌面浏览器验收流程，1 项通过（24.3 秒），覆盖注册、未验证禁止登录、邮箱验证及重复链接拒绝、登录、退出及旧 Cookie 失效、密码重置及旧密码拒绝、所有会话撤销。产生一个测试账号，开发邮件仅写入本机文件。未运行完整独立数据库测试套件，也未验证真实邮件或生产部署。
+
+## 2026-10-09 远程同步前复核
+
+基础分支 `integration/foundation-sync` 收录基础实现、DATABASE_URL 调整、领域/架构/规格文档与历史 QA 依据；UI 原型和品牌资源单独保存在 `prototype/listen-then-use-ui`。本机 MCP、编辑器、技能配置及 CLAUDE.md 的本地删除未发布。
+
+- 按锁文件安装通过。最初沙箱网络限制导致 pnpm 自动安装失败，允许网络后恢复成功；没有修改锁文件。
+- 类型、lint、格式检查通过。原型分支遗留的 `.next/dev` 生成类型移至临时目录后重跑通过。
+- 默认 Turbopack 生产构建通过。
+- 新建本机隔离 PostgreSQL 17 容器（127.0.0.1:55441）；11 项测试通过；两个随机空库迁移、重复执行、持久化读写和重建通过。未修改应用数据库。
+- 独立浏览器测试库：桌面与手机视口两条认证全流程通过，覆盖注册、验证、登录、恢复、退出与会话重放拒绝。
+- Standards 与 Spec 两项独立静态审查均为 0 项剩余发现。
+
+本轮构建、安装和浏览器日志分别保存在本机 `/tmp/verlark-foundation-{build,install,e2e}.log`。快照恢复证据沿用 `.local-snapshots/before-issues-2-6/verification.json`。真实邮件、部署、语音和完整学习流程继续留待后续任务。
