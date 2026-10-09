@@ -2,11 +2,9 @@ import "./load-env";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { connectDatabase } from "../src/db/client";
 
-const url = process.env.VERLARK_DATABASE_URL;
+const url = process.env.DATABASE_URL;
 if (!url) {
-  console.error(
-    "请显式配置 VERLARK_DATABASE_URL。迁移不会使用旧 DATABASE_URL。",
-  );
+  console.error("请显式配置 DATABASE_URL。");
   process.exit(1);
 }
 const connection = connectDatabase(url);

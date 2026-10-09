@@ -6,11 +6,9 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   if (developmentMail && production) {
     throw new ConfigurationError("正式环境不能启用开发邮件替身。");
   }
-  const databaseURL = env.VERLARK_DATABASE_URL;
+  const databaseURL = env.DATABASE_URL;
   if (!databaseURL)
-    throw new ConfigurationError(
-      "请配置 VERLARK_DATABASE_URL，使用新的应用数据库。",
-    );
+    throw new ConfigurationError("请配置 DATABASE_URL，使用新的应用数据库。");
   try {
     const url = new URL(databaseURL);
     if (!["postgres:", "postgresql:"].includes(url.protocol)) throw new Error();

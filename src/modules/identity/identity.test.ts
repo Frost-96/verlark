@@ -10,7 +10,7 @@ const url = process.env.TEST_DATABASE_URL;
 if (
   !url ||
   !new URL(url).pathname.endsWith("_test") ||
-  url === process.env.VERLARK_DATABASE_URL
+  url === process.env.DATABASE_URL
 )
   throw new Error(
     "需要明确的独立 TEST_DATABASE_URL，库名须以 _test 结尾且不同于开发库。",

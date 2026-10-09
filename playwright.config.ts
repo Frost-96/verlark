@@ -29,7 +29,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120000,
     env: {
-      VERLARK_DATABASE_URL: databaseURL,
+      DATABASE_URL: databaseURL,
       BETTER_AUTH_URL: "http://localhost:3100",
       BETTER_AUTH_SECRET: "browser-test-secret-at-least-32-characters",
       TESTER_EMAILS: emails,

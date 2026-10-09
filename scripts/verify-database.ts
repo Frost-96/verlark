@@ -9,7 +9,7 @@ if (!connectionString || !new URL(connectionString).pathname.endsWith("_test"))
   throw new Error(
     "请明确提供独立 TEST_DATABASE_URL，数据库名须以 _test 结尾。",
   );
-if (connectionString === process.env.VERLARK_DATABASE_URL)
+if (connectionString === process.env.DATABASE_URL)
   throw new Error("测试与开发数据库不能相同。");
 // Verification creates additional empty databases; it never drops or clears the supplied DB.
 const admin = new Pool({ connectionString });

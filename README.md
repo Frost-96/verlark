@@ -14,13 +14,13 @@ pnpm db:migrate
 pnpm dev
 ```
 
-迁移脚本读取 `.env.local` 与 `.env`，显式传入的环境变量优先。新实现**只使用 VERLARK_DATABASE_URL**，不会读取旧 `DATABASE_URL`。不要把旧库连接串直接复制过来。数据库使用 PostgreSQL（开发可用本机 PostgreSQL 17；部署目标为 Neon，填写其带 TLS 的连接串）。迁移只新增版本，不会清空数据库。生产使用 Node runtime；正式部署与 Neon 网络尚待后续实测。
+迁移脚本读取 `.env.local` 与 `.env`，显式传入的环境变量优先。应用与迁移统一读取 **`DATABASE_URL`**。测试使用独立数据库，不要将应用数据库用作测试库。数据库使用 PostgreSQL（开发可用本机 PostgreSQL 17；部署目标为 Neon，填写其带 TLS 的连接串）。迁移只新增版本，不会清空数据库。生产使用 Node runtime；正式部署与 Neon 网络尚待后续实测。
 
 无需数据库可执行安装、类型检查、构建，并打开基础首页；认证入口在配置缺失或连接失败时明确失败，不生成虚假会话。启动生产构建使用 `pnpm build && pnpm start`。
 
 ## 环境与邮件
 
-- `VERLARK_DATABASE_URL`：新应用数据库连接串。
+- `DATABASE_URL`：新应用数据库连接串。
 - `BETTER_AUTH_URL`：应用 origin，例如 `http://localhost:3000`；正式环境须 HTTPS。
 - `BETTER_AUTH_SECRET`：至少 32 字符的随机密钥，可用 `openssl rand -base64 32` 生成。
 - `TESTER_EMAILS`：逗号分隔的允许邮箱，大小写不敏感；移出名单的账号不能继续取得应用身份。
