@@ -54,7 +54,9 @@ test("选材、播放、分级帮助及关闭后继续，跨账号和匿名无�
     await route.abort("failed");
   });
   await page.getByRole("button", { name: "开始聆听练习" }).click();
-  await expect(page.getByRole("alert")).toContainText("未能确认练习是否已保存");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText(
+    "未能确认练习是否已保存",
+  );
   await page.unroute("**/api/practices");
   await page.getByRole("button", { name: "开始聆听练习" }).click();
   await expect(page).toHaveURL(/\/practice\/[a-f0-9-]+$/);
