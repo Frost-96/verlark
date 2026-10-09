@@ -76,7 +76,7 @@ test("HTTP 入口只采用实际会话，拒绝匿名、伪造身份和跨账号
           origin,
           ...(cookie ? { cookie } : {}),
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ requestId: crypto.randomUUID(), ...body }),
       }),
       services,
     );
@@ -124,6 +124,50 @@ test("HTTP 入口只采用实际会话，拒绝匿名、伪造身份和跨账号
   expect((await practice.list(owner.learner)).map((item) => item.id)).toEqual([
     body.id,
   ]);
+});
+
+test("同一开始请求并发或跨版本重发只创建一次，换材料返回冲突", async () => {
+  const owner = await register();
+  const source = {
+    materialKey: `retry-${crypto.randomUUID()}`,
+    revision: 1,
+    title: "计划",
+    summary: "周末计划",
+    materialText: "Any plans?",
+    translation: "有什么计划？",
+    task: "说说你的计划。",
+    keywords: ["plan：计划"],
+    sentenceStarters: ["I'm going to …"],
+    example: "I'm going to read.",
+    audioPath: "/audio/weekend-v1.wav",
+  };
+  await content.publish(source);
+  const requestId = crypto.randomUUID();
+  const results = await Promise.all(
+    Array.from({ length: 5 }, () =>
+      practice.start(owner.learner, source.materialKey, requestId),
+    ),
+  );
+  expect(new Set(results.map((item) => item.id)).size).toBe(1);
+  await content.publish({ ...source, revision: 2 });
+  const retry = await practice.start(
+    owner.learner,
+    source.materialKey,
+    requestId,
+  );
+  expect(retry.id).toBe(results[0]!.id);
+  expect(retry.content.revision).toBe(1);
+  expect((await practice.list(owner.learner)).length).toBe(1);
+  await expect(
+    practice.start(owner.learner, "different-material", requestId),
+  ).rejects.toThrow("请求标识已用于其他材料");
+  const deliberate = await practice.start(
+    owner.learner,
+    source.materialKey,
+    crypto.randomUUID(),
+  );
+  expect(deliberate.id).not.toBe(retry.id);
+  expect(deliberate.content.revision).toBe(2);
 });
 afterAll(() => connection.close());
 
@@ -187,7 +231,11 @@ test("离开后继续同一练习；发布新版并移除源文件不改变旧�
     const first = await content.publish(
       JSON.parse(await readFile(path, "utf8")),
     );
-    const started = await practice.start(alice, source.materialKey);
+    const started = await practice.start(
+      alice,
+      source.materialKey,
+      crypto.randomUUID(),
+    );
     await content.publish({
       ...source,
       revision: 2,
@@ -207,7 +255,11 @@ test("离开后继续同一练习；发布新版并移除源文件不改变旧�
     expect((await practice.list(alice)).map((item) => item.id)).toEqual([
       started.id,
     ]);
-    const latest = await practice.start(alice, source.materialKey);
+    const latest = await practice.start(
+      alice,
+      source.materialKey,
+      crypto.randomUUID(),
+    );
     expect(latest.content.revision).toBe(2);
     expect(latest.id).not.toBe(started.id);
     expect((await practice.read(alice, started.id)).content.task).toBe(
@@ -220,12 +272,12 @@ test("离开后继续同一练习；发布新版并移除源文件不改变旧�
     await expect(practice.read(null, started.id)).rejects.toThrow(
       "请先验证邮箱并登录",
     );
-    await expect(practice.start(null, source.materialKey)).rejects.toThrow(
-      "请先验证邮箱并登录",
-    );
-    await expect(practice.start(alice, "missing-material")).rejects.toThrow(
-      "材料暂不可用",
-    );
+    await expect(
+      practice.start(null, source.materialKey, crypto.randomUUID()),
+    ).rejects.toThrow("请先验证邮箱并登录");
+    await expect(
+      practice.start(alice, "missing-material", crypto.randomUUID()),
+    ).rejects.toThrow("材料暂不可用");
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

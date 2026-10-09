@@ -36,12 +36,16 @@ export async function handlePracticeRequest(
     if (request.headers.get("origin") !== new URL(request.url).origin)
       return json({ message: "请求来源无效，请在本站重新操作。" }, 403);
     const parsed = z
-      .object({ materialKey: z.string() })
+      .object({ materialKey: z.string(), requestId: z.uuid() })
       .strict()
       .safeParse(await request.json().catch(() => null));
     if (!parsed.success) throw new PracticeError("invalid");
     return json(
-      await services.practice.start(learner, parsed.data.materialKey),
+      await services.practice.start(
+        learner,
+        parsed.data.materialKey,
+        parsed.data.requestId,
+      ),
       201,
     );
   } catch (error) {
@@ -52,7 +56,9 @@ export async function handlePracticeRequest(
           ? 401
           : error.code === "not-found"
             ? 404
-            : 400,
+            : error.code === "conflict"
+              ? 409
+              : 400,
       );
     if (isContentError(error)) return json({ message: error.message }, 404);
     return json({ message: "练习暂时不可用，请稍后重试。" }, 503);

@@ -32,6 +32,7 @@ export function createPractice(db: Database, content: LearningContent) {
     async start(
       learner: Learner | null,
       materialKey: string,
+      requestId: string,
     ): Promise<PracticeDetail> {
       const owner = requireLearner(learner);
       if (
@@ -41,13 +42,37 @@ export function createPractice(db: Database, content: LearningContent) {
           .safeParse(materialKey).success
       )
         throw new PracticeError("invalid");
+      if (!z.uuid().safeParse(requestId).success)
+        throw new PracticeError("invalid");
+      const sameRequest = and(
+        eq(practiceRecord.learnerId, owner.id),
+        eq(practiceRecord.requestId, requestId),
+      );
+      async function accepted(row: typeof practiceRecord.$inferSelect) {
+        const result = await detail(row);
+        if (result.content.materialKey !== materialKey)
+          throw new PracticeError("conflict");
+        return result;
+      }
+      const [existing] = await db
+        .select()
+        .from(practiceRecord)
+        .where(sameRequest);
+      if (existing) return accepted(existing);
       const version = await content.latestAvailable(materialKey);
-      const [row] = await db
+      await db
         .insert(practiceRecord)
-        .values({ learnerId: owner.id, contentVersionId: version.id })
-        .returning();
+        .values({
+          learnerId: owner.id,
+          contentVersionId: version.id,
+          requestId,
+        })
+        .onConflictDoNothing({
+          target: [practiceRecord.learnerId, practiceRecord.requestId],
+        });
+      const [row] = await db.select().from(practiceRecord).where(sameRequest);
       if (!row) throw new Error("练习保存失败，请稍后重试。");
-      return detail(row);
+      return accepted(row);
     },
     async read(learner: Learner | null, id: string): Promise<PracticeDetail> {
       const owner = requireLearner(learner);

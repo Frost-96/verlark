@@ -1,19 +1,21 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function StartPractice({ materialKey }: { materialKey: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const requestId = useRef<string | null>(null);
   async function start() {
+    requestId.current ??= crypto.randomUUID();
     setPending(true);
     setError("");
     try {
       const response = await fetch("/api/practices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ materialKey }),
+        body: JSON.stringify({ materialKey, requestId: requestId.current }),
       });
       const result = await response.json();
       if (!response.ok) {

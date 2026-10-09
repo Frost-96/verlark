@@ -48,6 +48,14 @@ test("选材、播放、分级帮助及关闭后继续，跨账号和匿名无�
   await expect(
     page.getByRole("heading", { name: "周末计划", exact: true }),
   ).toBeVisible();
+  // The server accepts the first request, but the browser never receives its response.
+  await page.route("**/api/practices", async (route) => {
+    await route.fetch();
+    await route.abort("failed");
+  });
+  await page.getByRole("button", { name: "开始聆听练习" }).click();
+  await expect(page.getByRole("alert")).toContainText("未能确认练习是否已保存");
+  await page.unroute("**/api/practices");
   await page.getByRole("button", { name: "开始聆听练习" }).click();
   await expect(page).toHaveURL(/\/practice\/[a-f0-9-]+$/);
   const practiceURL = page.url();
@@ -136,7 +144,11 @@ test("选材、播放、分级帮助及关闭后继续，跨账号和匿名无�
     );
     const forged = await outsider.request.post("/api/practices", {
       headers: { origin: "http://localhost:3100" },
-      data: { materialKey: "weekend-plans", userId: "forged-user" },
+      data: {
+        materialKey: "weekend-plans",
+        requestId: crypto.randomUUID(),
+        userId: "forged-user",
+      },
     });
     expect(forged.status()).toBe(400);
     expect(await (await outsider.request.get("/api/practices")).json()).toEqual(

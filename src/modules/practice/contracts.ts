@@ -9,12 +9,15 @@ export type PracticeSummary = {
 export type PracticeDetail = PracticeSummary & { content: ContentVersion };
 export class PracticeError extends Error {
   readonly name = "PracticeError";
-  constructor(public readonly code: "unauthorized" | "not-found" | "invalid") {
+  constructor(
+    public readonly code: "unauthorized" | "not-found" | "invalid" | "conflict",
+  ) {
     super(
       {
         unauthorized: "请先验证邮箱并登录。",
         "not-found": "找不到该练习，请返回练习记录。",
         invalid: "请求格式不正确，请重新选择材料。",
+        conflict: "请求标识已用于其他材料，请重新选择材料后开始。",
       }[code],
     );
   }
@@ -28,6 +31,7 @@ export function isPracticeError(error: unknown): error is PracticeError {
     "code" in error &&
     (error.code === "unauthorized" ||
       error.code === "not-found" ||
-      error.code === "invalid")
+      error.code === "invalid" ||
+      error.code === "conflict")
   );
 }
