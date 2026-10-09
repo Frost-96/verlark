@@ -1,0 +1,29 @@
+{
+  "testedAt": "2026-10-02T11:40:29.454Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "unknown page returns 404",
+      "status": "pass",
+      "elapsedMs": 26
+    },
+    {
+      "name": "debug pronunciation endpoint is unavailable anonymously",
+      "status": "fail",
+      "elapsedMs": 5,
+      "error": "Unauthenticated debug request reached the handler; HTTP 502"
+    },
+    {
+      "name": "writing submission persists actual word count",
+      "status": "fail",
+      "elapsedMs": 209,
+      "error": "Stored 0, actual 64"
+    },
+    {
+      "name": "speaking idle time is not counted as active practice",
+      "status": "fail",
+      "elapsedMs": 5113,
+      "error": "A session with no conversation records 86401 seconds"
+    }
+  ]
+}

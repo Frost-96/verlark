@@ -1,0 +1,124 @@
+{
+  "errors": 6,
+  "warnings": 7,
+  "findings": [
+    {
+      "file": "src/components/landing/footer.tsx",
+      "messages": [
+        {
+          "line": 38,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'socialLinks' is assigned a value but never used."
+        }
+      ]
+    },
+    {
+      "file": "src/components/layout/left-sidebar.tsx",
+      "messages": [
+        {
+          "line": 204,
+          "severity": 2,
+          "rule": "react-hooks/set-state-in-effect",
+          "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+        }
+      ]
+    },
+    {
+      "file": "src/components/speaking/speaking-session.tsx",
+      "messages": [
+        {
+          "line": 212,
+          "severity": 2,
+          "rule": "react-hooks/set-state-in-effect",
+          "message": "Error: Calling setState synchronously within an effect can trigger cascading renders"
+        },
+        {
+          "line": 263,
+          "severity": 2,
+          "rule": "react-hooks/immutability",
+          "message": "Error: Cannot access variable before it is declared"
+        },
+        {
+          "line": 324,
+          "severity": 2,
+          "rule": "react-hooks/preserve-manual-memoization",
+          "message": "Compilation Skipped: Existing memoization could not be preserved"
+        },
+        {
+          "line": 334,
+          "severity": 2,
+          "rule": "react-hooks/preserve-manual-memoization",
+          "message": "Compilation Skipped: Existing memoization could not be preserved"
+        }
+      ]
+    },
+    {
+      "file": "src/lib/speaking/pronunciation.ts",
+      "messages": [
+        {
+          "line": 9,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'speechToText' is defined but never used."
+        }
+      ]
+    },
+    {
+      "file": "src/lib/speaking/sttFlash.ts",
+      "messages": [
+        {
+          "line": 16,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'FLASH_API_BASE' is assigned a value but never used."
+        }
+      ]
+    },
+    {
+      "file": "src/schema/writing.schema.ts",
+      "messages": [
+        {
+          "line": 33,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'data' is defined but never used."
+        }
+      ]
+    },
+    {
+      "file": "src/test/test.ts",
+      "messages": [
+        {
+          "line": 50,
+          "severity": 2,
+          "rule": "@typescript-eslint/no-explicit-any",
+          "message": "Unexpected any. Specify a different type."
+        }
+      ]
+    },
+    {
+      "file": "src/test/test1.ts",
+      "messages": [
+        {
+          "line": 3,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'getSpeakingScenarioTypesAction' is defined but never used."
+        },
+        {
+          "line": 4,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'getWritingScenarioTypesAction' is defined but never used."
+        },
+        {
+          "line": 7,
+          "severity": 1,
+          "rule": "@typescript-eslint/no-unused-vars",
+          "message": "'scenarioService' is defined but never used."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "node": "v24.18.0",
+  "next": "16.2.1",
+  "prisma": "7.6.0",
+  "legacySeedRunnerPresent": false,
+  "buildExitCode": 0,
+  "typecheckExitCode": 2,
+  "sourceLint": {
+    "errors": 6,
+    "warnings": 7
+  },
+  "qaLintExitCode": 0,
+  "notes": [
+    "pnpm build/install was not rerun; local installed binaries used",
+    "Production build ignores test-file TypeScript diagnostics; independent tsc includes them"
+  ]
+}

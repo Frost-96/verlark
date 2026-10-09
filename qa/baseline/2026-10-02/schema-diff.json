@@ -1,0 +1,7 @@
+{
+  "status": null,
+  "signal": "SIGTERM",
+  "error": "ETIMEDOUT",
+  "output": "",
+  "stderr": "Loaded Prisma config from prisma.config.ts.\n\n"
+}

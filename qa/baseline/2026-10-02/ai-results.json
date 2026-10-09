@@ -1,0 +1,101 @@
+{
+  "testedAt": "2026-10-02T11:13:32.784Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "writing real AI grading and persistence",
+      "status": "pass",
+      "elapsedMs": 24069,
+      "detail": {
+        "status": "reviewed",
+        "overallScore": 6.5
+      }
+    },
+    {
+      "name": "writing graded review page",
+      "status": "pass",
+      "elapsedMs": 1104
+    },
+    {
+      "name": "coach SSE reply and persistence",
+      "status": "fail",
+      "elapsedMs": 5820,
+      "error": "AI Coach could not respond right now. Please try again."
+    },
+    {
+      "name": "coach non-stream reply",
+      "status": "fail",
+      "elapsedMs": 5028,
+      "error": "HTTP 502: AI Coach could not respond right now. Please try again."
+    },
+    {
+      "name": "coach blocks another account conversation",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No coach fixture"
+    },
+    {
+      "name": "speaking SSE reply and persistence",
+      "status": "fail",
+      "elapsedMs": 3274,
+      "error": "Speaking AI could not respond right now. Please try again."
+    },
+    {
+      "name": "speaking TTS yields audio bytes",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No audio_chunk payload from TTS"
+    },
+    {
+      "name": "speaking audio stored and signed playback works",
+      "status": "fail",
+      "elapsedMs": 13296,
+      "error": "Assistant audio path not persisted within 12 seconds"
+    },
+    {
+      "name": "STT recognizes synthetic English audio",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "TTS fixture unavailable"
+    },
+    {
+      "name": "Azure pronunciation assessment of synthetic audio",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "TTS fixture unavailable"
+    },
+    {
+      "name": "speaking end persists completed status",
+      "status": "pass",
+      "elapsedMs": 3206,
+      "detail": {
+        "status": "completed",
+        "totalTurns": 0,
+        "durationSeconds": 219
+      }
+    },
+    {
+      "name": "speaking AI review persists scores",
+      "status": "fail",
+      "elapsedMs": 2106,
+      "error": "HTTP 502: AI review error: 401 Invalid API Key"
+    },
+    {
+      "name": "speaking duplicate review rejected",
+      "status": "fail",
+      "elapsedMs": 650,
+      "error": "HTTP 502"
+    },
+    {
+      "name": "speaking review page loads",
+      "status": "pass",
+      "elapsedMs": 1780
+    },
+    {
+      "name": "speaking end excludes idle days from practice duration",
+      "status": "fail",
+      "elapsedMs": 3635,
+      "error": "Idle exercise counted as 86400 seconds of practice"
+    }
+  ]
+}

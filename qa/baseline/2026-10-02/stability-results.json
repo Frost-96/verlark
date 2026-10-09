@@ -1,0 +1,36 @@
+{
+  "testedAt": "2026-10-02T11:38:58.726Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "authenticated page retry 1 /dashboard",
+      "status": "pass",
+      "elapsedMs": 1206
+    },
+    {
+      "name": "authenticated page retry 1 /speaking",
+      "status": "pass",
+      "elapsedMs": 1108
+    },
+    {
+      "name": "authenticated page retry 1 /settings",
+      "status": "pass",
+      "elapsedMs": 199
+    },
+    {
+      "name": "authenticated page retry 2 /dashboard",
+      "status": "pass",
+      "elapsedMs": 597
+    },
+    {
+      "name": "authenticated page retry 2 /speaking",
+      "status": "pass",
+      "elapsedMs": 1149
+    },
+    {
+      "name": "authenticated page retry 2 /settings",
+      "status": "pass",
+      "elapsedMs": 201
+    }
+  ]
+}

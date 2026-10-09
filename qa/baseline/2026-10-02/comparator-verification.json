@@ -1,0 +1,13 @@
+{
+  "passed": 8,
+  "checks": [
+    "unchanged baseline accepts 8 known failures",
+    "new failure rejected",
+    "missing suite rejected",
+    "missing test rejected",
+    "invalid or skipped test rejected",
+    "changed failure reason rejected",
+    "fixed behavior identified",
+    "variable elapsed time normalized"
+  ]
+}

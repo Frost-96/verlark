@@ -1,0 +1,99 @@
+{
+  "testedAt": "2026-10-02T11:26:15.600Z",
+  "baseURL": "http://127.0.0.1:3001",
+  "results": [
+    {
+      "name": "mock coach SSE completes and persists exact text",
+      "status": "pass",
+      "elapsedMs": 7100,
+      "detail": {
+        "events": [
+          "text_delta",
+          "message_saved",
+          "done"
+        ]
+      }
+    },
+    {
+      "name": "mock coach non-stream continues existing history",
+      "status": "pass",
+      "elapsedMs": 3668
+    },
+    {
+      "name": "mock coach cross-account access rejected",
+      "status": "pass",
+      "elapsedMs": 399
+    },
+    {
+      "name": "mock coach 401 rolls back user message",
+      "status": "pass",
+      "elapsedMs": 3618
+    },
+    {
+      "name": "mock coach empty rolls back user message",
+      "status": "pass",
+      "elapsedMs": 3714
+    },
+    {
+      "name": "mock speaking SSE includes text, audio and persistence",
+      "status": "pass",
+      "elapsedMs": 5524,
+      "detail": {
+        "events": [
+          "text_delta",
+          "sentence",
+          "audio_chunk",
+          "message_saved",
+          "done"
+        ],
+        "messages": 2
+      }
+    },
+    {
+      "name": "mock stored assistant audio signed and playable",
+      "status": "pass",
+      "elapsedMs": 911
+    },
+    {
+      "name": "mock speaking upstream error rolls back message and turn count",
+      "status": "pass",
+      "elapsedMs": 3676
+    },
+    {
+      "name": "mock TTS failure retains valid speaking text",
+      "status": "pass",
+      "elapsedMs": 3176
+    },
+    {
+      "name": "mock speaking finish and structured AI review persist",
+      "status": "pass",
+      "elapsedMs": 6569,
+      "detail": {
+        "status": "reviewed",
+        "fluency_score": 7,
+        "accuracy_score": 8
+      }
+    },
+    {
+      "name": "mock duplicate speaking review returns conflict",
+      "status": "pass",
+      "elapsedMs": 562
+    },
+    {
+      "name": "mock malformed writing JSON fails without saving a review",
+      "status": "pass",
+      "elapsedMs": 387
+    },
+    {
+      "name": "mock writing retries successfully after provider failure",
+      "status": "pass",
+      "elapsedMs": 774
+    },
+    {
+      "name": "duplicate writing submit rejects before calling provider",
+      "status": "fail",
+      "elapsedMs": 388,
+      "error": "Rejected duplicate still made 1 provider call(s); HTTP 500"
+    }
+  ]
+}
