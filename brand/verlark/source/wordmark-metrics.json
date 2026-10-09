@@ -1,0 +1,19 @@
+{
+  "font": "Manrope",
+  "weight": 650,
+  "size": 100,
+  "unitsPerEm": 2000,
+  "text": "verlark",
+  "positions": [
+    10.0,
+    61.15,
+    118.9,
+    157.2,
+    183.45,
+    238.55,
+    276.75
+  ],
+  "width": 339.85,
+  "height": 115,
+  "baseline": 95
+}

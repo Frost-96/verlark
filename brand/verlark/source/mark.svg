@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <title>Verlark — unfolded voice</title>
+  <g fill="#000000">
+    <path id="short-fold" d="M24 80H58C91 80 111 110 121 157C127 183 122 204 108 220C84 203 69 169 57 135C48 111 39 104 24 104Z"/>
+    <path id="rising-fold" d="M128 224C147 200 156 163 169 119L182 77C192 45 211 32 232 32V57C217 64 209 81 203 103L189 151C176 197 158 224 128 224Z"/>
+  </g>
+</svg>

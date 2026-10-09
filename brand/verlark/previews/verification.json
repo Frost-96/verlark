@@ -1,0 +1,505 @@
+{
+  "date": "2026-10-02",
+  "svgRendered": 14,
+  "coreSvgRasterEmbeds": false,
+  "coreSvgFontDependency": false,
+  "checks": [
+    {
+      "file": "brand/verlark/exports/app-icon.svg",
+      "width": 256,
+      "height": 256,
+      "visibleBounds": [
+        0,
+        0,
+        255,
+        255
+      ],
+      "transparentPixels": 0,
+      "sha256": "b9e6531bec037544550e5eefe5244c6d02531b501fa4e811fc5015dd24099c49"
+    },
+    {
+      "file": "brand/verlark/exports/logo-black.svg",
+      "width": 528,
+      "height": 138,
+      "visibleBounds": [
+        12,
+        16,
+        518,
+        117
+      ],
+      "transparentPixels": 57823,
+      "sha256": "a5a13a8582798f15792ead13b046f0c019246919109fa621c4772645c3e749cb"
+    },
+    {
+      "file": "brand/verlark/exports/logo-primary.svg",
+      "width": 528,
+      "height": 138,
+      "visibleBounds": [
+        12,
+        16,
+        518,
+        117
+      ],
+      "transparentPixels": 57823,
+      "sha256": "d657aff1ae192c8b6e9296ea1856f2005582cde81f4c8cae7d6ceb6a01074679"
+    },
+    {
+      "file": "brand/verlark/exports/logo-white.svg",
+      "width": 528,
+      "height": 138,
+      "visibleBounds": [
+        12,
+        16,
+        518,
+        117
+      ],
+      "transparentPixels": 57823,
+      "sha256": "cb56f340bd37bde160b7de408ba0d240c9f3e8810f485823f14a618f0211c539"
+    },
+    {
+      "file": "brand/verlark/exports/mark-black.svg",
+      "width": 256,
+      "height": 256,
+      "visibleBounds": [
+        24,
+        32,
+        231,
+        223
+      ],
+      "transparentPixels": 52578,
+      "sha256": "4db7556cd9d740399bfb6b569a848b6a7b9955e4d2d5708451e37032e659de53"
+    },
+    {
+      "file": "brand/verlark/exports/mark-primary.svg",
+      "width": 256,
+      "height": 256,
+      "visibleBounds": [
+        24,
+        32,
+        231,
+        223
+      ],
+      "transparentPixels": 52578,
+      "sha256": "f4f29f9b4352e25c8285ed792cfb376d7d14ee5ae8550c61ac8d4498a78e771d"
+    },
+    {
+      "file": "brand/verlark/exports/mark-white.svg",
+      "width": 256,
+      "height": 256,
+      "visibleBounds": [
+        24,
+        32,
+        231,
+        223
+      ],
+      "transparentPixels": 52578,
+      "sha256": "f89e7114cfa1082b2f70d63158bf65ded56bb60cb016137c1d522316f4d4a9fd"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-black.svg",
+      "width": 340,
+      "height": 115,
+      "visibleBounds": [
+        12,
+        21,
+        331,
+        96
+      ],
+      "transparentPixels": 29672,
+      "sha256": "7dc488222233ca3e3dffd33e8cc2c28fbe2629ec204186e2a58c470bf0a24863"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-primary.svg",
+      "width": 340,
+      "height": 115,
+      "visibleBounds": [
+        12,
+        21,
+        331,
+        96
+      ],
+      "transparentPixels": 29672,
+      "sha256": "8f4b47549ce09f2f91e1e1969b313341da4a0816e1a41569df6a5673564e14a5"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-white.svg",
+      "width": 340,
+      "height": 115,
+      "visibleBounds": [
+        12,
+        21,
+        331,
+        96
+      ],
+      "transparentPixels": 29672,
+      "sha256": "0048ebc694edc4b1d74494da83d653a595c0caeb3c3358ade180441b4bad21d1"
+    },
+    {
+      "file": "brand/verlark/previews/brand-board.svg",
+      "width": 1440,
+      "height": 1120,
+      "visibleBounds": [
+        0,
+        0,
+        1439,
+        1119
+      ],
+      "transparentPixels": 0,
+      "sha256": "2490f70c3632b3b5287c5dbcbd166e880dbe039c3acab4145d18ad826d8bf35b"
+    },
+    {
+      "file": "brand/verlark/previews/size-tests.svg",
+      "width": 1280,
+      "height": 890,
+      "visibleBounds": [
+        0,
+        0,
+        1279,
+        889
+      ],
+      "transparentPixels": 0,
+      "sha256": "b6d74f65407622992b4d4f4f4a71ef7169ad5c4cd22e49996998fad5cf8d63cc"
+    },
+    {
+      "file": "brand/verlark/source/mark.svg",
+      "width": 256,
+      "height": 256,
+      "visibleBounds": [
+        24,
+        32,
+        231,
+        223
+      ],
+      "transparentPixels": 52578,
+      "sha256": "8df0b08c08ba41cb38fecb81cae0dff16f28068d95f26ec1c5e71fa8e9931dd9"
+    },
+    {
+      "file": "brand/verlark/source/wordmark-outline.svg",
+      "width": 340,
+      "height": 115,
+      "visibleBounds": [
+        12,
+        21,
+        331,
+        96
+      ],
+      "transparentPixels": 29672,
+      "sha256": "6d562b1a5234d5703d53b879b58109ca7ebedb02d7b72d675bebce47090394a7"
+    }
+  ],
+  "contrast": {
+    "emberOnPaper": 4.254271624519081,
+    "emberOnWhite": 4.673069986000386,
+    "inkOnPaper": 13.473780552185763
+  },
+  "browserTextSourceCheck": {
+    "fontLoaded": true,
+    "comparisonSize": [
+      1360,
+      460
+    ],
+    "comparisonPixels": 625600,
+    "meanAbsoluteDifference": 0.016585677749360615,
+    "pixelsDifferingOver64": 1,
+    "interpretation": "Matching glyphs and positions; residual rasterisation differences, visually inspected in Chromium."
+  },
+  "visualChecks": {
+    "markIconCanvasSizes": [
+      1024,
+      256,
+      64,
+      32,
+      16
+    ],
+    "lockupCanvasWidths": [
+      1024,
+      256,
+      64,
+      32,
+      16
+    ],
+    "recommendedMinima": {
+      "symbolCanvas": 16,
+      "appIconCanvas": 16,
+      "wordmarkWidth": 120,
+      "horizontalLockupWidth": 176
+    },
+    "unsupported": "Full wordmark/lockup in 16/32/64 px slots. Use symbol or icon instead.",
+    "backgrounds": [
+      "paper",
+      "white",
+      "ink"
+    ],
+    "scope": "Local desktop Chromium, actual-size studies plus enlarged geometric inspection. No audience recall test or platform submission package."
+  },
+  "pngs": [
+    {
+      "file": "brand/verlark/exports/app-icon-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "aeef08fe21281e3037ef4e9d7affd5973bd5a5ee27040adc5d2648359ebc7db9"
+    },
+    {
+      "file": "brand/verlark/exports/app-icon-16.png",
+      "width": 16,
+      "height": 16,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "0451f4d4ee0c878c4099d7a1df7937acbcb923f9968253b190b9d62b7fb6fb24"
+    },
+    {
+      "file": "brand/verlark/exports/app-icon-256.png",
+      "width": 256,
+      "height": 256,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "7ec9d76c8c9c544ddbd50a437eddefc1d4503fa6f3683fc59a67a0954f349aef"
+    },
+    {
+      "file": "brand/verlark/exports/app-icon-32.png",
+      "width": 32,
+      "height": 32,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "40f42ade8b140f295d24e70a11c2d7b04f0e49756f02f35c92152a9278aa2195"
+    },
+    {
+      "file": "brand/verlark/exports/app-icon-64.png",
+      "width": 64,
+      "height": 64,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "6bc08b982e7587c772dd0a299e185f75e15759c496be3860c70cd493802fbf00"
+    },
+    {
+      "file": "brand/verlark/exports/app-icon.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "aeef08fe21281e3037ef4e9d7affd5973bd5a5ee27040adc5d2648359ebc7db9"
+    },
+    {
+      "file": "brand/verlark/exports/logo-black.png",
+      "width": 1600,
+      "height": 418,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "9e07fc93610290a4fcd350cd52000f5f382002bdce36ff8cfdaa8224aa654023"
+    },
+    {
+      "file": "brand/verlark/exports/logo-primary.png",
+      "width": 1600,
+      "height": 418,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "e1f8a1853563d668a9d1a2fe1bbd358b7a99ce9b44baefc2cd3cc1b996e4d37e"
+    },
+    {
+      "file": "brand/verlark/exports/logo-white.png",
+      "width": 1600,
+      "height": 418,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "10304b3a2402dee20ad3e5fab8012be4c14077d06f964dc81a04994720e72f45"
+    },
+    {
+      "file": "brand/verlark/exports/mark-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "2e884181bb689a5f3fe0676ec826291a0a6260aa01d10f913feb86876a0df94e"
+    },
+    {
+      "file": "brand/verlark/exports/mark-16.png",
+      "width": 16,
+      "height": 16,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "244e9d6cd105fd7ccfec28a9fbd7371418b69df16126f194ae9ee8f420735594"
+    },
+    {
+      "file": "brand/verlark/exports/mark-256.png",
+      "width": 256,
+      "height": 256,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "99143137ab7cb1e48341735517fe1dd1ec5a2fb59f77d225948dd2ce22a45bd7"
+    },
+    {
+      "file": "brand/verlark/exports/mark-32.png",
+      "width": 32,
+      "height": 32,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "0d37787aae248f3a1fbe66212c6a7aa3d6cdb97644a6f3ac4c8b8c34d319c5df"
+    },
+    {
+      "file": "brand/verlark/exports/mark-64.png",
+      "width": 64,
+      "height": 64,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "4304550a4517b6dfadc9aaa155500b22604ec3ef64af4fd319f9d33708293521"
+    },
+    {
+      "file": "brand/verlark/exports/mark-black.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "0ccced8e1903af23adea7dca0b9acb2e1621ec5958ec1a0687c8fcd0eb0a4ab6"
+    },
+    {
+      "file": "brand/verlark/exports/mark-primary.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "2e884181bb689a5f3fe0676ec826291a0a6260aa01d10f913feb86876a0df94e"
+    },
+    {
+      "file": "brand/verlark/exports/mark-white.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "a88f7fc2df2d15aa572302cf704c3025bb7b91bf344451b636e905209a728b74"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-black.png",
+      "width": 1600,
+      "height": 541,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "19dacc57ecf93134b55dbd3e65fcce27f669d5b373e99a97f420328c3d12eb5f"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-primary.png",
+      "width": 1600,
+      "height": 541,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "4cde5d71e10fd1e25a372678ab820619e55fa79e6fe93fee1c94eceb6a1061a7"
+    },
+    {
+      "file": "brand/verlark/exports/wordmark-white.png",
+      "width": 1600,
+      "height": 541,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "5dbda429e9627ed94b9b3df782c3458d044e28b3e3d7040113fc56b02f20ab20"
+    },
+    {
+      "file": "brand/verlark/previews/brand-board.png",
+      "width": 1440,
+      "height": 1120,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "f2ccc3f44a3a31f8bbe7444a693be78050dcbba3dd4feba6748401e35e0d8214"
+    },
+    {
+      "file": "brand/verlark/previews/lockup-reduction.png",
+      "width": 1120,
+      "height": 650,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "412dbd5f0afc7821bc898d7901fe5b6e2c5d5113b485ebd52f2bfe63885c16f6"
+    },
+    {
+      "file": "brand/verlark/previews/logo-study-1024.png",
+      "width": 1024,
+      "height": 268,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "b8fc4697b51a4fadce5df1dc39dc5699b08ef2c8079797851355ad29b5422eca"
+    },
+    {
+      "file": "brand/verlark/previews/logo-study-16.png",
+      "width": 16,
+      "height": 4,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "bb328de7922c0568e22b44a387ff307e667658e31c8f76cae0676eccc9f41910"
+    },
+    {
+      "file": "brand/verlark/previews/logo-study-256.png",
+      "width": 256,
+      "height": 67,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "712d80d4589793b978e10436bd28e968de5066ac552f8cf005ff542c95d121e5"
+    },
+    {
+      "file": "brand/verlark/previews/logo-study-32.png",
+      "width": 32,
+      "height": 8,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "d4520a7470cfc835511bcc9abeebc2c68d48dd4d4638cad1fce869558e3466ea"
+    },
+    {
+      "file": "brand/verlark/previews/logo-study-64.png",
+      "width": 64,
+      "height": 17,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "4197249d61daa32d00f248ebca3ae41d1a99e0801b862f59636c0d340bf76dee"
+    },
+    {
+      "file": "brand/verlark/previews/mark-monochrome-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "0ccced8e1903af23adea7dca0b9acb2e1621ec5958ec1a0687c8fcd0eb0a4ab6"
+    },
+    {
+      "file": "brand/verlark/previews/monochrome-review.png",
+      "width": 1120,
+      "height": 760,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "181382461d00e5161d281c1bb72c8f3ca85c5dce413795fe46c6b91e0e34e9f5"
+    },
+    {
+      "file": "brand/verlark/previews/size-tests.png",
+      "width": 1280,
+      "height": 890,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "4f8a6dabd49fbc656b50bbf9a2ba8afdb60a5689d01efaf14dfc86e3293380ff"
+    },
+    {
+      "file": "brand/verlark/previews/wordmark-monochrome.png",
+      "width": 1200,
+      "height": 406,
+      "channels": 4,
+      "hasAlpha": true,
+      "sha256": "cf896974b023c214b66f07e75a3947fc47a3a27e184235dae35d1a29c1ceb80c"
+    }
+  ],
+  "exploration": [
+    {
+      "id": "V01",
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "id": "V02",
+      "width": 1254,
+      "height": 1254,
+      "hasAlpha": true
+    },
+    {
+      "id": "V03",
+      "width": 2073,
+      "height": 758,
+      "hasAlpha": true
+    }
+  ]
+}

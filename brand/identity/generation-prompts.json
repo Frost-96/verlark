@@ -1,0 +1,43 @@
+{
+  "tool": "image_gen__imagegen",
+  "mode": "built-in",
+  "date": "2026-10-02",
+  "prompts": [
+    {
+      "id": "V01",
+      "prompt": "Use case: logo-brand. Asset type: economical monochrome logo concept sketch for a new English practice product named Verlark. Draw ONE original logo symbol, centered alone on a pure white square, black ink only, no words. Concept: an unfolded voice; a compact asymmetrical lowercase-v-like silhouette formed by two broad, beautifully curved rising planes. The left plane is shorter with a deliberate square-ended folded return; the right plane is taller and arcs outward, the two separated by one generous crisp wedge of negative space. More thoughtful editorial mark than airline or sports logo. Strong black silhouette, rounded outer shoulders and decisive flat-cut terminals, a single identifying notch. Warm, composed, encouraging adult learning identity. Flat vector-style shapes with perfect edges. No gradients, shadows, 3D, page mockup, tile frame, arrows, checkmark, letter labels, mascots, microphone, speech bubble, sparkle, or decorative lines. Show only one well-resolved black symbol; about 55 percent of canvas width, generous whitespace.",
+      "inputImages": [],
+      "role": "monochrome concept exploration; not final asset",
+      "outputPath": "exploration/V01.png",
+      "actualDimensions": [
+        1254,
+        1254
+      ],
+      "providerModel": "not exposed by tool response"
+    },
+    {
+      "id": "V02",
+      "prompt": "Use case: logo-brand. Asset type: economical monochrome logo concept sketch for a new English practice product named Verlark. Draw ONE original compact symbol, black on pure white, no words. Concept: a perched phrase. A refined adult, editorial side-profile songbird turned right, built from only two or three bold geometric organic shapes, short calm body on a deliberate short baseline. Distinctive open triangular negative-space throat between head/beak and body, a blunt tilted tail, one lifted shoulder. The bird should have a specific quiet, alert stance, not generic flight wings. No eye dots, feathers, tiny details, mascot faces, owl appearance, infinity loops, gradients, shadows, 3D, speech bubbles, microphones, or tile background. Beautiful controlled curves, one strong silhouette and crisp cut. Small favicon readability. Center one symbol at about 55 percent width in generous square white canvas.",
+      "inputImages": [],
+      "role": "monochrome concept exploration; not final asset",
+      "outputPath": "exploration/V02.png",
+      "actualDimensions": [
+        1254,
+        1254
+      ],
+      "providerModel": "not exposed by tool response"
+    },
+    {
+      "id": "V03",
+      "prompt": "Use case: logo-brand. Asset type: economical monochrome wordmark logo concept for a new English writing and speaking practice product. Exact text: \"verlark\" all lowercase, v e r l a r k, no other text. Draw ONE black custom wordmark alone on pure white wide canvas. Distinctive typographic treatment: substantial humanist geometric sans, open double-storey a, softly curved outer corners with clean square-cut terminals. Carefully optically spaced lettering. The v has slightly unequal arms with a gentle upward return at the left tip, echoed quietly in the final k leg, without sacrificing letter recognition. Friendly but composed adult learning tool, contemporary editorial lettering, strong baseline, neither cute nor corporate. No separate icon, no ligatures making spelling ambiguous, no underline, no gradients, shadows, 3D, or presentation furniture. Render one clean black wordmark with generous margin.",
+      "inputImages": [],
+      "role": "monochrome concept exploration; not final asset",
+      "outputPath": "exploration/V03.png",
+      "actualDimensions": [
+        2073,
+        758
+      ],
+      "providerModel": "not exposed by tool response"
+    }
+  ]
+}
