@@ -3,7 +3,14 @@ const databaseURL = process.env.E2E_DATABASE_URL;
 if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_test"))
   throw new Error("浏览器验证需要独立 E2E_DATABASE_URL，库名以 _test 结尾。");
 process.env.E2E_PREFIX ??= `browser-${Date.now()}`;
-const emails = ["desktop", "mobile"]
+const emails = [
+  "desktop",
+  "mobile",
+  "learning-desktop",
+  "learning-mobile",
+  "other-desktop",
+  "other-mobile",
+]
   .map((device) => `${process.env.E2E_PREFIX}-${device}@example.com`)
   .join(",");
 export default defineConfig({
@@ -24,7 +31,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm db:migrate && pnpm dev --hostname 127.0.0.1 --port 3100",
+    command:
+      "pnpm db:migrate && pnpm content:publish && pnpm dev --hostname 127.0.0.1 --port 3100",
     url: "http://localhost:3100",
     reuseExistingServer: false,
     timeout: 120000,
