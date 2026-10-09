@@ -1,0 +1,17 @@
+{
+  "testedAt": "2026-10-02T11:34:25.054Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "unknown public page returns 404",
+      "status": "pass",
+      "elapsedMs": 17
+    },
+    {
+      "name": "debug pronunciation route requires authentication",
+      "status": "fail",
+      "elapsedMs": 7,
+      "error": "HTTP 502; exposes local file path: false"
+    }
+  ]
+}

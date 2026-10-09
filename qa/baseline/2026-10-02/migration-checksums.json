@@ -1,0 +1,22 @@
+[
+  {
+    "migration": "20260417092413_init",
+    "match": "lf"
+  },
+  {
+    "migration": "20260424093000_remove_users_english_level_default",
+    "match": "lf"
+  },
+  {
+    "migration": "20260526000000_add_message_pronunciation_fields",
+    "match": "crlf"
+  },
+  {
+    "migration": "20260529090000_normalize_writing_reviewed_status",
+    "match": "crlf"
+  },
+  {
+    "migration": "20260529110000_add_user_preferred_locale",
+    "match": "crlf"
+  }
+]

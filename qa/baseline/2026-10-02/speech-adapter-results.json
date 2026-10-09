@@ -1,0 +1,47 @@
+{
+  "testedAt": "2026-10-02T11:29:00.037Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "STT SDK request maps audio bytes and transcript response",
+      "status": "pass",
+      "elapsedMs": 9
+    },
+    {
+      "name": "STT empty audio rejected before SDK call",
+      "status": "pass",
+      "elapsedMs": 0
+    },
+    {
+      "name": "STT error produces controlled error",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "STT empty produces controlled error",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "Azure SDK result maps scores, words, phonemes and persists",
+      "status": "pass",
+      "elapsedMs": 1538
+    },
+    {
+      "name": "pronunciation rejects cross-account message before SDK call",
+      "status": "fail",
+      "elapsedMs": 1142,
+      "error": "Another account's message was changed to 91; HTTP 200"
+    },
+    {
+      "name": "Azure no speech produces controlled error",
+      "status": "pass",
+      "elapsedMs": 19
+    },
+    {
+      "name": "speech routes reject missing request identity",
+      "status": "pass",
+      "elapsedMs": 0
+    }
+  ]
+}

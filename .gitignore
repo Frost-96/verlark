@@ -40,15 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-#claude
-.claude
-CLAUDE.md
-docs
-learning-guide
-/generated/prisma
-
-
-# plan
-plan/
-plan.md
-.env
+# Local recovery archives and isolated test artifacts
+/.local-snapshots/
+/.pnpm-store/
+/.dev-mail/
+/test-results/
+/playwright-report/
+!.env.example

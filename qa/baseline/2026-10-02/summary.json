@@ -1,0 +1,48 @@
+{
+  "total": 94,
+  "passed": 86,
+  "failed": 8,
+  "sourceFilesChangedDuringCheck": [],
+  "failedTests": [
+    {
+      "suite": "core-results.json",
+      "name": "partial profile update preserves onboarding fields",
+      "error": "Omitted fields were cleared to NULL"
+    },
+    {
+      "suite": "core-results.json",
+      "name": "writing title rename preserves original prompt",
+      "error": "Renaming replaces the writing prompt"
+    },
+    {
+      "suite": "mock-results.json",
+      "name": "duplicate writing submit rejects before calling provider",
+      "error": "Rejected duplicate still made 1 provider call(s); HTTP 500"
+    },
+    {
+      "suite": "speech-adapter-results.json",
+      "name": "pronunciation rejects cross-account message before SDK call",
+      "error": "Another account's message was changed to 91; HTTP 200"
+    },
+    {
+      "suite": "operation-results.json",
+      "name": "deleted account cannot mutate using a previously issued session",
+      "error": "Deleted account can still create writing exercises with its old JWT"
+    },
+    {
+      "suite": "regression-results.json",
+      "name": "debug pronunciation endpoint is unavailable anonymously",
+      "error": "Unauthenticated debug request reached the handler; HTTP 502"
+    },
+    {
+      "suite": "regression-results.json",
+      "name": "writing submission persists actual word count",
+      "error": "Stored 0, actual 64"
+    },
+    {
+      "suite": "regression-results.json",
+      "name": "speaking idle time is not counted as active practice",
+      "error": "A session with no conversation records 86401 seconds"
+    }
+  ]
+}

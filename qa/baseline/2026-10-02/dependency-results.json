@@ -1,0 +1,70 @@
+{
+  "testedAt": "2026-10-02T11:17:26.609Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "database columns match Prisma scalar fields",
+      "status": "pass",
+      "elapsedMs": 249,
+      "detail": {
+        "tables": 8,
+        "fields": 100,
+        "scope": "presence, nullability, varchar length; not complete index/default drift detection"
+      }
+    },
+    {
+      "name": "database migration ledger matches local migrations",
+      "status": "fail",
+      "elapsedMs": 184,
+      "error": "{\"unapplied\":[],\"missingOrChanged\":[\"20260526000000_add_message_pronunciation_fields\",\"20260529090000_normalize_writing_reviewed_status\",\"20260529110000_add_user_preferred_locale\"]}"
+    },
+    {
+      "name": "current speaking LLM credentials",
+      "status": "fail",
+      "elapsedMs": 321,
+      "error": "401 Invalid API Key"
+    },
+    {
+      "name": "independent TTS generates synthetic speech",
+      "status": "fail",
+      "elapsedMs": 240,
+      "error": "TTS error: 401 Invalid API Key"
+    },
+    {
+      "name": "user-audio storage upload, signed read, cleanup",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No synthetic audio fixture"
+    },
+    {
+      "name": "ai-audio storage upload, signed read, cleanup",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No synthetic audio fixture"
+    },
+    {
+      "name": "independent STT transcribes synthetic speech",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No synthetic audio fixture"
+    },
+    {
+      "name": "Azure assessment accepts synthetic speech",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No synthetic audio fixture"
+    },
+    {
+      "name": "pronunciation cannot update another account message",
+      "status": "fail",
+      "elapsedMs": 0,
+      "error": "No isolation fixture"
+    },
+    {
+      "name": "writing submission updates word count",
+      "status": "fail",
+      "elapsedMs": 183,
+      "error": "Stored 0, actual 64"
+    }
+  ]
+}

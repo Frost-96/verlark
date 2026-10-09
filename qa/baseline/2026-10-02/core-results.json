@@ -1,0 +1,348 @@
+{
+  "testedAt": "2026-10-02T11:09:47.919Z",
+  "baseURL": "http://127.0.0.1:3000",
+  "results": [
+    {
+      "name": "database SELECT 1 and all application tables readable",
+      "status": "pass",
+      "elapsedMs": 2028,
+      "detail": {
+        "tables": 8,
+        "migrations": [
+          {
+            "migration_name": "20260417092413_init",
+            "finished": true,
+            "rolled_back": false
+          },
+          {
+            "migration_name": "20260424093000_remove_users_english_level_default",
+            "finished": true,
+            "rolled_back": false
+          },
+          {
+            "migration_name": "20260526000000_add_message_pronunciation_fields",
+            "finished": true,
+            "rolled_back": false
+          },
+          {
+            "migration_name": "20260529090000_normalize_writing_reviewed_status",
+            "finished": true,
+            "rolled_back": false
+          },
+          {
+            "migration_name": "20260529110000_add_user_preferred_locale",
+            "finished": true,
+            "rolled_back": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "public GET /",
+      "status": "pass",
+      "elapsedMs": 47
+    },
+    {
+      "name": "public GET /login",
+      "status": "pass",
+      "elapsedMs": 7
+    },
+    {
+      "name": "public GET /signup",
+      "status": "pass",
+      "elapsedMs": 6
+    },
+    {
+      "name": "public GET /forgot-password",
+      "status": "pass",
+      "elapsedMs": 5
+    },
+    {
+      "name": "public GET /pricing",
+      "status": "pass",
+      "elapsedMs": 6
+    },
+    {
+      "name": "anonymous redirect /dashboard",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous redirect /writing",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "anonymous redirect /speaking",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous redirect /coach",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous redirect /profile",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous redirect /settings",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous denial /api/writing/submit",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "anonymous denial /api/coach/chat",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous denial /api/coach/chat-stream",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous denial /api/speaking/chat",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "anonymous denial /api/speaking/chat-stream",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "anonymous denial /api/speaking/stt",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "anonymous denial /api/speaking/pronunciation",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "anonymous denial /api/speaking/review",
+      "status": "pass",
+      "elapsedMs": 1
+    },
+    {
+      "name": "anonymous denial /api/speaking/getAudioURL",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "invalid session rejected",
+      "status": "pass",
+      "elapsedMs": 2
+    },
+    {
+      "name": "signup rejects mismatched passwords",
+      "status": "pass",
+      "elapsedMs": 4
+    },
+    {
+      "name": "signup a and onboarding redirect",
+      "status": "pass",
+      "elapsedMs": 1247
+    },
+    {
+      "name": "onboarding a persists",
+      "status": "pass",
+      "elapsedMs": 591
+    },
+    {
+      "name": "signup b and onboarding redirect",
+      "status": "pass",
+      "elapsedMs": 627
+    },
+    {
+      "name": "onboarding b persists",
+      "status": "pass",
+      "elapsedMs": 619
+    },
+    {
+      "name": "duplicate registration rejected",
+      "status": "pass",
+      "elapsedMs": 429
+    },
+    {
+      "name": "wrong password rejected",
+      "status": "pass",
+      "elapsedMs": 1236
+    },
+    {
+      "name": "login and external redirect sanitization",
+      "status": "pass",
+      "elapsedMs": 408
+    },
+    {
+      "name": "authenticated GET /dashboard",
+      "status": "pass",
+      "elapsedMs": 1824
+    },
+    {
+      "name": "authenticated GET /writing",
+      "status": "pass",
+      "elapsedMs": 1192
+    },
+    {
+      "name": "authenticated GET /speaking",
+      "status": "pass",
+      "elapsedMs": 1200
+    },
+    {
+      "name": "authenticated GET /coach",
+      "status": "pass",
+      "elapsedMs": 405
+    },
+    {
+      "name": "authenticated GET /profile",
+      "status": "pass",
+      "elapsedMs": 394
+    },
+    {
+      "name": "authenticated GET /settings",
+      "status": "pass",
+      "elapsedMs": 229
+    },
+    {
+      "name": "input validation /api/writing/submit",
+      "status": "pass",
+      "elapsedMs": 6
+    },
+    {
+      "name": "input validation /api/coach/chat",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "input validation /api/coach/chat-stream",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "input validation /api/speaking/chat",
+      "status": "pass",
+      "elapsedMs": 4
+    },
+    {
+      "name": "input validation /api/speaking/chat-stream",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "input validation /api/speaking/stt",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "input validation /api/speaking/pronunciation",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "input validation /api/speaking/review",
+      "status": "pass",
+      "elapsedMs": 4
+    },
+    {
+      "name": "input validation /api/speaking/getAudioURL",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "malformed JSON /api/writing/submit",
+      "status": "pass",
+      "elapsedMs": 5
+    },
+    {
+      "name": "malformed JSON /api/coach/chat",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "malformed JSON /api/coach/chat-stream",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "malformed JSON /api/speaking/review",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "audio URL blocks another user path",
+      "status": "pass",
+      "elapsedMs": 3
+    },
+    {
+      "name": "partial profile update preserves onboarding fields",
+      "status": "fail",
+      "elapsedMs": 833,
+      "error": "Omitted fields were cleared to NULL"
+    },
+    {
+      "name": "full profile save persists",
+      "status": "pass",
+      "elapsedMs": 783
+    },
+    {
+      "name": "locale save persists",
+      "status": "pass",
+      "elapsedMs": 1330
+    },
+    {
+      "name": "writing create",
+      "status": "pass",
+      "elapsedMs": 199
+    },
+    {
+      "name": "writing save and reload draft",
+      "status": "pass",
+      "elapsedMs": 1635
+    },
+    {
+      "name": "writing draft rejects inconsistent word count",
+      "status": "pass",
+      "elapsedMs": 247
+    },
+    {
+      "name": "writing rejects another account save",
+      "status": "pass",
+      "elapsedMs": 193
+    },
+    {
+      "name": "writing title rename preserves original prompt",
+      "status": "fail",
+      "elapsedMs": 633,
+      "error": "Renaming replaces the writing prompt"
+    },
+    {
+      "name": "speaking create",
+      "status": "pass",
+      "elapsedMs": 2461
+    },
+    {
+      "name": "speaking rejects another account access",
+      "status": "pass",
+      "elapsedMs": 1728
+    },
+    {
+      "name": "writing rejects another account grading",
+      "status": "pass",
+      "elapsedMs": 197
+    },
+    {
+      "name": "logout removes access",
+      "status": "pass",
+      "elapsedMs": 15
+    }
+  ]
+}

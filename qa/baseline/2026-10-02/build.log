@@ -1,0 +1,49 @@
+▲ Next.js 16.2.1 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.0s
+  Running TypeScript ...
+  Finished TypeScript in 2.7s ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/24) ...
+  Generating static pages using 9 workers (6/24) 
+  Generating static pages using 9 workers (12/24) 
+  Generating static pages using 9 workers (18/24) 
+✓ Generating static pages using 9 workers (24/24) in 133ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /api/coach/chat
+├ ƒ /api/coach/chat-stream
+├ ƒ /api/speaking/chat
+├ ƒ /api/speaking/chat-stream
+├ ƒ /api/speaking/getAudioURL
+├ ƒ /api/speaking/pronunciation
+├ ƒ /api/speaking/pronunciation-local
+├ ƒ /api/speaking/review
+├ ƒ /api/speaking/stt
+├ ƒ /api/writing/submit
+├ ƒ /coach
+├ ƒ /dashboard
+├ ƒ /forgot-password
+├ ƒ /login
+├ ƒ /onboarding
+├ ƒ /pricing
+├ ƒ /profile
+├ ƒ /settings
+├ ƒ /signup
+├ ƒ /speaking
+├ ƒ /speaking/[id]
+├ ƒ /speaking/[id]/review
+├ ƒ /writing
+├ ƒ /writing/[id]
+└ ƒ /writing/[id]/review
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+

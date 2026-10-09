@@ -1,6 +1,13 @@
 packages:
-    - .
+  - .
 
-ignoredBuiltDependencies:
-    - sharp
-    - unrs-resolver
+allowBuilds:
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - "@playwright/test@1.64.0"
+  - playwright-core@1.64.0
+  - playwright@1.64.0
+autoInstallPeers: false
