@@ -2,8 +2,15 @@
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, SlidersHorizontal } from "lucide-react";
-export type Variant = "A" | "B" | "C";
-export const variantNames = { A: "练习书桌", B: "专注练习", C: "听说对照" };
+export const variants = ["A", "B", "C", "D", "E"] as const;
+export type Variant = (typeof variants)[number];
+export const variantNames = {
+  A: "练习书桌",
+  B: "专注练习",
+  C: "听说对照",
+  D: "情境电台",
+  E: "练习手册",
+};
 export function PrototypeSwitcher({
   variant,
   onInspect,
@@ -28,10 +35,12 @@ export function PrototypeSwitcher({
         return;
       if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
       event.preventDefault();
-      const variants: Variant[] = ["A", "B", "C"];
       const next =
         variants[
-          (variants.indexOf(variant) + (event.key === "ArrowRight" ? 1 : 2)) % 3
+          (variants.indexOf(variant) +
+            (event.key === "ArrowRight" ? 1 : -1) +
+            variants.length) %
+            variants.length
         ]!;
       const query = new URLSearchParams(params.toString());
       query.set("variant", next);
@@ -42,11 +51,13 @@ export function PrototypeSwitcher({
   }, [params, router, variant]);
   if (process.env.NODE_ENV === "production") return null;
   const cycle = (direction: number) => {
-    const variants: Variant[] = ["A", "B", "C"];
     const query = new URLSearchParams(params.toString());
     query.set(
       "variant",
-      variants[(variants.indexOf(variant) + direction + 3) % 3]!,
+      variants[
+        (variants.indexOf(variant) + direction + variants.length) %
+          variants.length
+      ]!,
     );
     router.replace(`/prototype?${query}`, { scroll: false });
   };

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Throwaway UI: compare three learning layouts at /prototype?variant=A|B|C.
+// Throwaway UI: compare five learning layouts at /prototype?variant=A|B|C|D|E.
 export default async function PrototypePage({
   searchParams,
 }: {
@@ -24,7 +24,16 @@ export default async function PrototypePage({
   const { variant } = await searchParams;
   return (
     <div className={manrope.variable}>
-      <Prototype variant={variant === "B" || variant === "C" ? variant : "A"} />
+      <Prototype
+        variant={
+          variant === "B" ||
+          variant === "C" ||
+          variant === "D" ||
+          variant === "E"
+            ? variant
+            : "A"
+        }
+      />
     </div>
   );
 }

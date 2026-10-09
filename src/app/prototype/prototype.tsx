@@ -48,6 +48,7 @@ type LayoutProps = {
   content: ReactNode;
   context: ReactNode;
   view: View;
+  progress?: ReactNode;
 };
 const steps = ["听一段对话", "说说你自己", "核对转写", "看看反馈"];
 
@@ -154,6 +155,86 @@ export function VariantC({
       >
         <aside className="studio-context">{context}</aside>
         <div className="main-content">{content}</div>
+      </div>
+    </div>
+  );
+}
+
+// D: a selected listening scene with a temporary reference drawer.
+export function VariantD({
+  navigation,
+  heading,
+  content,
+  context,
+  view,
+}: LayoutProps) {
+  return (
+    <div className={`layout-d radio-${view}`}>
+      <header className="top-navigation">{navigation}</header>
+      <div className="radio-page">
+        {heading}
+        <div className="main-content">{content}</div>
+        {view === "practice" ? (
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <button className="radio-help-trigger">
+                <Lightbulb size={18} />
+                帮助与作答
+              </button>
+            </Dialog.Trigger>
+            <Dialog.Overlay className="proto-modal-overlay" />
+            <Dialog.Content className="radio-drawer">
+              <div className="section-heading">
+                <Dialog.Title>随时参考</Dialog.Title>
+                <Dialog.Close asChild>
+                  <button aria-label="关闭帮助与作答">
+                    <X size={19} />
+                  </button>
+                </Dialog.Close>
+              </div>
+              <Dialog.Description>
+                按需要查看提示，或回看这次练习的作答。
+              </Dialog.Description>
+              {context}
+            </Dialog.Content>
+          </Dialog.Root>
+        ) : (
+          <aside className="radio-context">{context}</aside>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// E: a table of contents becomes a vertical chapter rail during practice.
+export function VariantE({
+  navigation,
+  heading,
+  content,
+  context,
+  view,
+  progress,
+}: LayoutProps) {
+  return (
+    <div className={`layout-e manual-${view}`}>
+      <header className="top-navigation">{navigation}</header>
+      <div className="manual-page">
+        {heading}
+        <div className="manual-spread">
+          {view === "practice" && (
+            <aside className="manual-chapters">
+              <p className="small-label">这次练习</p>
+              {progress}
+              <p className="manual-note">
+                可以随时回听。
+                <br />
+                每次只专注一件事。
+              </p>
+            </aside>
+          )}
+          <div className="main-content">{content}</div>
+          <aside className="manual-margin">{context}</aside>
+        </div>
       </div>
     </div>
   );
@@ -807,6 +888,109 @@ export function Prototype({ variant }: { variant: Variant }) {
     </>
   );
 
+  const radioLibrary = (
+    <>
+      <div className="radio-intro">
+        <p className="small-label">先听后用</p>
+        <h1>给今天，选一段对话。</h1>
+        <p>让一个日常场景，成为开口的起点。</p>
+      </div>
+      <div className="radio-topics" aria-label="选择电台话题">
+        {materials.map((m) => (
+          <button
+            key={m.id}
+            aria-pressed={previewId === m.id}
+            onClick={() => setPreviewId(m.id)}
+          >
+            <Headphones size={17} />
+            {m.topic}
+          </button>
+        ))}
+      </div>
+      <section className="radio-stage">
+        <div className="radio-art">
+          <Image
+            src="/prototype/weekend-cafe.png"
+            alt="咖啡馆场景示意，作为日常对话的封面"
+            fill
+            sizes="(max-width: 767px) 100vw, 50vw"
+            priority
+          />
+        </div>
+        <div className="radio-program">
+          <span className="material-tag">{material.topic}</span>
+          <h2>{material.title}</h2>
+          <p>{material.description}</p>
+          <div className="radio-preview">
+            <span>
+              <Headphones size={16} />
+              先听一小段
+            </span>
+            <audio
+              key={material.id}
+              controls
+              preload="metadata"
+              src={`/prototype/audio/${material.id}.wav`}
+              aria-label={`${material.title}预听`}
+            />
+            <small>本地合成示例音频</small>
+          </div>
+          <Action onClick={() => start(material)}>
+            开始练习 <ArrowRight size={17} />
+          </Action>
+          <p className="radio-task">听完后：{material.task}</p>
+        </div>
+      </section>
+      <p className="content-footnote">6 个主题为原型示例，预听不会创建作答。</p>
+    </>
+  );
+
+  const manualLibrary = (
+    <>
+      <header className="manual-cover">
+        <div>
+          <p className="small-label">你的日常英语练习册</p>
+          <h1>从熟悉的话题，说起。</h1>
+          <p>不用一次学很多。选一件小事，听听别人怎么说，再说说你自己。</p>
+        </div>
+        <div className="manual-cover-image">
+          <Image
+            src="/prototype/weekend-cafe.png"
+            alt="日常场景示意：咖啡、一本书和午后的空位"
+            fill
+            sizes="(max-width: 767px) 100vw, 28vw"
+            priority
+          />
+        </div>
+      </header>
+      <div className="manual-index-heading">
+        <h2>选择一个话题</h2>
+        <span>每次约 5 至 10 分钟</span>
+      </div>
+      <div className="manual-index">
+        {materials.map((m) => (
+          <article key={m.id}>
+            <span className="manual-topic">{m.topic}</span>
+            <div>
+              <h3>{m.title}</h3>
+              <p>{m.task}</p>
+            </div>
+            <button
+              className="manual-start"
+              onClick={() => start(m)}
+              aria-label={`练习${m.title}`}
+            >
+              去练习 <ArrowRight size={19} />
+            </button>
+          </article>
+        ))}
+      </div>
+      <p className="content-footnote">
+        目录中的材料为示例，正式内容需经检查后发布。
+      </p>
+    </>
+  );
+
   const history = (
     <>
       <div className="section-intro">
@@ -955,6 +1139,31 @@ export function Prototype({ variant }: { variant: Variant }) {
       )}
     </section>
   );
+  const progress = (
+    <nav className="step-nav" aria-label="练习进度">
+      {steps.map((s, i) => (
+        <button
+          key={s}
+          aria-current={step === i ? "step" : undefined}
+          disabled={
+            (i === 1 && current?.ended) ||
+            (i >= 2 &&
+              (!attempt || (i === 3 && !attempt.status.startsWith("feedback"))))
+          }
+          onClick={() => {
+            if (draft !== "idle" && i !== 1) {
+              setMessage("请先提交或丢弃当前录音草稿。");
+              return;
+            }
+            setStep(i);
+          }}
+        >
+          <span>{i + 1}</span>
+          {s}
+        </button>
+      ))}
+    </nav>
+  );
   const practice = current && (
     <>
       <button className="back-link" onClick={() => navigate("library")}>
@@ -970,30 +1179,7 @@ export function Prototype({ variant }: { variant: Variant }) {
         </div>
         <span className="practice-count">{current.attempts.length} 次作答</span>
       </div>
-      <nav className="step-nav" aria-label="练习进度">
-        {steps.map((s, i) => (
-          <button
-            key={s}
-            aria-current={step === i ? "step" : undefined}
-            disabled={
-              (i === 1 && current.ended) ||
-              (i >= 2 &&
-                (!attempt ||
-                  (i === 3 && !attempt.status.startsWith("feedback"))))
-            }
-            onClick={() => {
-              if (draft !== "idle" && i !== 1) {
-                setMessage("请先提交或丢弃当前录音草稿。");
-                return;
-              }
-              setStep(i);
-            }}
-          >
-            <span>{i + 1}</span>
-            {s}
-          </button>
-        ))}
-      </nav>
+      {variant !== "E" && progress}
       {current.ended && (
         <div className="ended-banner">
           <Check size={18} />
@@ -1205,9 +1391,18 @@ export function Prototype({ variant }: { variant: Variant }) {
     navigation,
     heading,
     content:
-      view === "library" ? library : view === "history" ? history : practice,
+      view === "library"
+        ? variant === "D"
+          ? radioLibrary
+          : variant === "E"
+            ? manualLibrary
+            : library
+        : view === "history"
+          ? history
+          : practice,
     context,
     view,
+    progress,
   };
   return (
     <div
@@ -1224,8 +1419,12 @@ export function Prototype({ variant }: { variant: Variant }) {
           <VariantA {...layoutProps} />
         ) : variant === "B" ? (
           <VariantB {...layoutProps} />
-        ) : (
+        ) : variant === "C" ? (
           <VariantC {...layoutProps} />
+        ) : variant === "D" ? (
+          <VariantD {...layoutProps} />
+        ) : (
+          <VariantE {...layoutProps} />
         )}
       </div>
       {message && (
