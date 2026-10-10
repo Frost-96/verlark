@@ -1,4 +1,5 @@
 "use client";
+import { TranscriptionReview } from "./transcription";
 
 import { useEffect, useRef, useState } from "react";
 import type { Attempt, PracticeDetail } from "../contracts";
@@ -412,7 +413,12 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
       ) : (
         <p>录音存储尚未配置，暂时不能提交。</p>
       )}
-      <p>当前仅接收录音，尚未接入识别与反馈。单次录音开发上传限制为 12 MB。</p>
+      <p>
+        {practice.transcriptionMode === "development"
+          ? "开发识别用于流程验证；真实识别与表达反馈尚未接入。"
+          : "识别服务与表达反馈尚未接入。"}
+        单次录音开发上传限制为 12 MB。
+      </p>
       {message && (
         <p role="alert" className="message error">
           {message}
@@ -478,6 +484,13 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         <p>还有 {pending.length} 次提交待核对，请逐一处理。</p>
       )}
       <h2>本次作答</h2>
+      {practice.transcriptionMode === "development" ? (
+        <p className="message">
+          开发识别替身：下方转写为固定测试文本，不代表真实录音识别结果。
+        </p>
+      ) : (
+        <p>识别服务尚未配置，已接收作答会保留。</p>
+      )}
       {attempts.length === 0 ? (
         <p>本次练习还没有作答。</p>
       ) : (
@@ -485,8 +498,12 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
           {attempts.map((item, index) => (
             <li key={item.id}>
               <strong>作答 {index + 1}</strong>
-              <p>已接收 · 待识别</p>
-              <p>录音已接收，尚无转写或反馈。</p>
+              <TranscriptionReview
+                initial={item}
+                practiceId={practice.id}
+                ended={practice.status === "ended"}
+                enabled={practice.transcriptionMode === "development"}
+              />
             </li>
           ))}
         </ol>
