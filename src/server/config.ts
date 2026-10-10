@@ -2,6 +2,13 @@ export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   const production = env.NODE_ENV === "production";
+  const developmentTranscription = env.DEVELOPMENT_TRANSCRIPTION === "true";
+  if (
+    developmentTranscription &&
+    env.NODE_ENV !== "development" &&
+    env.NODE_ENV !== "test"
+  )
+    throw new ConfigurationError("正式环境或未指定环境不能启用开发识别替身。");
   const developmentRecordings = env.DEVELOPMENT_RECORDINGS === "true";
   if (developmentRecordings && production)
     throw new ConfigurationError("正式环境不能启用开发录音文件 Adapter。");
@@ -51,6 +58,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     allowedEmails,
     developmentMail,
     developmentRecordings,
+    developmentTranscription,
     production,
   };
 }

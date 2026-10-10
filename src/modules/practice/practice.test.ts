@@ -637,3 +637,114 @@ test("已结束练习拒绝新上传和新作答；已接收标识仍能核对�
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("识别与确认 HTTP 使用真实会话，拒绝伪造身份、跨账号和跨站请求", async () => {
+  const owner = await register();
+  const visitor = await register();
+  const directory = await mkdtemp(
+    join(tmpdir(), "verlark-transcription-http-"),
+  );
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+      {
+        mode: "development",
+        recognize: async () => ({ kind: "recognized", text: "I read." }),
+      },
+    );
+    const material = await content.publish({
+      materialKey: `recognition-http-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "计划",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const practice = await service.start(
+      owner.learner,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const recording = await service.saveRecording(owner.learner, practice.id, {
+      bytes: new Uint8Array([1]),
+      mediaType: "audio/webm",
+    });
+    const attempt = await service.submit(
+      owner.learner,
+      practice.id,
+      crypto.randomUUID(),
+      recording.reference,
+    );
+    const { handleTranscriptionRequest } =
+      await import("../../app/api/practices/transcription-http");
+    const request = (
+      body: unknown,
+      cookie = owner.cookie,
+      origin = "http://localhost:3000",
+    ) =>
+      handleTranscriptionRequest(
+        new Request(
+          `http://localhost:3000/api/practices/${practice.id}/attempts/${attempt.id}/transcription`,
+          {
+            method: "POST",
+            headers: { cookie, origin, "content-type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+        { identity, practice: service },
+        practice.id,
+        attempt.id,
+      );
+    expect((await request({ action: "recognize" }, "")).status).toBe(401);
+    expect(
+      (await request({ action: "recognize", userId: owner.learner.id })).status,
+    ).toBe(400);
+    expect(
+      (
+        await request(
+          { action: "recognize" },
+          owner.cookie,
+          "https://attacker.example",
+        )
+      ).status,
+    ).toBe(403);
+    for (const action of [
+      { action: "recognize" },
+      { action: "recover" },
+      {
+        action: "confirm",
+        rawTranscriptId: crypto.randomUUID(),
+        expectedConfirmationId: null,
+        text: "I read.",
+      },
+    ])
+      expect((await request(action, visitor.cookie)).status).toBe(404);
+    expect((await service.read(owner.learner, practice.id)).attempts).toEqual([
+      attempt,
+    ]);
+    const response = await request({ action: "recognize" });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const recognized = await response.json();
+    const confirm = {
+      action: "confirm",
+      rawTranscriptId: recognized.rawTranscript.id,
+      expectedConfirmationId: null,
+      text: "I read.",
+    };
+    expect((await request(confirm)).status).toBe(200);
+    expect((await request(confirm)).status).toBe(409);
+    expect(
+      (await service.read(owner.learner, practice.id)).attempts,
+    ).toMatchObject([{ confirmations: [{ text: "I read." }] }]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

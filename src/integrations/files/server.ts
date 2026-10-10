@@ -14,6 +14,9 @@ export function createRecordingFiles(options: {
       async save() {
         throw new Error("录音存储尚未配置。");
       },
+      async read() {
+        return null;
+      },
       async inspect() {
         return null;
       },
@@ -56,6 +59,18 @@ export function createRecordingFiles(options: {
       return recording;
     },
     async inspect(reference) {
+      const found = await this.read(reference);
+      if (!found) return null;
+      return {
+        reference: found.reference,
+        learnerId: found.learnerId,
+        practiceId: found.practiceId,
+        mediaType: found.mediaType,
+        digest: found.digest,
+        size: found.size,
+      };
+    },
+    async read(reference) {
       if (!/^development-recording:[a-f0-9]{64}$/.test(reference)) return null;
       try {
         const { data, ...recording } = JSON.parse(
@@ -71,7 +86,7 @@ export function createRecordingFiles(options: {
           createHash("sha256").update(bytes).digest("hex") !== recording.digest
         )
           return null;
-        return recording;
+        return { ...recording, bytes };
       } catch (error) {
         if (
           error instanceof SyntaxError ||

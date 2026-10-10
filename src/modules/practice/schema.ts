@@ -1,4 +1,5 @@
 import {
+  integer,
   index,
   pgTable,
   text,
@@ -45,6 +46,23 @@ export const attemptRecord = pgTable(
     submissionId: uuid("submission_id").notNull(),
     recordingReference: text("recording_reference").notNull(),
     recordingDigest: text("recording_digest").notNull(),
+    identificationStatus: text("identification_status", {
+      enum: [
+        "pending-identification",
+        "processing",
+        "recognized",
+        "failed",
+        "unknown",
+        "no-content",
+      ],
+    })
+      .notNull()
+      .default("pending-identification"),
+    identificationFailure: text("identification_failure"),
+    leaseToken: uuid("lease_token"),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    rawTranscriptId: uuid("raw_transcript_id").unique(),
+    rawTranscriptText: text("raw_transcript_text"),
     acceptedAt: timestamp("accepted_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -53,6 +71,30 @@ export const attemptRecord = pgTable(
     uniqueIndex("attempt_practice_submission_idx").on(
       table.practiceId,
       table.submissionId,
+    ),
+  ],
+);
+
+export const confirmedTranscript = pgTable(
+  "confirmed_transcript",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    attemptId: uuid("attempt_id")
+      .notNull()
+      .references(() => attemptRecord.id, { onDelete: "cascade" }),
+    rawTranscriptId: uuid("raw_transcript_id")
+      .notNull()
+      .references(() => attemptRecord.rawTranscriptId),
+    revision: integer("revision").notNull(),
+    text: text("text").notNull(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("confirmed_attempt_revision_idx").on(
+      table.attemptId,
+      table.revision,
     ),
   ],
 );

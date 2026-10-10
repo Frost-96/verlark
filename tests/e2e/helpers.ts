@@ -27,4 +27,5 @@ export async function signIn(request: APIRequestContext, email: string) {
     data: { email, password },
   });
   expect(login.ok()).toBe(true);
+  return login.json();
 }
