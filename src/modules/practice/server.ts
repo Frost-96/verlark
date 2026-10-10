@@ -23,6 +23,34 @@ import type {
   RecognitionResult,
 } from "../../integrations/transcription/contracts";
 
+function isTextAssessment(value: string) {
+  return (
+    /[\u3400-\u9fff]/.test(value) &&
+    !/发音|语调|停顿|掌握|得分|分数|综合分|pronunciation|intonation|pauses?|score|mastered/i.test(
+      value,
+    )
+  );
+}
+
+function feedbackItemSchema(confirmedText: string) {
+  return z
+    .object({
+      original: z
+        .string()
+        .min(1)
+        .max(20000)
+        .refine((value) => confirmedText.includes(value)),
+      explanation: z.string().min(1).max(2000).refine(isTextAssessment),
+      improved: z
+        .string()
+        .min(1)
+        .max(20000)
+        .regex(/[a-zA-Z]/)
+        .refine((value) => !/[\u3400-\u9fff]/.test(value)),
+    })
+    .strict();
+}
+
 export function createPractice(
   db: Database,
   content: LearningContent,
@@ -232,81 +260,13 @@ export function createPractice(
       } catch {
         result = { kind: "unknown" };
       }
+      const itemSchema = feedbackItemSchema(claim.text);
       const parsed = z
         .object({
           kind: z.literal("generated"),
-          summary: z
-            .string()
-            .trim()
-            .min(1)
-            .max(2000)
-            .regex(/[\u3400-\u9fff]/)
-            .refine(
-              (value) =>
-                !/发音|语调|停顿|掌握|得分|分数|综合分|pronunciation|intonation|pauses?|score|mastered/i.test(
-                  value,
-                ),
-            ),
-          issues: z
-            .array(
-              z
-                .object({
-                  original: z
-                    .string()
-                    .min(1)
-                    .max(20000)
-                    .refine((value) => claim.text.includes(value)),
-                  explanation: z
-                    .string()
-                    .min(1)
-                    .max(2000)
-                    .regex(/[\u3400-\u9fff]/)
-                    .refine(
-                      (value) =>
-                        !/发音|语调|停顿|掌握|得分|分数|综合分|pronunciation|intonation|pauses?|score|mastered/i.test(
-                          value,
-                        ),
-                    ),
-                  improved: z
-                    .string()
-                    .min(1)
-                    .max(20000)
-                    .regex(/[a-zA-Z]/)
-                    .refine((value) => !/[\u3400-\u9fff]/.test(value)),
-                })
-                .strict(),
-            )
-            .max(2),
-          alternatives: z
-            .array(
-              z
-                .object({
-                  original: z
-                    .string()
-                    .min(1)
-                    .max(20000)
-                    .refine((value) => claim.text.includes(value)),
-                  explanation: z
-                    .string()
-                    .min(1)
-                    .max(2000)
-                    .regex(/[\u3400-\u9fff]/)
-                    .refine(
-                      (value) =>
-                        !/发音|语调|停顿|掌握|得分|分数|综合分|pronunciation|intonation|pauses?|score|mastered/i.test(
-                          value,
-                        ),
-                    ),
-                  improved: z
-                    .string()
-                    .min(1)
-                    .max(20000)
-                    .regex(/[a-zA-Z]/)
-                    .refine((value) => !/[\u3400-\u9fff]/.test(value)),
-                })
-                .strict(),
-            )
-            .max(2),
+          summary: z.string().trim().min(1).max(2000).refine(isTextAssessment),
+          issues: z.array(itemSchema).max(2),
+          alternatives: z.array(itemSchema).max(2),
           provenance: z
             .object({
               provider: z.string().min(1).max(100),
