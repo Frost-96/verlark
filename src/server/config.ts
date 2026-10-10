@@ -2,6 +2,9 @@ export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   const production = env.NODE_ENV === "production";
+  const developmentRecordings = env.DEVELOPMENT_RECORDINGS === "true";
+  if (developmentRecordings && production)
+    throw new ConfigurationError("正式环境不能启用开发录音文件 Adapter。");
   const developmentMail = env.DEVELOPMENT_MAIL === "true";
   if (developmentMail && production) {
     throw new ConfigurationError("正式环境不能启用开发邮件替身。");
@@ -47,6 +50,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     baseURL: baseURL!,
     allowedEmails,
     developmentMail,
+    developmentRecordings,
     production,
   };
 }

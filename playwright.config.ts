@@ -10,6 +10,12 @@ const emails = [
   "learning-mobile",
   "other-desktop",
   "other-mobile",
+  "recording-desktop",
+  "recording-mobile",
+  "parallel-desktop",
+  "parallel-mobile",
+  "recovery-desktop",
+  "recovery-mobile",
 ]
   .map((device) => `${process.env.E2E_PREFIX}-${device}@example.com`)
   .join(",");
@@ -18,7 +24,16 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   timeout: 60000,
-  use: { baseURL: "http://localhost:3100", trace: "off" },
+  use: {
+    baseURL: "http://localhost:3100",
+    trace: "off",
+    launchOptions: {
+      args: [
+        "--use-fake-device-for-media-stream",
+        "--use-fake-ui-for-media-stream",
+      ],
+    },
+  },
   projects: [
     { name: "desktop", use: { viewport: { width: 1280, height: 800 } } },
     {
@@ -42,6 +57,7 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "browser-test-secret-at-least-32-characters",
       TESTER_EMAILS: emails,
       DEVELOPMENT_MAIL: "true",
+      DEVELOPMENT_RECORDINGS: "true",
     },
   },
 });

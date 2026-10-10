@@ -21,3 +21,12 @@ test("读取 DATABASE_URL，缺失或无效时不泄露连接凭据", () => {
     readConfig({ ...valid, DATABASE_URL: "invalid://user:top-secret@host" }),
   ).toThrow("数据库连接配置格式不正确");
 });
+test("正式环境拒绝开发录音文件 Adapter", () => {
+  expect(() =>
+    readConfig({
+      ...valid,
+      NODE_ENV: "production",
+      DEVELOPMENT_RECORDINGS: "true",
+    }),
+  ).toThrow("正式环境不能启用开发录音文件 Adapter");
+});

@@ -4,6 +4,7 @@ import { createIdentity } from "../modules/identity/server";
 import { createMailAdapter } from "../integrations/mail/server";
 import { readConfig } from "./config";
 import { createLearningContent } from "../modules/learning-content/server";
+import { createRecordingFiles } from "../integrations/files/server";
 import { createPractice } from "../modules/practice/server";
 
 function compose() {
@@ -12,7 +13,11 @@ function compose() {
   const content = createLearningContent(connection.db);
   return {
     content,
-    practice: createPractice(connection.db, content),
+    practice: createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: config.developmentRecordings }),
+    ),
     identity: createIdentity(
       connection.db,
       config,

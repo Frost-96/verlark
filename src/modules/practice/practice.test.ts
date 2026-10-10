@@ -8,6 +8,7 @@ import { createIdentity } from "../identity/server";
 import type { Learner } from "../identity/contracts";
 import { createLearningContent } from "../learning-content/server";
 import { createPractice } from "./server";
+import { createRecordingFiles } from "../../integrations/files/server";
 import { handlePracticeRequest } from "../../app/api/practices/http";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -278,6 +279,360 @@ test("离开后继续同一练习；发布新版并移除源文件不改变旧�
     await expect(
       practice.start(alice, "missing-material", crypto.randomUUID()),
     ).rejects.toThrow("材料暂不可用");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("录音文件不是作答；主动提交后生成可恢复的待识别作答", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "verlark-recordings-"));
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+    );
+    const material = await content.publish({
+      materialKey: `recording-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "说说周末",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说你的计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const started = await service.start(
+      alice,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const recording = await service.saveRecording(alice, started.id, {
+      bytes: new Uint8Array([1, 2, 3]),
+      mediaType: "audio/webm",
+    });
+    expect((await service.read(alice, started.id)).attempts).toEqual([]);
+    const submissionId = crypto.randomUUID();
+    const accepted = await service.submit(
+      alice,
+      started.id,
+      submissionId,
+      recording.reference,
+    );
+    expect(accepted).toMatchObject({
+      submissionId,
+      status: "pending-identification",
+    });
+    expect(
+      await service.findSubmission(alice, started.id, submissionId),
+    ).toEqual(accepted);
+    expect((await service.read(alice, started.id)).attempts).toEqual([
+      accepted,
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("同一提交并发重发仅接收一次，不同录音冲突；外人和其他练习的录音不能提交", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "verlark-recordings-"));
+  try {
+    const files = createRecordingFiles({ development: true, directory });
+    const service = createPractice(connection.db, content, files);
+    const material = await content.publish({
+      materialKey: `concurrent-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "说说周末",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说你的计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const first = await service.start(
+      alice,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const second = await service.start(
+      alice,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const other = await service.start(
+      bob,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const input = { bytes: new Uint8Array([1, 2, 3]), mediaType: "audio/webm" };
+    const recording = await service.saveRecording(alice, first.id, input);
+    expect(await service.saveRecording(alice, first.id, input)).toEqual(
+      recording,
+    );
+    const submissionId = crypto.randomUUID();
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () =>
+        service.submit(alice, first.id, submissionId, recording.reference),
+      ),
+    );
+    expect(new Set(results.map((item) => item.id)).size).toBe(1);
+    expect((await service.read(alice, first.id)).attempts).toEqual([
+      results[0],
+    ]);
+    const changed = await service.saveRecording(alice, first.id, {
+      ...input,
+      bytes: new Uint8Array([4, 5, 6]),
+    });
+    await expect(
+      service.submit(alice, first.id, submissionId, changed.reference),
+    ).rejects.toMatchObject({ code: "conflict" });
+    await expect(
+      service.submit(bob, first.id, submissionId, recording.reference),
+    ).rejects.toMatchObject({ code: "not-found" });
+    await expect(
+      service.findSubmission(bob, first.id, submissionId),
+    ).rejects.toMatchObject({ code: "not-found" });
+    await expect(
+      service.saveRecording(bob, first.id, input),
+    ).rejects.toMatchObject({ code: "not-found" });
+    await expect(
+      service.submit(alice, second.id, submissionId, recording.reference),
+    ).rejects.toMatchObject({ code: "recording-invalid" });
+    await expect(
+      service.submit(bob, other.id, submissionId, recording.reference),
+    ).rejects.toMatchObject({ code: "recording-invalid" });
+    await expect(
+      service.submit(
+        alice,
+        first.id,
+        crypto.randomUUID(),
+        "https://example.com/audio",
+      ),
+    ).rejects.toMatchObject({ code: "recording-invalid" });
+    expect(
+      await service.findSubmission(alice, first.id, crypto.randomUUID()),
+    ).toBeNull();
+    expect((await service.read(alice, second.id)).attempts).toEqual([]);
+    const secondRecording = await service.saveRecording(
+      alice,
+      second.id,
+      input,
+    );
+    const secondAccepted = await service.submit(
+      alice,
+      second.id,
+      submissionId,
+      secondRecording.reference,
+    );
+    expect(secondAccepted.id).not.toBe(results[0]!.id);
+    // Files can be unavailable later; durable acceptance is still recoverable.
+    await rm(directory, { recursive: true });
+    expect(await service.findSubmission(alice, first.id, submissionId)).toEqual(
+      results[0],
+    );
+    expect(
+      await service.submit(alice, first.id, submissionId, recording.reference),
+    ).toEqual(results[0]);
+    const unavailableFiles = createPractice(connection.db, content, {
+      ...files,
+      async inspect() {
+        throw new Error("external storage unavailable");
+      },
+    });
+    expect(
+      await unavailableFiles.submit(
+        alice,
+        first.id,
+        submissionId,
+        recording.reference,
+      ),
+    ).toEqual(results[0]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("录音 HTTP 入口鉴权、防伪造、限制上传并按同一标识恢复接收结果", async () => {
+  const owner = await register();
+  const directory = await mkdtemp(join(tmpdir(), "verlark-http-recordings-"));
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+    );
+    const material = await content.publish({
+      materialKey: `http-record-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "计划",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const started = await service.start(
+      owner.learner,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const services = { identity, practice: service };
+    const { handleRecordingRequest } =
+      await import("../../app/api/practices/recording-http");
+    function request(
+      kind: "recordings" | "submissions",
+      body: BodyInit,
+      cookie = owner.cookie,
+      origin = "http://localhost:3000",
+    ) {
+      return handleRecordingRequest(
+        new Request(
+          `http://localhost:3000/api/practices/${started.id}/${kind}`,
+          {
+            method: "POST",
+            headers: {
+              cookie,
+              origin,
+              "content-type":
+                kind === "recordings" ? "audio/webm" : "application/json",
+            },
+            body,
+          },
+        ),
+        services,
+        started.id,
+        kind,
+      );
+    }
+    expect(
+      (await request("recordings", new Uint8Array([1, 2]), "")).status,
+    ).toBe(401);
+    expect(
+      (
+        await request(
+          "recordings",
+          new Uint8Array([1, 2]),
+          owner.cookie,
+          "https://attacker.example",
+        )
+      ).status,
+    ).toBe(403);
+    expect((await request("recordings", new Uint8Array())).status).toBe(400);
+    const uploaded = await request("recordings", new Uint8Array([1, 2]));
+    expect(uploaded.status).toBe(201);
+    const { reference } = await uploaded.json();
+    const submissionId = crypto.randomUUID();
+    const payload = { submissionId, reference };
+    expect(
+      (
+        await request(
+          "submissions",
+          JSON.stringify({ ...payload, userId: "forged" }),
+        )
+      ).status,
+    ).toBe(400);
+    const accepted = await request("submissions", JSON.stringify(payload));
+    expect(accepted.status).toBe(201);
+    const result = await accepted.json();
+    const replay = await request("submissions", JSON.stringify(payload));
+    expect(await replay.json()).toEqual(result);
+    const found = await handleRecordingRequest(
+      new Request(
+        `http://localhost:3000/api/practices/${started.id}/submissions?submissionId=${submissionId}`,
+        { headers: { cookie: owner.cookie } },
+      ),
+      services,
+      started.id,
+      "submissions",
+    );
+    expect(await found.json()).toEqual({ attempt: result });
+    expect(found.headers.get("Cache-Control")).toContain("no-store");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("已结束练习拒绝新上传和新作答；已接收标识仍能核对，冲突并发只保留胜出录音", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "verlark-ended-"));
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+    );
+    const material = await content.publish({
+      materialKey: `ended-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "计划",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const started = await service.start(
+      alice,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const input = { bytes: new Uint8Array([1, 2, 3]), mediaType: "audio/mp4" };
+    const first = await service.saveRecording(alice, started.id, input);
+    const other = await service.saveRecording(alice, started.id, {
+      ...input,
+      bytes: new Uint8Array([4, 5]),
+    });
+    const submissionId = crypto.randomUUID();
+    const results = await Promise.allSettled([
+      service.submit(alice, started.id, submissionId, first.reference),
+      service.submit(alice, started.id, submissionId, other.reference),
+    ]);
+    expect(results.filter((item) => item.status === "fulfilled")).toHaveLength(
+      1,
+    );
+    expect(results.find((item) => item.status === "rejected")).toMatchObject({
+      reason: { code: "conflict" },
+    });
+    const accepted = await service.findSubmission(
+      alice,
+      started.id,
+      submissionId,
+    );
+    expect((await service.read(alice, started.id)).attempts).toEqual([
+      accepted,
+    ]);
+    // Fixture only: ending needs feedback and belongs to a later ticket; no public arbitrary setter.
+    const { practiceRecord } = await import("./schema");
+    const { eq } = await import("drizzle-orm");
+    await connection.db
+      .update(practiceRecord)
+      .set({ endedAt: new Date() })
+      .where(eq(practiceRecord.id, started.id));
+    await expect(
+      service.saveRecording(alice, started.id, input),
+    ).rejects.toMatchObject({ code: "ended" });
+    await expect(
+      service.submit(alice, started.id, crypto.randomUUID(), first.reference),
+    ).rejects.toMatchObject({ code: "ended" });
+    const winner =
+      results[0]!.status === "fulfilled" ? first.reference : other.reference;
+    expect(
+      await service.submit(alice, started.id, submissionId, winner),
+    ).toEqual(accepted);
+    expect((await service.read(alice, started.id)).attempts).toEqual([
+      accepted,
+    ]);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
