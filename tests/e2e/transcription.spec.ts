@@ -35,6 +35,44 @@ test("核对转写、并发更正冲突与刷新恢复保留一次作答", async
   ).toBeVisible();
   const editor = page.getByRole("textbox", { name: "核对后的英语文本" });
   await editor.fill("I will read a book this weekend.");
+  for (const failure of [
+    "network",
+    "html",
+    "untrusted-json",
+    "known-code",
+  ] as const) {
+    await test.step(`确认失败保留编辑并显示中文：${failure}`, async () => {
+      await page.route("**/transcription", async (route) => {
+        if (failure === "network") await route.abort("failed");
+        else if (failure === "html")
+          await route.fulfill({
+            status: 502,
+            contentType: "text/html",
+            body: "<html>Bad Gateway</html>",
+          });
+        else
+          await route.fulfill({
+            status: failure === "known-code" ? 409 : 502,
+            contentType: "application/json",
+            body: JSON.stringify({
+              code: failure === "known-code" ? "stale" : "PROXY_FAILURE",
+              message: "Upstream provider failed",
+            }),
+          });
+      });
+      await page.getByRole("button", { name: "确认文本", exact: true }).click();
+      const error = page.getByRole("main").getByRole("alert");
+      await expect
+        .soft(error)
+        .toContainText(failure === "known-code" ? "已改变" : "请查询最新状态");
+      if (failure !== "known-code")
+        await expect.soft(error).toContainText("你的编辑仍保留");
+      await expect(editor).toHaveValue("I will read a book this weekend.");
+      await expect(editor).toBeEnabled();
+      await page.unroute("**/transcription");
+    });
+  }
+
   let release!: () => void;
   const gate = new Promise<void>((done) => {
     release = done;

@@ -66,21 +66,29 @@ export class PracticeError extends Error {
   }
 }
 
+export function isPracticeErrorCode(
+  code: unknown,
+): code is PracticeError["code"] {
+  return (
+    code === "unauthorized" ||
+    code === "not-found" ||
+    code === "invalid" ||
+    code === "conflict" ||
+    code === "ended" ||
+    code === "recording-invalid" ||
+    code === "recording-unavailable" ||
+    code === "processing" ||
+    code === "stale" ||
+    code === "transcription-unavailable"
+  );
+}
+
 // Next.js route bundles can load distinct class constructors while sharing services.
 export function isPracticeError(error: unknown): error is PracticeError {
   return (
     error instanceof Error &&
     error.name === "PracticeError" &&
     "code" in error &&
-    (error.code === "unauthorized" ||
-      error.code === "not-found" ||
-      error.code === "invalid" ||
-      error.code === "conflict" ||
-      error.code === "ended" ||
-      error.code === "recording-invalid" ||
-      error.code === "recording-unavailable" ||
-      error.code === "processing" ||
-      error.code === "stale" ||
-      error.code === "transcription-unavailable")
+    isPracticeErrorCode(error.code)
   );
 }
