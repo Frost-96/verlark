@@ -86,9 +86,6 @@ export function ListeningMaterial({ content }: { content: ContentVersion }) {
       <section aria-labelledby="task-heading">
         <h2 id="task-heading">试着表达自己的情况</h2>
         <p>{content.task}</p>
-        <p className="notice">
-          当前阶段支持聆听和查看帮助，尚未开放录音提交与反馈；本次练习还没有作答。离开后可从练习记录继续。
-        </p>
       </section>
     </>
   );

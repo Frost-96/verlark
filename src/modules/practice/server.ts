@@ -5,12 +5,38 @@ import type { Learner } from "../identity/contracts";
 import type { LearningContent } from "../learning-content/server";
 import {
   PracticeError,
+  type Attempt,
   type PracticeDetail,
   type PracticeSummary,
 } from "./contracts";
-import { practiceRecord } from "./schema";
+import { attemptRecord, practiceRecord } from "./schema";
+import type { RecordingFiles } from "../../integrations/files/contracts";
 
-export function createPractice(db: Database, content: LearningContent) {
+export function createPractice(
+  db: Database,
+  content: LearningContent,
+  files?: RecordingFiles,
+) {
+  function attempt(row: typeof attemptRecord.$inferSelect): Attempt {
+    return {
+      id: row.id,
+      submissionId: row.submissionId,
+      acceptedAt: row.acceptedAt.toISOString(),
+      status: "pending-identification",
+    };
+  }
+  async function owned(learner: Learner | null, id: string) {
+    const owner = requireLearner(learner);
+    if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+    const [row] = await db
+      .select()
+      .from(practiceRecord)
+      .where(
+        and(eq(practiceRecord.id, id), eq(practiceRecord.learnerId, owner.id)),
+      );
+    if (!row) throw new PracticeError("not-found");
+    return row;
+  }
   function requireLearner(learner: Learner | null): Learner {
     if (!learner) throw new PracticeError("unauthorized");
     return learner;
@@ -25,9 +51,141 @@ export function createPractice(db: Database, content: LearningContent) {
       createdAt: row.createdAt.toISOString(),
       status: row.endedAt ? "ended" : "in-progress",
       content: version,
+      attempts: (
+        await db
+          .select()
+          .from(attemptRecord)
+          .where(eq(attemptRecord.practiceId, row.id))
+          .orderBy(attemptRecord.acceptedAt, attemptRecord.id)
+      ).map(attempt),
+      recordingMode: files?.mode ?? "unavailable",
     };
   }
   return {
+    async saveRecording(
+      learner: Learner | null,
+      id: string,
+      input: { bytes: Uint8Array; mediaType: string },
+    ) {
+      const row = await owned(learner, id);
+      if (row.endedAt) throw new PracticeError("ended");
+      if (!files || files.mode === "unavailable")
+        throw new PracticeError("recording-unavailable");
+      if (
+        !input.bytes.length ||
+        input.bytes.length > 12 * 1024 * 1024 ||
+        !/^audio\/(webm|ogg|mp4|wav)(;codecs=[a-zA-Z0-9., -]+)?$/.test(
+          input.mediaType,
+        )
+      )
+        throw new PracticeError("recording-invalid");
+      const recording = await files.save({
+        ...input,
+        learnerId: row.learnerId,
+        practiceId: row.id,
+      });
+      return { reference: recording.reference };
+    },
+    async submit(
+      learner: Learner | null,
+      id: string,
+      submissionId: string,
+      reference: string,
+    ): Promise<Attempt> {
+      const owner = requireLearner(learner);
+      if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+      if (
+        !z.uuid().safeParse(submissionId).success ||
+        typeof reference !== "string" ||
+        reference.length > 250
+      )
+        throw new PracticeError("invalid");
+      // The practice lock is the shared serialization point for future end/delete operations.
+      // File I/O happens outside the transaction; acceptance still rechecks current ownership/state.
+      await owned(owner, id);
+      // Accepted references are immutable: recovery must not depend on file-service availability.
+      const [accepted] = await db
+        .select()
+        .from(attemptRecord)
+        .where(
+          and(
+            eq(attemptRecord.practiceId, id),
+            eq(attemptRecord.submissionId, submissionId),
+          ),
+        );
+      if (accepted) {
+        if (accepted.recordingReference !== reference)
+          throw new PracticeError("conflict");
+        return attempt(accepted);
+      }
+      const recording = files ? await files.inspect(reference) : null;
+      return db.transaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(
+            and(
+              eq(practiceRecord.id, id),
+              eq(practiceRecord.learnerId, owner.id),
+            ),
+          )
+          .for("update");
+        if (!row) throw new PracticeError("not-found");
+        const [existing] = await tx
+          .select()
+          .from(attemptRecord)
+          .where(
+            and(
+              eq(attemptRecord.practiceId, id),
+              eq(attemptRecord.submissionId, submissionId),
+            ),
+          );
+        if (existing) {
+          if (
+            existing.recordingReference !== reference ||
+            (recording && existing.recordingDigest !== recording.digest)
+          )
+            throw new PracticeError("conflict");
+          return attempt(existing);
+        }
+        if (row.endedAt) throw new PracticeError("ended");
+        if (
+          !recording ||
+          recording.learnerId !== owner.id ||
+          recording.practiceId !== id
+        )
+          throw new PracticeError("recording-invalid");
+        const [saved] = await tx
+          .insert(attemptRecord)
+          .values({
+            practiceId: id,
+            submissionId,
+            recordingReference: reference,
+            recordingDigest: recording.digest,
+          })
+          .returning();
+        return attempt(saved!);
+      });
+    },
+    async findSubmission(
+      learner: Learner | null,
+      id: string,
+      submissionId: string,
+    ): Promise<Attempt | null> {
+      await owned(learner, id);
+      if (!z.uuid().safeParse(submissionId).success)
+        throw new PracticeError("invalid");
+      const [row] = await db
+        .select()
+        .from(attemptRecord)
+        .where(
+          and(
+            eq(attemptRecord.practiceId, id),
+            eq(attemptRecord.submissionId, submissionId),
+          ),
+        );
+      return row ? attempt(row) : null;
+    },
     // Learner is supplied only by the trusted identity entry point, never by a request body.
     async start(
       learner: Learner | null,

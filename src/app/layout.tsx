@@ -27,7 +27,7 @@ export default function RootLayout({
         </header>
         <main>{children}</main>
         <footer>
-          Verlark · 内部测试阶段 · 当前支持聆听，录音与反馈尚未开放
+          Verlark · 内部测试阶段 · 支持聆听与开发录音提交，识别和反馈尚未接入
         </footer>
       </body>
     </html>

@@ -34,3 +34,25 @@ export const practiceRecord = pgTable(
     index("practice_learner_created_idx").on(table.learnerId, table.createdAt),
   ],
 );
+
+export const attemptRecord = pgTable(
+  "attempt",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    practiceId: uuid("practice_id")
+      .notNull()
+      .references(() => practiceRecord.id, { onDelete: "cascade" }),
+    submissionId: uuid("submission_id").notNull(),
+    recordingReference: text("recording_reference").notNull(),
+    recordingDigest: text("recording_digest").notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("attempt_practice_submission_idx").on(
+      table.practiceId,
+      table.submissionId,
+    ),
+  ],
+);
