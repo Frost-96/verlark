@@ -1,4 +1,5 @@
 "use client";
+import { FeedbackReview } from "./feedback";
 import { useEffect, useRef, useState } from "react";
 import { isPracticeErrorCode, PracticeError, type Attempt } from "../contracts";
 const labels: Record<Attempt["status"], string> = {
@@ -22,17 +23,21 @@ export function TranscriptionReview({
   practiceId,
   ended,
   enabled,
+  feedbackEnabled,
 }: {
   initial: Attempt;
   practiceId: string;
   ended: boolean;
   enabled: boolean;
+  feedbackEnabled: boolean;
 }) {
   const [attempt, setAttempt] = useState(initial);
   const [editor, setEditor] = useState(() => editorValue(initial));
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const requestNumber = useRef(0);
+  // Both controls read/write the same Attempt snapshot; a newer request supersedes older snapshots.
+  const stateRequestNumber = useRef(0);
   const controller = useRef<AbortController | null>(null);
   useEffect(
     () => () => {
@@ -43,6 +48,7 @@ export function TranscriptionReview({
   );
   async function act(action: "recognize" | "recover" | "confirm" | "refresh") {
     const sequence = ++requestNumber.current;
+    const stateSequence = ++stateRequestNumber.current;
     controller.current?.abort();
     const request = new AbortController();
     controller.current = request;
@@ -77,6 +83,7 @@ export function TranscriptionReview({
           ? data.attempts.find((value: Attempt) => value.id === attempt.id)
           : data;
       if (!updated) throw new PracticeError("not-found");
+      if (stateSequence !== stateRequestNumber.current) return;
       setAttempt(updated);
       // A refresh does not discard an unsaved correction or silently rebase it onto another version.
       if (action === "confirm" || !editor.rawTranscriptId)
@@ -220,6 +227,16 @@ export function TranscriptionReview({
           )}
         </>
       )}
+      <FeedbackReview
+        attempt={attempt}
+        practiceId={practiceId}
+        ended={ended}
+        enabled={feedbackEnabled}
+        beginRequest={() => ++stateRequestNumber.current}
+        onUpdate={(updated, stateSequence) => {
+          if (stateSequence === stateRequestNumber.current) setAttempt(updated);
+        }}
+      />
     </div>
   );
 }

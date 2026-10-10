@@ -43,6 +43,13 @@
       "when": 1791620841254,
       "tag": "0005_milky_veda",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791623401381,
+      "tag": "0006_third_zodiak",
+      "breakpoints": true
     }
   ]
 }

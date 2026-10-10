@@ -5,6 +5,7 @@ import { createMailAdapter } from "../integrations/mail/server";
 import { readConfig } from "./config";
 import { createLearningContent } from "../modules/learning-content/server";
 import { createRecordingFiles } from "../integrations/files/server";
+import { createExpressionFeedback } from "../integrations/expression-feedback/server";
 import { createTranscription } from "../integrations/transcription/server";
 import { createPractice } from "../modules/practice/server";
 
@@ -19,6 +20,8 @@ function compose() {
       content,
       createRecordingFiles({ development: config.developmentRecordings }),
       createTranscription({ development: config.developmentTranscription }),
+      undefined,
+      createExpressionFeedback({ development: config.developmentFeedback }),
     ),
     identity: createIdentity(
       connection.db,

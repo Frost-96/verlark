@@ -1,6 +1,13 @@
 export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
+  const developmentFeedback = env.DEVELOPMENT_FEEDBACK === "true";
+  if (
+    developmentFeedback &&
+    env.NODE_ENV !== "development" &&
+    env.NODE_ENV !== "test"
+  )
+    throw new ConfigurationError("正式环境或未指定环境不能启用开发反馈替身。");
   const production = env.NODE_ENV === "production";
   const developmentTranscription = env.DEVELOPMENT_TRANSCRIPTION === "true";
   if (
@@ -59,6 +66,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     developmentMail,
     developmentRecordings,
     developmentTranscription,
+    developmentFeedback,
     production,
   };
 }
