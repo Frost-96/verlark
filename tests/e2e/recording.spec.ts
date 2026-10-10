@@ -171,3 +171,112 @@ test("录音试听、丢弃重录与响应丢失后重新进入，保持一次�
     ),
   ).toBe(true);
 });
+
+test("两页并行提交分别保留待核对标识，另一页接收后重新进入仍能恢复全部录音", async ({
+  page,
+  context,
+}, info) => {
+  await signIn(
+    page.request,
+    `${process.env.E2E_PREFIX}-parallel-${info.project.name}@example.com`,
+  );
+  await page.goto("/materials");
+  await page.getByRole("button", { name: "开始聆听练习" }).click();
+  await expect(page).toHaveURL(/\/practice\/[a-f0-9-]+$/);
+  const practiceURL = page.url();
+  const id = practiceURL.split("/").at(-1)!;
+  const second = await context.newPage();
+  await second.goto(practiceURL);
+  await record(page);
+  await record(second);
+  let releaseFirst!: () => void;
+  const held = new Promise<void>((resolve) => {
+    releaseFirst = resolve;
+  });
+  let firstId = "";
+  await page.route("**/submissions", async (route) => {
+    firstId = route.request().postDataJSON().submissionId;
+    const response = await route.fetch();
+    await held;
+    await route.fulfill({ response });
+  });
+  let secondId = "";
+  await second.route("**/submissions", async (route) => {
+    secondId = route.request().postDataJSON().submissionId;
+    await route.abort("failed");
+  });
+  await page.getByRole("button", { name: "提交本次录音", exact: true }).click();
+  await expect.poll(() => firstId).not.toBe("");
+  await second
+    .getByRole("button", { name: "提交本次录音", exact: true })
+    .click();
+  await expect(second.getByRole("main").getByRole("alert")).toContainText(
+    "接收结果尚未确认",
+  );
+  expect(secondId).not.toBe(firstId);
+  releaseFirst();
+  await expect(page.getByText("已接收 · 待识别", { exact: true })).toHaveCount(
+    1,
+  );
+  await second.unroute("**/submissions");
+  second.once("dialog", (dialog) => dialog.accept());
+  await second.reload();
+  await expect(second.getByRole("main").getByRole("alert")).toContainText(
+    "尚未查到接收记录",
+  );
+  const resent = second.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().endsWith("/submissions"),
+  );
+  await second.getByRole("button", { name: "核对并重发同一次提交" }).click();
+  expect((await resent).postDataJSON().submissionId).toBe(secondId);
+  await expect(
+    second.getByText("已接收 · 待识别", { exact: true }),
+  ).toHaveCount(2);
+  const attempts = (
+    await (await page.request.get(`/api/practices/${id}`)).json()
+  ).attempts;
+  expect(
+    attempts.map((item: { submissionId: string }) => item.submissionId).sort(),
+  ).toEqual([firstId, secondId].sort());
+  // Both pages can also lose their requests before either is accepted.
+  await page.unroute("**/submissions");
+  await record(page);
+  await record(second);
+  const unresolvedIds: string[] = [];
+  for (const tab of [page, second]) {
+    await tab.route("**/submissions", async (route) => {
+      unresolvedIds.push(route.request().postDataJSON().submissionId);
+      await route.abort("failed");
+    });
+    await tab
+      .getByRole("button", { name: "提交本次录音", exact: true })
+      .click();
+    await expect(tab.getByRole("main").getByRole("alert")).toContainText(
+      "接收结果尚未确认",
+    );
+    await tab.unroute("**/submissions");
+  }
+  second.once("dialog", (dialog) => dialog.accept());
+  await second.reload();
+  await expect(
+    second.getByText("还有 2 次提交待核对，请逐一处理。", { exact: true }),
+  ).toBeVisible();
+  const replayedIds: string[] = [];
+  for (const count of [3, 4]) {
+    const replay = second.waitForRequest(
+      (request) =>
+        request.method() === "POST" && request.url().endsWith("/submissions"),
+    );
+    await second.getByRole("button", { name: "核对并重发同一次提交" }).click();
+    replayedIds.push((await replay).postDataJSON().submissionId);
+    await expect(
+      second.getByText("已接收 · 待识别", { exact: true }),
+    ).toHaveCount(count);
+  }
+  expect(replayedIds.sort()).toEqual(unresolvedIds.sort());
+  expect(
+    (await (await page.request.get(`/api/practices/${id}`)).json()).attempts,
+  ).toHaveLength(4);
+  await second.close();
+});

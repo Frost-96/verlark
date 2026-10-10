@@ -12,6 +12,10 @@ const emails = [
   "other-mobile",
   "recording-desktop",
   "recording-mobile",
+  "parallel-desktop",
+  "parallel-mobile",
+  "recovery-desktop",
+  "recovery-mobile",
 ]
   .map((device) => `${process.env.E2E_PREFIX}-${device}@example.com`)
   .join(",");
