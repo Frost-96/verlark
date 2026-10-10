@@ -503,6 +503,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
                 practiceId={practice.id}
                 ended={practice.status === "ended"}
                 enabled={practice.transcriptionMode === "development"}
+                feedbackEnabled={practice.feedbackMode === "development"}
               />
             </li>
           ))}

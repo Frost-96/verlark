@@ -9,7 +9,13 @@ import {
   type PracticeDetail,
   type PracticeSummary,
 } from "./contracts";
-import { attemptRecord, practiceRecord, confirmedTranscript } from "./schema";
+import {
+  expressionFeedback,
+  attemptRecord,
+  practiceRecord,
+  confirmedTranscript,
+} from "./schema";
+import type { ExpressionFeedback } from "../../integrations/expression-feedback/contracts";
 import type { RecordingFiles } from "../../integrations/files/contracts";
 
 import type {
@@ -17,12 +23,41 @@ import type {
   RecognitionResult,
 } from "../../integrations/transcription/contracts";
 
+function isTextAssessment(value: string) {
+  return (
+    /[\u3400-\u9fff]/.test(value) &&
+    !/发音|语调|停顿|掌握|得分|分数|综合分|pronunciation|intonation|pauses?|score|mastered/i.test(
+      value,
+    )
+  );
+}
+
+function feedbackItemSchema(confirmedText: string) {
+  return z
+    .object({
+      original: z
+        .string()
+        .min(1)
+        .max(20000)
+        .refine((value) => confirmedText.includes(value)),
+      explanation: z.string().min(1).max(2000).refine(isTextAssessment),
+      improved: z
+        .string()
+        .min(1)
+        .max(20000)
+        .regex(/[a-zA-Z]/)
+        .refine((value) => !/[\u3400-\u9fff]/.test(value)),
+    })
+    .strict();
+}
+
 export function createPractice(
   db: Database,
   content: LearningContent,
   files?: RecordingFiles,
   transcription?: Transcription,
   clock: { now: () => Date } = { now: () => new Date() },
+  feedback?: ExpressionFeedback,
 ) {
   async function attempt(
     row: typeof attemptRecord.$inferSelect,
@@ -39,6 +74,22 @@ export function createPractice(
         row.rawTranscriptId && row.rawTranscriptText
           ? { id: row.rawTranscriptId, text: row.rawTranscriptText }
           : null,
+      feedback: (
+        await reader
+          .select()
+          .from(expressionFeedback)
+          .where(eq(expressionFeedback.attemptId, row.id))
+      ).map((item) => ({
+        confirmationId: item.confirmationId,
+        status: item.status,
+        rulesVersion: item.rulesVersion,
+        requestId: item.requestId,
+        leaseExpiresAt: item.leaseExpiresAt?.toISOString() ?? null,
+        failure: item.failure,
+        result: item.result,
+        provenance: item.provenance,
+        generatedAt: item.generatedAt?.toISOString() ?? null,
+      })),
       confirmations: (
         await reader
           .select()
@@ -89,6 +140,7 @@ export function createPractice(
             .orderBy(attemptRecord.acceptedAt, attemptRecord.id)
         ).map((row) => attempt(row)),
       ),
+      feedbackMode: feedback?.mode ?? "unavailable",
       transcriptionMode: transcription?.mode ?? "unavailable",
       recordingMode: files?.mode ?? "unavailable",
     };
@@ -135,6 +187,196 @@ export function createPractice(
     });
   }
   return {
+    async requestFeedback(
+      learner: Learner | null,
+      id: string,
+      attemptId: string,
+      confirmationId: string,
+    ): Promise<Attempt> {
+      if (!z.uuid().safeParse(confirmationId).success)
+        throw new PracticeError("invalid");
+      const claim = await mutateAttempt(
+        learner,
+        id,
+        attemptId,
+        async (tx, row) => {
+          const [confirmation] = await tx
+            .select()
+            .from(confirmedTranscript)
+            .where(
+              and(
+                eq(confirmedTranscript.id, confirmationId),
+                eq(confirmedTranscript.attemptId, row.id),
+              ),
+            );
+          if (!confirmation) throw new PracticeError("stale");
+          const [existing] = await tx
+            .select()
+            .from(expressionFeedback)
+            .where(eq(expressionFeedback.confirmationId, confirmationId));
+          if (existing?.status === "succeeded") return null;
+          if (existing?.status === "processing")
+            throw new PracticeError("processing");
+          if (!feedback || feedback.mode === "unavailable")
+            throw new PracticeError("feedback-unavailable");
+          const token = crypto.randomUUID();
+          const values = {
+            attemptId,
+            status: "processing" as const,
+            rulesVersion: "expression-v1",
+            requestId: token,
+            leaseToken: token,
+            leaseExpiresAt: new Date(clock.now().getTime() + 60_000),
+            failure: null,
+          };
+          await tx
+            .insert(expressionFeedback)
+            .values({ confirmationId, ...values })
+            .onConflictDoUpdate({
+              target: expressionFeedback.confirmationId,
+              set: values,
+            });
+          return {
+            token,
+            text: confirmation.text,
+            rulesVersion: values.rulesVersion,
+          };
+        },
+      );
+      if (!claim)
+        return (await this.read(learner, id)).attempts.find(
+          (item) => item.id === attemptId,
+        )!;
+      let result: unknown;
+      try {
+        result = !/[a-zA-Z]/.test(claim.text)
+          ? { kind: "no-content" }
+          : await feedback!.generate({
+              text: claim.text,
+              confirmationId,
+              requestId: claim.token,
+              rulesVersion: claim.rulesVersion,
+            });
+      } catch {
+        result = { kind: "unknown" };
+      }
+      const itemSchema = feedbackItemSchema(claim.text);
+      const parsed = z
+        .object({
+          kind: z.literal("generated"),
+          summary: z.string().trim().min(1).max(2000).refine(isTextAssessment),
+          issues: z.array(itemSchema).max(2),
+          alternatives: z.array(itemSchema).max(2),
+          provenance: z
+            .object({
+              provider: z.string().min(1).max(100),
+              model: z.string().min(1).max(100),
+            })
+            .strict(),
+        })
+        .strict()
+        .safeParse(result);
+      const failed = z
+        .object({ kind: z.enum(["failed", "unknown", "no-content"]) })
+        .strict()
+        .safeParse(result);
+      const failureStatus = failed.success ? failed.data.kind : "failed";
+      const failureMessage =
+        failureStatus === "unknown"
+          ? "反馈结果未知；本地异常不表示远端已取消。可重试同一确认文本。"
+          : failureStatus === "no-content"
+            ? "确认文本没有可用的英语内容，未生成有效反馈。可核对文本后重新确认，或重试同一确认文本。"
+            : "反馈服务失败或返回无效结果，未生成有效反馈。请重试同一确认文本。";
+      const saved = await mutateAttempt(
+        learner,
+        id,
+        attemptId,
+        async (tx, row) => {
+          const [current] = await tx
+            .select()
+            .from(expressionFeedback)
+            .where(eq(expressionFeedback.confirmationId, confirmationId));
+          if (
+            !current ||
+            current.leaseToken !== claim.token ||
+            !current.leaseExpiresAt ||
+            current.leaseExpiresAt <= clock.now()
+          )
+            throw new PracticeError("stale");
+          await tx
+            .update(expressionFeedback)
+            .set(
+              parsed.success
+                ? {
+                    status: "succeeded",
+                    result: {
+                      summary: parsed.data.summary,
+                      issues: parsed.data.issues,
+                      alternatives: parsed.data.alternatives,
+                    },
+                    provenance: parsed.data.provenance,
+                    generatedAt: clock.now(),
+                    leaseToken: null,
+                    leaseExpiresAt: null,
+                  }
+                : {
+                    status: failureStatus,
+                    failure: failureMessage,
+                    leaseToken: null,
+                    leaseExpiresAt: null,
+                  },
+            )
+            .where(eq(expressionFeedback.confirmationId, confirmationId));
+          return row;
+        },
+      );
+      return attempt(saved);
+    },
+    async recoverFeedback(
+      learner: Learner | null,
+      id: string,
+      attemptId: string,
+      confirmationId: string,
+    ): Promise<Attempt> {
+      if (!z.uuid().safeParse(confirmationId).success)
+        throw new PracticeError("invalid");
+      const saved = await mutateAttempt(
+        learner,
+        id,
+        attemptId,
+        async (tx, row) => {
+          const [confirmation] = await tx
+            .select()
+            .from(confirmedTranscript)
+            .where(
+              and(
+                eq(confirmedTranscript.id, confirmationId),
+                eq(confirmedTranscript.attemptId, row.id),
+              ),
+            );
+          if (!confirmation) throw new PracticeError("stale");
+          const [current] = await tx
+            .select()
+            .from(expressionFeedback)
+            .where(eq(expressionFeedback.confirmationId, confirmationId));
+          if (current?.status !== "processing") return row;
+          if (current.leaseExpiresAt && current.leaseExpiresAt > clock.now())
+            throw new PracticeError("processing");
+          await tx
+            .update(expressionFeedback)
+            .set({
+              status: "unknown",
+              failure:
+                "本地处理权已过期，反馈结果未知，不表示远端已取消。可重试同一确认文本。",
+              leaseToken: null,
+              leaseExpiresAt: null,
+            })
+            .where(eq(expressionFeedback.confirmationId, confirmationId));
+          return row;
+        },
+      );
+      return attempt(saved);
+    },
     async recognize(
       learner: Learner | null,
       id: string,
