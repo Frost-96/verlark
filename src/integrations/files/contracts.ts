@@ -18,5 +18,6 @@ export interface RecordingFiles {
     bytes: Uint8Array;
     mediaType: string;
   }): Promise<Recording>;
+  read(reference: string): Promise<(Recording & { bytes: Uint8Array }) | null>;
   inspect(reference: string): Promise<Recording | null>;
 }

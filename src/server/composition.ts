@@ -5,6 +5,7 @@ import { createMailAdapter } from "../integrations/mail/server";
 import { readConfig } from "./config";
 import { createLearningContent } from "../modules/learning-content/server";
 import { createRecordingFiles } from "../integrations/files/server";
+import { createTranscription } from "../integrations/transcription/server";
 import { createPractice } from "../modules/practice/server";
 
 function compose() {
@@ -17,6 +18,7 @@ function compose() {
       connection.db,
       content,
       createRecordingFiles({ development: config.developmentRecordings }),
+      createTranscription({ development: config.developmentTranscription }),
     ),
     identity: createIdentity(
       connection.db,
