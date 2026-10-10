@@ -4,6 +4,10 @@ if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_test"))
   throw new Error("浏览器验证需要独立 E2E_DATABASE_URL，库名以 _test 结尾。");
 process.env.E2E_PREFIX ??= `browser-${Date.now()}`;
 const emails = [
+  "feedback-desktop",
+  "feedback-mobile",
+  "feedback-recovery-desktop",
+  "feedback-recovery-mobile",
   "transcription-recovery-desktop",
   "transcription-recovery-mobile",
   "transcription-desktop",
@@ -63,6 +67,7 @@ export default defineConfig({
       DEVELOPMENT_MAIL: "true",
       DEVELOPMENT_RECORDINGS: "true",
       DEVELOPMENT_TRANSCRIPTION: "true",
+      DEVELOPMENT_FEEDBACK: "true",
     },
   },
 });

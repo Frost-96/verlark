@@ -748,3 +748,117 @@ test("识别与确认 HTTP 使用真实会话，拒绝伪造身份、跨账号�
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("反馈 HTTP 使用真实会话，拒绝伪造身份、跨账号和跨站请求", async () => {
+  const owner = await register();
+  const visitor = await register();
+  const directory = await mkdtemp(join(tmpdir(), "verlark-feedback-http-"));
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+      {
+        mode: "development",
+        recognize: async () => ({
+          kind: "recognized",
+          text: "I will read tomorrow.",
+        }),
+      },
+      undefined,
+      (
+        await import("../../integrations/expression-feedback/server")
+      ).createExpressionFeedback({ development: true }),
+    );
+    const material = await content.publish({
+      materialKey: `recognition-http-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "周末",
+      summary: "计划",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const practice = await service.start(
+      owner.learner,
+      material.materialKey,
+      crypto.randomUUID(),
+    );
+    const recording = await service.saveRecording(owner.learner, practice.id, {
+      bytes: new Uint8Array([1]),
+      mediaType: "audio/webm",
+    });
+    const attempt = await service.submit(
+      owner.learner,
+      practice.id,
+      crypto.randomUUID(),
+      recording.reference,
+    );
+    const recognized = await service.recognize(
+      owner.learner,
+      practice.id,
+      attempt.id,
+    );
+    const confirmed = await service.confirmTranscript(
+      owner.learner,
+      practice.id,
+      attempt.id,
+      {
+        rawTranscriptId: recognized.rawTranscript!.id,
+        expectedConfirmationId: null,
+        text: "I will read tomorrow.",
+      },
+    );
+    const confirmationId = confirmed.confirmations[0]!.id;
+    const { handleFeedbackRequest } =
+      await import("../../app/api/practices/feedback-http");
+    const request = (
+      body: unknown,
+      cookie = owner.cookie,
+      origin = "http://localhost:3000",
+    ) =>
+      handleFeedbackRequest(
+        new Request(
+          `http://localhost:3000/api/practices/${practice.id}/attempts/${attempt.id}/feedback`,
+          {
+            method: "POST",
+            headers: { cookie, origin, "content-type": "application/json" },
+            body: typeof body === "string" ? body : JSON.stringify(body),
+          },
+        ),
+        { identity, practice: service },
+        practice.id,
+        attempt.id,
+      );
+    const command = { action: "generate", confirmationId };
+    expect((await request(command, "")).status).toBe(401);
+    expect((await request(command, visitor.cookie)).status).toBe(404);
+    expect(
+      (await request({ action: "recover", confirmationId }, visitor.cookie))
+        .status,
+    ).toBe(404);
+    expect(
+      (await request({ ...command, userId: owner.learner.id })).status,
+    ).toBe(400);
+    expect(
+      (await request(command, owner.cookie, "https://attacker.example")).status,
+    ).toBe(403);
+    expect((await request("{")).status).toBe(400);
+    expect((await request("x".repeat(2000))).status).toBe(400);
+    const response = await request(command);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect((await response.json()).feedback).toMatchObject([
+      { status: "succeeded", confirmationId },
+    ]);
+    expect(
+      (await service.read(owner.learner, practice.id)).attempts,
+    ).toHaveLength(1);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

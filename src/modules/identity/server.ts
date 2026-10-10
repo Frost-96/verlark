@@ -12,7 +12,10 @@ import * as schema from "./schema";
 
 export function createIdentity(
   db: Database,
-  config: Omit<AppConfig, "developmentRecordings" | "developmentTranscription">,
+  config: Omit<
+    AppConfig,
+    "developmentRecordings" | "developmentTranscription" | "developmentFeedback"
+  >,
   mail: MailAdapter,
 ) {
   // Better Auth swallows callback errors. Keep delivery outcome request-local,
