@@ -19,12 +19,16 @@ export default function RootLayout({
             verlark<span>先听后用</span>
           </Link>
           <nav aria-label="主导航">
+            <Link href="/materials">听力材料</Link>
+            <Link href="/practices">练习记录</Link>
             <Link href="/account">我的账号</Link>
             <Link href="/login">登录</Link>
           </nav>
         </header>
         <main>{children}</main>
-        <footer>Verlark · 内部测试阶段 · 学习流程尚未开放</footer>
+        <footer>
+          Verlark · 内部测试阶段 · 当前支持聆听，录音与反馈尚未开放
+        </footer>
       </body>
     </html>
   );

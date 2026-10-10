@@ -1,0 +1,20 @@
+{
+  "materialKey": "weekend-plans",
+  "revision": 1,
+  "title": "周末计划",
+  "summary": "听两个人聊周末，再说说你自己的计划。",
+  "materialText": "A: What are you doing this weekend?\nB: I'm going to visit a friend on Saturday.\nA: That sounds nice. What are you going to do together?\nB: We're going to cook dinner because we both enjoy cooking.",
+  "translation": "A：你这个周末打算做什么？\nB：我打算周六去看一位朋友。\nA：听起来不错。你们打算一起做什么？\nB：我们打算做晚饭，因为我们都喜欢做饭。",
+  "task": "说说你这个周末打算做什么、什么时候做；可以再说说原因。请表达自己的情况，不必复述对话。",
+  "keywords": [
+    "visit a friend：看望朋友",
+    "together：一起",
+    "because：因为"
+  ],
+  "sentenceStarters": [
+    "I'm going to … on Saturday / Sunday.",
+    "… because I want to …"
+  ],
+  "example": "I'm going to go for a walk on Sunday because I want to relax.",
+  "audioPath": "/audio/weekend-plans-v1.wav"
+}

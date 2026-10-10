@@ -62,3 +62,11 @@ E2E_DATABASE_URL='postgresql://…/verlark_browser_test' pnpm test:e2e
 恢复时在新的空目录解压档案，对照 manifest 验证 SHA-256 和删除路径缺失，不在当前工作区直接覆盖。旧 Prisma schema 的删除状态保留，不从 HEAD 恢复，不销毁远端数据库或云端文件。将快照长期保存时需单独备份整个 `.local-snapshots/before-issues-2-6` 目录。
 
 详细证据、已验证范围与限制见 [实施记录](docs/implementation/2026-10-08-foundation.md)。领域与后续阶段见 [首版规格](https://github.com/Frost-96/verlark/issues/1)。
+
+## 聆听练习（#7）
+
+先执行 `pnpm db:migrate`，再执行 `pnpm content:publish`，最后 `pnpm dev`。可通过 `pnpm content:publish content/某材料.json` 发布其他经过检查的材料版本；规则与首份材料说明见 [content/README.md](content/README.md)。
+
+名单用户完成邮箱验证并登录后，进入 `/materials` 选择材料，进入 `/practice/<id>` 播放、重听及按需查看帮助，在 `/practices` 查看并继续同一次练习。刷新或关闭页面不会结束练习；播放器位置及帮助展开状态不承诺恢复。录音提交和表达反馈由后续票据交付。
+
+材料文本、任务、释义、提示和稳定音频路径发布后保存在数据库，同一版本不可改写。开发音频随 `public/audio` 部署；真实存储和保留策略仍待后续决定。浏览器测试只向独立 E2E_DATABASE_URL 迁移并发布开发材料，不使用应用数据库。

@@ -8,6 +8,27 @@
       "when": 1791454949616,
       "tag": "0000_previous_random",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791552180604,
+      "tag": "0001_learning_content",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791552259313,
+      "tag": "0002_listening_practice",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791552862054,
+      "tag": "0003_practice_start_idempotency",
+      "breakpoints": true
     }
   ]
 }

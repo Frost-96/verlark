@@ -86,6 +86,25 @@ h2 {
 .notice p {
   margin: 6px 0 0;
 }
+audio {
+  display: block;
+  width: 100%;
+  margin: 20px 0;
+}
+details {
+  padding: 16px 0;
+  border-bottom: 1px solid #d5ddd5;
+}
+details details {
+  margin-left: 12px;
+}
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.material-text {
+  white-space: pre-line;
+}
 .button,
 button {
   display: inline-flex;
@@ -164,6 +183,7 @@ footer {
 @media (max-width: 540px) {
   .site-header {
     padding: 18px 20px;
+    flex-wrap: wrap;
   }
   main {
     padding: 36px 20px;

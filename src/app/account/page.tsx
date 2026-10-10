@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServices } from "@/server/composition";
 import { identityMessages } from "@/modules/identity/contracts";
 import { SessionActions } from "@/modules/identity/ui/session-actions";
+import Link from "next/link";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export default async function AccountPage() {
@@ -19,8 +20,12 @@ export default async function AccountPage() {
       <h1>你好，{learner.name}</h1>
       <p>已验证邮箱：{learner.email}</p>
       <aside className="notice">
-        <h2>学习内容准备中</h2>
-        <p>还没有开放的听力材料与练习。账号验证不代表已完成学习。</p>
+        <h2>开始聆听</h2>
+        <p>选择已发布的材料，或继续先前的练习。录音提交与反馈仍在准备中。</p>
+        <div className="links">
+          <Link href="/materials">选择听力材料</Link>
+          <Link href="/practices">练习记录</Link>
+        </div>
       </aside>
       <SessionActions />
     </section>

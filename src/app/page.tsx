@@ -10,9 +10,9 @@ export default function Home() {
       </h1>
       <p className="lead">聆听一段日常对话，借助其中的表达，说说你的生活。</p>
       <aside className="notice">
-        <strong>我们正在准备第一份材料。</strong>
+        <strong>先从聆听一段日常对话开始。</strong>
         <p>
-          目前开放测试名单内的账号注册与验证。听力材料、口头作答和表达反馈尚未上线。
+          测试名单内的学习者可登录后选择已发布材料、查看帮助并保存练习。口头作答和表达反馈尚未开放。
         </p>
       </aside>
       <div className="actions">
