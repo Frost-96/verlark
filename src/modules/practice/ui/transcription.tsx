@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { Attempt } from "../contracts";
+import { isPracticeErrorCode, PracticeError, type Attempt } from "../contracts";
 const labels: Record<Attempt["status"], string> = {
   "pending-identification": "已接收 · 待识别",
   processing: "识别处理中",
@@ -67,15 +67,16 @@ export function TranscriptionReview({
       );
       const data = await response.json();
       if (sequence !== requestNumber.current) return;
-      if (!response.ok)
-        throw new Error(
-          data.message ?? "暂时无法核对处理结果，请查询最新状态。",
-        );
+      if (!response.ok) {
+        // Response messages may come from a proxy; only known codes select local Chinese copy.
+        if (isPracticeErrorCode(data?.code)) throw new PracticeError(data.code);
+        throw new Error("Unrecognized response");
+      }
       const updated: Attempt =
         action === "refresh"
           ? data.attempts.find((value: Attempt) => value.id === attempt.id)
           : data;
-      if (!updated) throw new Error("找不到该作答，请返回练习记录。");
+      if (!updated) throw new PracticeError("not-found");
       setAttempt(updated);
       // A refresh does not discard an unsaved correction or silently rebase it onto another version.
       if (action === "confirm" || !editor.rawTranscriptId)
@@ -83,7 +84,7 @@ export function TranscriptionReview({
     } catch (error) {
       if (sequence === requestNumber.current)
         setMessage(
-          error instanceof Error && error.name !== "AbortError"
+          error instanceof PracticeError
             ? error.message
             : "请求结果尚未确认。请查询最新状态；本地中断不表示远端已取消。你的编辑仍保留。",
         );
