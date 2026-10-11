@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, eq, lte, gt, isNull, or, count, min } from "drizzle-orm";
+import { and, eq, lte, gt, isNull, or, count, min, sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import type { Recording, RecordingFiles } from "./contracts";
 import { recordingAsset, recordingMaintenance } from "./schema";
@@ -254,7 +254,7 @@ export function createPrivateRecordingFiles(
         .update(recordingAsset)
         .set({
           sealed: true,
-          expiresAt: clock.now(),
+          expiresAt: sql`least(${recordingAsset.expiresAt}, ${clock.now().toISOString()}::timestamptz)`,
           cleanupAfter: clock.now(),
         })
         .where(

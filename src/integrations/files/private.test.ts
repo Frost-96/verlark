@@ -170,7 +170,12 @@ test("清理有界并推进超过一批的清单，重试期限不会隐藏超�
   expect(objects.size).toBe(0);
   now = new Date("2000-01-04T01:00:00Z");
   await files.cleanupBatch();
-  expect((await files.maintenanceStatus()).cleanupOverdue).toBe(true);
+  await files.cleanupBatch();
+  expect(await files.maintenanceStatus()).toMatchObject({
+    due: 0,
+    scanOverdue: false,
+    cleanupOverdue: true,
+  });
   const gated = createPrivateRecordingFiles(
     connection.db,
     store,
@@ -185,6 +190,30 @@ test("清理有界并推进超过一批的清单，重试期限不会隐藏超�
       mediaType: "audio/webm",
     }),
   ).rejects.toThrow("暂停新增上传");
+});
+
+test("删除已到期但尚未扫描的录音不能重置 48 小时清理时钟", async () => {
+  const { store } = storeFixture();
+  let now = new Date("2000-01-01T00:00:00Z");
+  const files = createPrivateRecordingFiles(
+    connection.db,
+    store,
+    async () => ({ mediaType: "audio/webm", durationMs: 1000 }),
+    { now: () => now },
+  );
+  const scope = {
+    learnerId: crypto.randomUUID(),
+    practiceId: crypto.randomUUID(),
+  };
+  await files.issueUpload({
+    ...scope,
+    uploadId: crypto.randomUUID(),
+    mediaType: "audio/webm",
+  });
+  now = new Date("2000-01-05T00:00:00Z");
+  expect((await files.maintenanceStatus()).cleanupOverdue).toBe(true);
+  await expect(files.removePractice(scope)).rejects.toThrow("晚到");
+  expect((await files.maintenanceStatus()).cleanupOverdue).toBe(true);
 });
 
 test("上传校验租约到期可接手，旧处理者不能清除新处理者的结果", async () => {
