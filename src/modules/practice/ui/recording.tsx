@@ -85,6 +85,20 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
     // Each unresolved ID has its own key: concurrent tabs never overwrite each other.
     void Promise.resolve().then(async () => {
       if (cancelled) return;
+      if (practice.status === "ended") {
+        // The final server snapshot already contains every accepted attempt. No submission
+        // can be accepted now, so browser recovery markers no longer represent pending work.
+        try {
+          for (const storedKey of Object.keys(localStorage)) {
+            if (storedKey.startsWith(keyPrefix))
+              localStorage.removeItem(storedKey);
+          }
+        } catch {
+          // Unavailable storage must not make a read-only record dirty again.
+        }
+        setInitialized(true);
+        return;
+      }
       try {
         const keys = Object.keys(localStorage);
         const values: Pending[] = [];
@@ -139,7 +153,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
       releaseCapture();
       if (objectURL.current) URL.revokeObjectURL(objectURL.current);
     };
-    // The component is keyed by practice ID. Only this effect instance may finish entry recovery.
+    // The component is keyed by practice ID and status. Only this effect instance may finish entry recovery.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyPrefix]);
 
@@ -402,89 +416,100 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
   }
 
   return (
-    <section aria-labelledby="recording-heading">
-      <h2 id="recording-heading" ref={captureHeading} tabIndex={-1}>
-        录下你的表达
-      </h2>
-      <p className="notice">
-        未提交录音仅临时保存在此页面，刷新或离开后可能丢失。试听、丢弃和重录不计入作答；主动提交并被接收后才进入记录。
-      </p>
-      {practice.recordingMode === "development" ? (
-        <p className="eyebrow">
-          开发录音文件 · 仅供本地流程验证；真实存储与保留规则待确定。
-        </p>
-      ) : (
-        <p>录音存储尚未配置，暂时不能提交。</p>
-      )}
-      <p>
-        {practice.transcriptionMode === "development"
-          ? "开发识别用于流程验证；真实识别与表达反馈尚未接入。"
-          : "识别服务与表达反馈尚未接入。"}
-        单次录音开发上传限制为 12 MB。
-      </p>
-      {message && (
-        <p role="alert" className="message error">
-          {message}
-        </p>
-      )}
-      {!initialized && <p role="status">正在核对上次提交…</p>}
-      {phase === "requesting" && <p role="status">请在浏览器中允许麦克风。</p>}
-      {phase === "recording" && (
-        <p role="status">正在录音 · 说完后点击停止录音。</p>
-      )}
-      {phase === "stopping" && <p role="status">正在保存录音草稿…</p>}
-      {phase === "sending" && <p role="status">正在核对并提交，请稍候…</p>}
-      {draft && <audio aria-label="录音草稿试听" src={draft.url} controls />}
-      <div className="actions">
-        {(phase === "idle" || phase === "draft") && !pending.length && (
-          <button
-            type="button"
-            onClick={start}
-            disabled={
-              !initialized ||
-              practice.status === "ended" ||
-              practice.recordingMode === "unavailable"
-            }
-          >
-            {draft ? "重新录音" : "开始录音"}
-          </button>
-        )}
-        {phase === "recording" && (
-          <button
-            type="button"
-            onClick={() => {
-              setPhase("stopping");
-              recorder.current?.stop();
-            }}
-          >
-            停止录音
-          </button>
-        )}
-        {(phase === "draft" ||
-          phase === "recording" ||
-          phase === "requesting") &&
-          !pending.length && (
-            <button type="button" className="secondary" onClick={discard}>
-              丢弃录音
-            </button>
+    <section
+      aria-label={practice.status === "ended" ? "作答记录" : undefined}
+      aria-labelledby={
+        practice.status === "ended" ? undefined : "recording-heading"
+      }
+    >
+      {practice.status !== "ended" && (
+        <>
+          <h2 id="recording-heading" ref={captureHeading} tabIndex={-1}>
+            录下你的表达
+          </h2>
+          <p className="notice">
+            未提交录音仅临时保存在此页面，刷新或离开后可能丢失。试听、丢弃和重录不计入作答；主动提交并被接收后才进入记录。
+          </p>
+          {practice.recordingMode === "development" ? (
+            <p className="eyebrow">
+              开发录音文件 · 仅供本地流程验证；真实存储与保留规则待确定。
+            </p>
+          ) : (
+            <p>录音存储尚未配置，暂时不能提交。</p>
           )}
-        {draft && phase === "draft" && !pending.length && (
-          <button type="button" onClick={() => send()}>
-            提交本次录音
-          </button>
-        )}
-        {pending.length > 0 && phase !== "sending" && (
-          <button
-            type="button"
-            disabled={!initialized}
-            onClick={() => send(true)}
-          >
-            核对并重发同一次提交
-          </button>
-        )}
-      </div>
-      {pending.length > 1 && (
-        <p>还有 {pending.length} 次提交待核对，请逐一处理。</p>
+          <p>
+            {practice.transcriptionMode === "development"
+              ? "开发识别用于流程验证；真实识别与表达反馈尚未接入。"
+              : "识别服务与表达反馈尚未接入。"}
+            单次录音开发上传限制为 12 MB。
+          </p>
+          {message && (
+            <p role="alert" className="message error">
+              {message}
+            </p>
+          )}
+          {!initialized && <p role="status">正在核对上次提交…</p>}
+          {phase === "requesting" && (
+            <p role="status">请在浏览器中允许麦克风。</p>
+          )}
+          {phase === "recording" && (
+            <p role="status">正在录音 · 说完后点击停止录音。</p>
+          )}
+          {phase === "stopping" && <p role="status">正在保存录音草稿…</p>}
+          {phase === "sending" && <p role="status">正在核对并提交，请稍候…</p>}
+          {draft && (
+            <audio aria-label="录音草稿试听" src={draft.url} controls />
+          )}
+          <div className="actions">
+            {(phase === "idle" || phase === "draft") && !pending.length && (
+              <button
+                type="button"
+                onClick={start}
+                disabled={
+                  !initialized || practice.recordingMode === "unavailable"
+                }
+              >
+                {draft ? "重新录音" : "开始录音"}
+              </button>
+            )}
+            {phase === "recording" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPhase("stopping");
+                  recorder.current?.stop();
+                }}
+              >
+                停止录音
+              </button>
+            )}
+            {(phase === "draft" ||
+              phase === "recording" ||
+              phase === "requesting") &&
+              !pending.length && (
+                <button type="button" className="secondary" onClick={discard}>
+                  丢弃录音
+                </button>
+              )}
+            {draft && phase === "draft" && !pending.length && (
+              <button type="button" onClick={() => send()}>
+                提交本次录音
+              </button>
+            )}
+            {pending.length > 0 && phase !== "sending" && (
+              <button
+                type="button"
+                disabled={!initialized}
+                onClick={() => send(true)}
+              >
+                核对并重发同一次提交
+              </button>
+            )}
+          </div>
+          {pending.length > 1 && (
+            <p>还有 {pending.length} 次提交待核对，请逐一处理。</p>
+          )}
+        </>
       )}
       <h2>本次练习的作答</h2>
       {attempts.length > 0 && (
