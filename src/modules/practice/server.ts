@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, gt, lte } from "drizzle-orm";
+import { and, desc, eq, isNull, gt, lte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import type { Learner } from "../identity/contracts";
@@ -330,12 +330,22 @@ export function createPractice(
   }
   return {
     async pruneDeletionReceipts() {
-      await db
-        .delete(practiceDeletion)
+      const receipts = await db
+        .select({ id: practiceDeletion.practiceId })
+        .from(practiceDeletion)
         .where(
           lte(
             practiceDeletion.deletedAt,
             new Date(clock.now().getTime() - 30 * 86400000),
+          ),
+        )
+        .orderBy(practiceDeletion.deletedAt, practiceDeletion.practiceId)
+        .limit(100);
+      if (receipts.length)
+        await db.delete(practiceDeletion).where(
+          inArray(
+            practiceDeletion.practiceId,
+            receipts.map((row) => row.id),
           ),
         );
     },

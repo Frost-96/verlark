@@ -265,11 +265,16 @@ export function createLearningContent(
             sql`${contentVersion.content}->'privateAudio' IS NOT NULL`,
           ),
         )
-        .orderBy(contentVersion.unreferencedSince)
+        .orderBy(
+          sql`coalesce(${contentVersion.audioCleanupAttemptedAt}, ${contentVersion.unreferencedSince})`,
+          contentVersion.id,
+        )
         .limit(Math.min(100, Math.max(1, limit)));
       let cleaned = 0;
       let failed = 0;
+      const deadline = Date.now() + 20000;
       for (const candidate of candidates) {
+        if (Date.now() >= deadline) break;
         const claim = await db.transaction(async (tx) => {
           const [row] = await tx
             .select()
@@ -297,6 +302,7 @@ export function createLearningContent(
             .update(contentVersion)
             .set({
               audioCleanupToken: token,
+              audioCleanupAttemptedAt: now,
               audioCleanupLeaseUntil: new Date(now.getTime() + 90_000),
             })
             .where(eq(contentVersion.id, row.id));

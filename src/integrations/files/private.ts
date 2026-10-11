@@ -26,7 +26,11 @@ export function createPrivateRecordingFiles(
 ) {
   type Row = typeof recordingAsset.$inferSelect;
   function id(reference: string) {
-    if (!/^recording:[0-9a-f-]{36}$/.test(reference))
+    if (
+      !/^recording:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
+        reference,
+      )
+    )
       throw new Error("录音引用无效。");
     return reference.slice(10);
   }
@@ -248,7 +252,11 @@ export function createPrivateRecordingFiles(
     async removePractice(scope: Scope) {
       await db
         .update(recordingAsset)
-        .set({ sealed: true, cleanupAfter: clock.now() })
+        .set({
+          sealed: true,
+          expiresAt: clock.now(),
+          cleanupAfter: clock.now(),
+        })
         .where(
           and(
             eq(recordingAsset.learnerId, scope.learnerId),
@@ -389,9 +397,13 @@ export function createPrivateRecordingFiles(
         .from(recordingMaintenance)
         .where(eq(recordingMaintenance.id, 1));
       const [backlog] = await db
-        .select({ count: count(), oldest: min(recordingAsset.expiresAt) })
+        .select({ count: count() })
         .from(recordingAsset)
         .where(lte(recordingAsset.cleanupAfter, clock.now()));
+      const [pending] = await db
+        .select({ oldest: min(recordingAsset.expiresAt) })
+        .from(recordingAsset)
+        .where(lte(recordingAsset.expiresAt, clock.now()));
       return {
         lastRunAt: state?.lastRunAt.toISOString() ?? null,
         lastCompletedScanAt: state?.lastCompletedScanAt?.toISOString() ?? null,
@@ -401,8 +413,8 @@ export function createPrivateRecordingFiles(
           state.lastCompletedScanAt.getTime() + 26 * 3600000 <
             clock.now().getTime(),
         cleanupOverdue:
-          !!backlog?.oldest &&
-          new Date(backlog.oldest).getTime() + 48 * 3600000 <
+          !!pending?.oldest &&
+          new Date(pending.oldest).getTime() + 48 * 3600000 <
             clock.now().getTime(),
       };
     },

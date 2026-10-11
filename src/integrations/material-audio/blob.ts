@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { del, get, put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
+import { readPrivateBlob } from "../blob-origin";
 import type { MaterialAudioStore } from "./contracts";
 import { inspectMaterialWav } from "./preparation";
 
@@ -27,32 +28,11 @@ export function createMaterialAudioStore(token: string): MaterialAudioStore {
       return pathname;
     },
     async read(value) {
-      const result = await get(reference(value), {
+      return readPrivateBlob(reference(value), {
         token,
-        access: "private",
-        useCache: false,
-        abortSignal: AbortSignal.timeout(15000),
+        maxBytes: 8 * 1024 * 1024,
+        timeoutMs: 15000,
       });
-      if (!result) return null;
-      if (result.statusCode !== 200) throw new Error("材料音频读取失败。");
-      const reader = result.stream.getReader();
-      const chunks: Uint8Array[] = [];
-      let size = 0;
-      try {
-        while (true) {
-          const part = await reader.read();
-          if (part.done) break;
-          size += part.value.length;
-          if (size > 8 * 1024 * 1024) {
-            await reader.cancel();
-            throw new Error("材料音频过大。");
-          }
-          chunks.push(part.value);
-        }
-      } finally {
-        reader.releaseLock();
-      }
-      return Buffer.concat(chunks);
     },
     async remove(value) {
       await del(reference(value), {

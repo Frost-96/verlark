@@ -1,6 +1,7 @@
 import type { createIdentity } from "../../../modules/identity/server";
 import type { LearningContent } from "../../../modules/learning-content/server";
 import { isContentError } from "../../../modules/learning-content/contracts";
+import { singleAudioRange } from "../audio-range";
 
 type Services = {
   identity: Pick<ReturnType<typeof createIdentity>, "getCurrentLearner">;
@@ -36,22 +37,8 @@ export async function handleMaterialAudio(
     let start = 0;
     let end = bytes.length - 1;
     if (range) {
-      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
-      let valid = Boolean(
-        match && (match[1] || match[2]) && range.length <= 80,
-      );
-      if (match) {
-        if (!match[1]) {
-          const count = Number(match[2]);
-          valid &&= Number.isSafeInteger(count) && count > 0;
-          start = Math.max(0, bytes.length - count);
-        } else {
-          start = Number(match[1]);
-          end = match[2] ? Math.min(Number(match[2]), end) : end;
-          valid &&= Number.isSafeInteger(start) && Number.isSafeInteger(end);
-        }
-      }
-      if (!valid || start > end || start >= bytes.length)
+      const selected = singleAudioRange(range, bytes.length);
+      if (!selected)
         return new Response(null, {
           status: 416,
           headers: {
@@ -59,6 +46,7 @@ export async function handleMaterialAudio(
             "Content-Range": `bytes */${bytes.length}`,
           },
         });
+      ({ start, end } = selected);
       headers.set("Content-Range", `bytes ${start}-${end}/${bytes.length}`);
       headers.set("Content-Length", String(end - start + 1));
     }

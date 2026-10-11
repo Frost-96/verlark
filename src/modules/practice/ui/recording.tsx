@@ -484,8 +484,10 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
           </p>
           {practice.recordingMode === "development" ? (
             <p className="eyebrow">
-              开发录音文件 · 仅供本地流程验证；真实存储与保留规则待确定。
+              开发录音文件 · 仅供本地流程验证，不代表真实存储验收。
             </p>
+          ) : practice.recordingMode === "private" ? (
+            <p>录音采用私有存储，接收后保留 30 天；到期后文字和反馈仍保留。</p>
           ) : (
             <p>录音存储尚未配置，暂时不能提交。</p>
           )}
@@ -493,7 +495,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
             {practice.transcriptionMode === "development"
               ? "开发识别用于流程验证；真实识别与表达反馈尚未接入。"
               : "识别服务与表达反馈尚未接入。"}
-            单次录音开发上传限制为 12 MB。
+            单次录音最多 120 秒、8 MiB，以先达到者为准。
           </p>
           {message && (
             <p role="alert" className="message error">

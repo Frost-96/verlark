@@ -1,6 +1,6 @@
 import { createIdentity } from "../identity/server";
 import { handleMaterialAudio } from "../../app/api/materials/audio-http";
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, test } from "vitest";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { connectDatabase } from "../../db/client";
 import { createLearningContent } from "./server";
@@ -33,6 +33,17 @@ const files: MaterialAudioStore = {
     objects.delete(reference);
   },
 };
+beforeEach(async () => {
+  // Drain previous test runs' withdrawn fixtures through the public maintenance seam.
+  const maintenance = createLearningContent(connection.db, {
+    files,
+    now: () => new Date("2030-01-01T00:00:00Z"),
+  });
+  for (let batch = 0; batch < 20; batch++) {
+    const result = await maintenance.cleanupAudio(100);
+    if (result.cleaned === 0 && result.failed === 0) break;
+  }
+});
 function fixture() {
   const bytes = Buffer.alloc(46);
   bytes.write("RIFF");
@@ -246,6 +257,9 @@ test("material GET HEAD and Range recheck the authenticated session and never ex
     "bytes=9-3",
     "bytes=0-1,3-4",
     "bytes=a-b",
+    "bytes=0-9007199254740992",
+    "bytes=-1048577",
+    `bytes=${"0".repeat(81)}-`,
   ])
     expect((await request("GET", owner.cookie, invalid)).status).toBe(416);
   allowedEmails.delete(owner.learner.email);
@@ -487,4 +501,52 @@ test("an expired cleanup owner cannot mark audio cleaned even before another wor
   expireLease = false;
   expect(await content.cleanupAudio()).toEqual({ cleaned: 1, failed: 0 });
   expect((await content.readVersion(published.id)).audioStatus).toBe("cleaned");
+});
+
+test("material cleanup advances past a full batch of persistent failures on the next daily run", async () => {
+  let now = new Date("2026-10-11T00:00:00Z");
+  const failures = new Set<string>();
+  const content = createLearningContent(connection.db, {
+    files: {
+      ...files,
+      async remove(reference) {
+        if (failures.has(reference))
+          throw new Error("provider denied deletion");
+        await files.remove(reference);
+      },
+    },
+    now: () => now,
+  });
+  let lastId = "";
+  for (let i = 0; i < 21; i++) {
+    const f = fixture();
+    const reference = await files.putImmutable(f.bytes);
+    if (i < 20) failures.add(reference);
+    const version = await content.publish({
+      ...f.source,
+      privateAudio: {
+        ...f.metadata,
+        reference,
+        model: "fixture",
+        voice: "fixture",
+        parameters: {},
+        review: f.review,
+      },
+    });
+    const practiceId = crypto.randomUUID();
+    await connection.db.transaction((tx) =>
+      content.retainPracticeReference(version.id, practiceId, tx),
+    );
+    await content.withdraw(version.id);
+    await connection.db.transaction((tx) =>
+      content.releasePracticeReference(version.id, practiceId, tx),
+    );
+    lastId = version.id;
+    now = new Date(now.getTime() + 1);
+  }
+  now = new Date("2026-11-12T00:00:00Z");
+  expect((await content.cleanupAudio(20)).failed).toBe(20);
+  now = new Date(now.getTime() + 86400000);
+  await content.cleanupAudio(20);
+  expect((await content.readVersion(lastId)).audioStatus).toBe("cleaned");
 });
