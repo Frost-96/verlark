@@ -9,15 +9,9 @@ export async function signIn(request: APIRequestContext, email: string) {
     data: { email, password, name: "聆听学习者" },
   });
   expect(signup.ok()).toBe(true);
-  const messages = await Promise.all(
-    (await readdir(".dev-mail")).map(async (file) =>
-      JSON.parse(await readFile(`.dev-mail/${file}`, "utf8")),
-    ),
+  const token = new URL(await verificationLink(email)).searchParams.get(
+    "token",
   );
-  const message = messages.findLast(
-    (value) => value.to === email && value.kind === "verification",
-  );
-  const token = new URL(message.url).searchParams.get("token");
   const verified = await request.get(
     `/api/auth/verify-email?token=${encodeURIComponent(token!)}`,
   );
@@ -28,4 +22,17 @@ export async function signIn(request: APIRequestContext, email: string) {
   });
   expect(login.ok()).toBe(true);
   return login.json();
+}
+
+export async function verificationLink(email: string): Promise<string> {
+  const messages = await Promise.all(
+    (await readdir(".dev-mail")).map(async (file) =>
+      JSON.parse(await readFile(`.dev-mail/${file}`, "utf8")),
+    ),
+  );
+  const message = messages.findLast(
+    (value) => value.to === email && value.kind === "verification",
+  );
+  expect(message?.url).toBeTruthy();
+  return message.url;
 }
