@@ -84,7 +84,14 @@ export function FeedbackReview({
     }
   }
   const latest = attempt.confirmations.at(-1);
-  if (!latest) return <p>确认文本后，即可请求表达反馈。</p>;
+  if (!latest)
+    return (
+      <p>
+        {ended
+          ? "本次作答未确认文本，没有表达反馈。"
+          : "确认文本后，即可请求表达反馈。"}
+      </p>
+    );
   const current = attempt.feedback.find(
     (item) => item.confirmationId === latest.id,
   );
@@ -103,7 +110,8 @@ export function FeedbackReview({
               : "当前确认文本尚无有效反馈。"}
         </h4>
         {historical && <p>仅供对照，不适用于当前确认文本。</p>}
-        {!historical &&
+        {!ended &&
+          !historical &&
           confirmation.revision > 1 &&
           !attempt.currentValidFeedback && (
             <p>文本已更正，请为当前版本重新获取表达反馈。</p>
@@ -112,7 +120,17 @@ export function FeedbackReview({
         <p lang="en" className="transcript-text">
           {confirmation.text}
         </p>
-        {item?.failure && <p className="message">{item.failure}</p>}
+        {item?.failure && (
+          <p className="message">
+            {ended
+              ? item.status === "unknown"
+                ? "反馈结果未知；本地失效不表示远端已取消。"
+                : item.status === "no-content"
+                  ? "确认文本没有可用的英语内容，未生成有效反馈。"
+                  : "反馈失败，未生成有效反馈。"
+              : item.failure}
+          </p>
+        )}
         {item?.status === "processing" && (
           <p role="status">
             反馈处理中。处理权到期时间：

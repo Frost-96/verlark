@@ -106,8 +106,26 @@ export function TranscriptionReview({
     editor.expectedConfirmationId !== (latest?.id ?? null);
   return (
     <div className="transcription-review">
-      <p>{labels[attempt.status]}</p>
-      {attempt.failure && <p className="message">{attempt.failure}</p>}
+      <p>
+        {attempt.status === "recognized"
+          ? latest
+            ? "识别完成 · 已确认文本"
+            : ended
+              ? "识别完成 · 未核对"
+              : labels[attempt.status]
+          : labels[attempt.status]}
+      </p>
+      {attempt.failure && (
+        <p className="message">
+          {ended
+            ? attempt.status === "unknown"
+              ? "识别结果未知；本地失效不表示远端已取消。"
+              : attempt.status === "no-content"
+                ? "未识别到可用内容。"
+                : "识别失败，未取得可用转写。"
+            : attempt.failure}
+        </p>
+      )}
       {attempt.status === "processing" && (
         <p>
           处理权到期时间：

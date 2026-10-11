@@ -295,6 +295,49 @@ export function createPractice(
     return readDeletion(owner, id);
   }
   return {
+    async finish(learner: Learner | null, id: string): Promise<PracticeDetail> {
+      const owner = requireLearner(learner);
+      if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+      const ended = await db.transaction(async (tx) => {
+        // All attempt mutations and processing claims use this same practice lock.
+        const [row] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(
+            and(
+              eq(practiceRecord.id, id),
+              eq(practiceRecord.learnerId, owner.id),
+            ),
+          )
+          .for("update");
+        if (!row || row.deletedAt) throw new PracticeError("not-found");
+        if (row.endedAt) return row;
+        const rows = await tx
+          .select()
+          .from(attemptRecord)
+          .where(eq(attemptRecord.practiceId, id));
+        const attempts: Attempt[] = [];
+        for (const row of rows) attempts.push(await attempt(row, tx));
+        // Historical feedback requests also block ending until recovered or settled.
+        if (
+          attempts.some(
+            (item) =>
+              item.status === "processing" ||
+              item.feedback.some((result) => result.status === "processing"),
+          )
+        )
+          throw new PracticeError("processing");
+        if (!attempts.some((item) => item.currentValidFeedback))
+          throw new PracticeError("feedback-required");
+        const [saved] = await tx
+          .update(practiceRecord)
+          .set({ endedAt: clock.now() })
+          .where(eq(practiceRecord.id, id))
+          .returning();
+        return saved!;
+      });
+      return detail(ended);
+    },
     readDeletion,
     retryDeletion,
     async listDeletions(learner: Learner | null): Promise<PracticeDeletion[]> {
@@ -756,7 +799,8 @@ export function createPractice(
         learnerId: row.learnerId,
         practiceId: row.id,
       });
-      await owned(learner, id);
+      const current = await owned(learner, id);
+      if (current.endedAt) throw new PracticeError("ended");
       return { reference: recording.reference };
     },
     async submit(
