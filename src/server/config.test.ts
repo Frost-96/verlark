@@ -30,3 +30,23 @@ test("正式环境拒绝开发录音文件 Adapter", () => {
     }),
   ).toThrow("正式环境不能启用开发录音文件 Adapter");
 });
+
+test("私有录音配置独立于新增上传开关，缺少清理凭据或同时启用替身时拒绝启动", () => {
+  expect(readConfig(valid).recordingUploadsEnabled).toBe(false);
+  expect(() =>
+    readConfig({ ...valid, PRIVATE_RECORDINGS_ENABLED: "true" }),
+  ).toThrow("私有录音需要");
+  expect(() =>
+    readConfig({ ...valid, RECORDING_UPLOADS_ENABLED: "true" }),
+  ).toThrow("必须配置私有录音");
+  const configured = {
+    ...valid,
+    PRIVATE_RECORDINGS_ENABLED: "true",
+    BLOB_READ_WRITE_TOKEN: "test-only-token",
+    CRON_SECRET: "test-only-maintenance-secret-32-characters",
+  };
+  expect(readConfig(configured).recordingUploadsEnabled).toBe(false);
+  expect(() =>
+    readConfig({ ...configured, DEVELOPMENT_RECORDINGS: "true" }),
+  ).toThrow("不能同时");
+});

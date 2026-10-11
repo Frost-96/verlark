@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { signIn } from "./helpers";
+import { validateRecordingAudio } from "../../src/integrations/files/media";
 async function record(page: Page) {
   await page.getByRole("button", { name: "开始录音", exact: true }).click();
   await expect(page.getByText("正在录音", { exact: false })).toBeVisible();
@@ -129,6 +130,31 @@ test("录音试听、丢弃重录与响应丢失后重新进入，保持一次�
   expect(
     (await (await page.request.get(`/api/practices/${id}`)).json()).attempts,
   ).toHaveLength(1);
+  const acceptedAudio = page.getByLabel("回放作答 1", { exact: true });
+  const audioSource = await acceptedAudio.getAttribute("src");
+  const playback = await page.request.get(audioSource!);
+  expect(playback.status()).toBe(200);
+  expect(playback.headers()["cache-control"]).toBe("private, no-store");
+  const decoded = await validateRecordingAudio(await playback.body());
+  expect(decoded.mediaType).toBe("audio/webm");
+  expect(decoded.durationMs).toBeGreaterThan(0);
+  const head = await page.request.head(audioSource!);
+  expect(head.status()).toBe(200);
+  expect((await head.body()).length).toBe(0);
+  const range = await page.request.get(audioSource!, {
+    headers: { Range: "bytes=0-31" },
+  });
+  expect(range.status()).toBe(206);
+  expect((await range.body()).length).toBe(32);
+  await acceptedAudio.evaluate((element: HTMLAudioElement) => element.play());
+  await expect
+    .poll(() =>
+      acceptedAudio.evaluate(
+        (element: HTMLAudioElement) => element.currentTime,
+      ),
+    )
+    .toBeGreaterThan(0);
+  await acceptedAudio.evaluate((element: HTMLAudioElement) => element.pause());
   // A lookup with no result is not permission to create a new submission ID.
   await record(page);
   let interruptedId = "";

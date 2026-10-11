@@ -1,0 +1,1 @@
+ALTER TABLE "learning_content_version" ADD COLUMN "audio_cleanup_attempted_at" timestamp with time zone;

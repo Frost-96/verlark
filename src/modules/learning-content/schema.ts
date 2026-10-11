@@ -23,6 +23,9 @@ export const contentVersion = pgTable(
       withTimezone: true,
     }).defaultNow(),
     audioCleanupToken: uuid("audio_cleanup_token"),
+    audioCleanupAttemptedAt: timestamp("audio_cleanup_attempted_at", {
+      withTimezone: true,
+    }),
     audioCleanupLeaseUntil: timestamp("audio_cleanup_lease_until", {
       withTimezone: true,
     }),

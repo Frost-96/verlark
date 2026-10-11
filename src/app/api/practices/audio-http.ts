@@ -6,6 +6,7 @@ import {
   isPracticeError,
 } from "../../../modules/practice/contracts";
 import { readBoundedJSON } from "./read-json";
+import { singleAudioRange } from "../audio-range";
 
 type Services = {
   identity: ReturnType<typeof createIdentity>;
@@ -111,32 +112,8 @@ export async function handleAudioRequest(
     const range = head ? null : request.headers.get("range");
     if (!range)
       return new Response(head ? null : Buffer.from(audio.bytes), { headers });
-    const parsed = /^bytes=(\d*)-(\d*)$/.exec(range);
-    const maxRange = 1024 * 1024;
-    let start = 0,
-      end = -1;
-    if (parsed && (parsed[1] || parsed[2])) {
-      if (!parsed[1]) {
-        const suffix = Number(parsed[2]);
-        if (Number.isSafeInteger(suffix) && suffix > 0 && suffix <= maxRange) {
-          start = Math.max(0, audio.size - suffix);
-          end = audio.size - 1;
-        }
-      } else {
-        start = Number(parsed[1]);
-        end = parsed[2]
-          ? Math.min(Number(parsed[2]), audio.size - 1)
-          : Math.min(start + maxRange - 1, audio.size - 1);
-      }
-    }
-    if (
-      !Number.isSafeInteger(start) ||
-      !Number.isSafeInteger(end) ||
-      start < 0 ||
-      start >= audio.size ||
-      end < start ||
-      end - start + 1 > maxRange
-    )
+    const selected = singleAudioRange(range, audio.size);
+    if (!selected)
       return new Response(null, {
         status: 416,
         headers: {
@@ -144,6 +121,7 @@ export async function handleAudioRequest(
           "Content-Range": `bytes */${audio.size}`,
         },
       });
+    const { start, end } = selected;
     headers.set("Content-Length", String(end - start + 1));
     headers.set("Content-Range", `bytes ${start}-${end}/${audio.size}`);
     return new Response(Buffer.from(audio.bytes.subarray(start, end + 1)), {

@@ -124,6 +124,7 @@ test("私有回放 GET、HEAD、Range 均核对真实会话与所有权，删除
       "bytes=3-1",
       "items=0-1",
       "bytes=9007199254740992-",
+      "bytes=0-9007199254740992",
     ])
       expect((await request("GET", owner.cookie, range)).status).toBe(416);
     const upload = (cookie: string, origin: string, body: object) =>
