@@ -1,4 +1,5 @@
 import "server-only";
+import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
 import { createIdentity } from "../modules/identity/server";
 import { createMailAdapter } from "../integrations/mail/server";
@@ -12,7 +13,11 @@ import { createPractice } from "../modules/practice/server";
 function compose() {
   const config = readConfig();
   const connection = connectDatabase(config.databaseURL);
-  const content = createLearningContent(connection.db);
+  const content = createLearningContent(connection.db, {
+    files: process.env.BLOB_READ_WRITE_TOKEN
+      ? createMaterialAudioStore(process.env.BLOB_READ_WRITE_TOKEN)
+      : undefined,
+  });
   return {
     content,
     practice: createPractice(

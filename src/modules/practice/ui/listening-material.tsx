@@ -21,36 +21,48 @@ export function ListeningMaterial({ content }: { content: ContentVersion }) {
       <section aria-labelledby="listen-heading">
         <h2 id="listen-heading">先听一遍</h2>
         <p>先试着听懂，再按需要查看下方帮助。</p>
-        <audio
-          key={retry}
-          ref={audio}
-          controls
-          preload="metadata"
-          src={content.audioPath}
-          aria-label="听力材料播放器"
-          onError={() => setError("音频未能加载，请检查网络后重试。")}
-        />
-        <div className="actions">
-          <button type="button" className="secondary" onClick={replay}>
-            从头重听
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => {
-              setError("");
-              setRetry((value) => value + 1);
-            }}
-          >
-            重新加载音频
-          </button>
-        </div>
+        {content.audioStatus !== "available" ? (
+          <p role="status">
+            {content.audioStatus === "cleaned"
+              ? "此版本音频已清理，材料原文仍保留。"
+              : "此版本音频暂不可用，材料原文仍保留。"}
+          </p>
+        ) : (
+          <>
+            <audio
+              key={retry}
+              ref={audio}
+              controls
+              preload="metadata"
+              src={content.audioPath}
+              aria-label="听力材料播放器"
+              onError={() => setError("音频未能加载，请检查网络后重试。")}
+            />
+            <div className="actions">
+              <button type="button" className="secondary" onClick={replay}>
+                从头重听
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  setError("");
+                  setRetry((value) => value + 1);
+                }}
+              >
+                重新加载音频
+              </button>
+            </div>
+          </>
+        )}
         {error && (
           <p role="alert" className="message error">
             {error}
           </p>
         )}
-        <p className="eyebrow">开发合成音频 · 最终教学录音仍待验证</p>
+        {content.audioProvenance === "development" && (
+          <p className="eyebrow">开发合成音频 · 最终教学录音仍待验证</p>
+        )}
       </section>
       <section aria-labelledby="help-heading">
         <h2 id="help-heading">按需帮助</h2>
