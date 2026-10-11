@@ -5,7 +5,8 @@ import { join } from "node:path";
 import ffmpeg from "ffmpeg-static";
 import { MAX_RECORDING_BYTES, type ValidateAudio } from "./private";
 
-export const validateRecordingAudio: ValidateAudio = async (input) => {
+/** Shared bounded decoder; output is mono 16 kHz signed 16-bit PCM. */
+export async function decodeAudio(input: Uint8Array) {
   if (!input.length || input.length > MAX_RECORDING_BYTES || !ffmpeg)
     throw new Error("录音大小无效或解码器未配置。");
   const bytes = Buffer.from(input);
@@ -79,9 +80,14 @@ export const validateRecordingAudio: ValidateAudio = async (input) => {
       throw new Error("录音为空或超过 120 秒。");
     return {
       mediaType: container.mediaType,
-      durationMs: Math.ceil(pcm.length / 32),
+      pcm,
     };
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+}
+
+export const validateRecordingAudio: ValidateAudio = async (input) => {
+  const { mediaType, pcm } = await decodeAudio(input);
+  return { mediaType, durationMs: Math.ceil(pcm.length / 32) };
 };
