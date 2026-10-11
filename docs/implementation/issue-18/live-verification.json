@@ -1,0 +1,23 @@
+{
+  "startedAt": "2026-10-11T12:59:35.001Z",
+  "finishedAt": "2026-10-11T12:59:53.980Z",
+  "outcome": "passed",
+  "passed": [
+    "Two real verified Better Auth sessions established in isolated local DB",
+    "Owner-scoped signed client upload succeeds; cross-account 404 / unauthenticated 401; direct anonymous Blob URL 403",
+    "Actual FFmpeg validation, immutable final private Blob, explicit submission and idempotent history acceptance",
+    "History playback GET / HEAD / Range use real private origin bytes; cross-account and unauthenticated playback denied",
+    "30-day logical expiry denies new playback and recognition while retaining attempt history",
+    "Deletion immediately denies access; actual late client upload cannot revive practice; retry removes it and receipt truthfully remains incomplete",
+    "24-hour unaccepted-upload logical expiry verified separately through real private adapter on same isolated DB; no cloud writes"
+  ],
+  "limitations": [
+    "Runs HTTP handlers directly, not a deployed browser/server.",
+    "Email delivery is local capture; authentication/session checks are real Better Auth.",
+    "30-day expiry uses an injected clock, not 30 days of wall time.",
+    "Known-object absence is not evidence that in-flight/multipart uploads have terminated."
+  ],
+  "objectsCreatedOrPlanned": 4,
+  "knownObjectsConfirmedAbsent": 4,
+  "receiptSha256": "4cf8819c1bc8bf51037dc562f8c8ff7a53a6b4680872208ae8d4940f569a2df3"
+}

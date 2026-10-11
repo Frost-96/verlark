@@ -39,6 +39,139 @@ const identity = createIdentity(
     },
   },
 );
+
+test("私有回放 GET、HEAD、Range 均核对真实会话与所有权，删除和到期立即拒绝", async () => {
+  const { handleAudioRequest, handleUploadRequest } =
+    await import("../../app/api/practices/audio-http");
+  const owner = await register();
+  const visitor = await register();
+  const directory = await mkdtemp(join(tmpdir(), "verlark-audio-http-"));
+  let now = new Date();
+  try {
+    const service = createPractice(
+      connection.db,
+      content,
+      createRecordingFiles({ development: true, directory }),
+      undefined,
+      { now: () => now },
+    );
+    const source = await content.publish({
+      materialKey: `playback-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "计划",
+      summary: "周末",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说你的计划。",
+      keywords: ["plan：计划"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const started = await service.start(
+      owner.learner,
+      source.materialKey,
+      crypto.randomUUID(),
+    );
+    const recording = await service.saveRecording(owner.learner, started.id, {
+      bytes: new Uint8Array([1, 2, 3, 4]),
+      mediaType: "audio/webm",
+    });
+    const accepted = await service.submit(
+      owner.learner,
+      started.id,
+      crypto.randomUUID(),
+      recording.reference,
+    );
+    const services = { identity, practice: service };
+    const request = (method = "GET", cookie = owner.cookie, range?: string) =>
+      handleAudioRequest(
+        new Request(
+          `http://localhost:3000/api/practices/${started.id}/attempts/${accepted.id}/audio`,
+          { method, headers: { cookie, ...(range ? { range } : {}) } },
+        ),
+        services,
+        started.id,
+        accepted.id,
+      );
+    for (const method of ["GET", "HEAD"]) {
+      expect((await request(method, "")).status).toBe(401);
+      expect((await request(method, visitor.cookie)).status).toBe(404);
+    }
+    const full = await request();
+    expect(Array.from(new Uint8Array(await full.arrayBuffer()))).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(full.headers.get("cache-control")).toBe("private, no-store");
+    const head = await request("HEAD");
+    expect(head.status).toBe(200);
+    expect(head.headers.get("content-length")).toBe("4");
+    expect(await head.text()).toBe("");
+    const part = await request("GET", owner.cookie, "bytes=1-2");
+    expect(part.status).toBe(206);
+    expect(part.headers.get("content-range")).toBe("bytes 1-2/4");
+    expect(Array.from(new Uint8Array(await part.arrayBuffer()))).toEqual([
+      2, 3,
+    ]);
+    const suffix = await request("GET", owner.cookie, "bytes=-2");
+    expect(Array.from(new Uint8Array(await suffix.arrayBuffer()))).toEqual([
+      3, 4,
+    ]);
+    for (const range of [
+      "bytes=0-0,2-3",
+      "bytes=9-10",
+      "bytes=-",
+      "bytes=3-1",
+      "items=0-1",
+      "bytes=9007199254740992-",
+      "bytes=0-9007199254740992",
+    ])
+      expect((await request("GET", owner.cookie, range)).status).toBe(416);
+    const upload = (cookie: string, origin: string, body: object) =>
+      handleUploadRequest(
+        new Request(
+          `http://localhost:3000/api/practices/${started.id}/uploads`,
+          {
+            method: "POST",
+            headers: { cookie, origin, "content-type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        ),
+        services,
+        started.id,
+      );
+    const command = {
+      action: "issue",
+      uploadId: crypto.randomUUID(),
+      mediaType: "audio/webm",
+    };
+    expect((await upload("", "http://localhost:3000", command)).status).toBe(
+      401,
+    );
+    expect(
+      (await upload(visitor.cookie, "http://localhost:3000", command)).status,
+    ).toBe(404);
+    expect(
+      (await upload(owner.cookie, "https://attacker.example", command)).status,
+    ).toBe(403);
+    expect(
+      (
+        await upload(owner.cookie, "http://localhost:3000", {
+          ...command,
+          learnerId: owner.learner.id,
+        })
+      ).status,
+    ).toBe(400);
+    now = new Date(new Date(accepted.acceptedAt).getTime() + 30 * 86400000);
+    expect((await request()).status).toBe(410);
+    expect((await request("HEAD")).status).toBe(410);
+    expect((await request("GET", owner.cookie, "bytes=0-1")).status).toBe(410);
+    await service.delete(owner.learner, started.id);
+    expect((await request()).status).toBe(404);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 let alice: Learner;
 let bob: Learner;
 beforeAll(async () => {

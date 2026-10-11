@@ -172,7 +172,7 @@ test("一份材料贯穿注册验证、离开继续、更正、再次作答、�
     expect.objectContaining({ id: repeatedId, status: "in-progress" }),
   ]);
   await expect(
-    resumed.getByText("开发录音清理已执行。", { exact: true }),
+    resumed.getByText("录音清理已完成。", { exact: true }),
   ).toBeVisible();
   await resumed.screenshot({
     path: info.outputPath("journey-deleted.png"),

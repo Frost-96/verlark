@@ -17,6 +17,24 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   )
     throw new ConfigurationError("正式环境或未指定环境不能启用开发识别替身。");
   const developmentRecordings = env.DEVELOPMENT_RECORDINGS === "true";
+  const privateRecordings = env.PRIVATE_RECORDINGS_ENABLED === "true";
+  const recordingUploadsEnabled = env.RECORDING_UPLOADS_ENABLED === "true";
+  const blobToken = env.BLOB_READ_WRITE_TOKEN;
+  const cronSecret = env.CRON_SECRET;
+  if (
+    privateRecordings &&
+    (!blobToken ||
+      !cronSecret ||
+      cronSecret.length < 32 ||
+      developmentRecordings)
+  )
+    throw new ConfigurationError(
+      "私有录音需要 Blob 凭据及至少 32 字符的 CRON_SECRET，且不能同时启用开发替身。",
+    );
+  if (recordingUploadsEnabled && !privateRecordings)
+    throw new ConfigurationError(
+      "启用上传前必须配置私有录音服务并核实免费额度。",
+    );
   if (developmentRecordings && production)
     throw new ConfigurationError("正式环境不能启用开发录音文件 Adapter。");
   const developmentMail = env.DEVELOPMENT_MAIL === "true";
@@ -65,6 +83,10 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     allowedEmails,
     developmentMail,
     developmentRecordings,
+    privateRecordings,
+    recordingUploadsEnabled,
+    blobToken,
+    cronSecret,
     developmentTranscription,
     developmentFeedback,
     production,

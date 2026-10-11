@@ -39,9 +39,10 @@ export default async function PracticesPage() {
       {deletions.length > 0 && (
         <section aria-label="删除与录音清理">
           <h2>删除与录音清理</h2>
-          <p>
-            这里保留删除结果，以便刷新后查询和重试。真实文件保留与清理规则仍待接入时确认。
-          </p>
+          <p>完整清理回执保留 30 天，可刷新查询和重试；之后仅保留删除标识。</p>
+          {services.files.mode === "development" && (
+            <p>开发录音清理 · 仅供本地流程验证，不代表真实存储验收。</p>
+          )}
           {deletions.map((deletion) => (
             <DeletionStatus key={deletion.id} deletion={deletion} />
           ))}
