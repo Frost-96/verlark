@@ -401,13 +401,14 @@ export function createPrivateRecordingFiles(
         .from(recordingAsset)
         .where(lte(recordingAsset.cleanupAfter, clock.now()));
       const [pending] = await db
-        .select({ oldest: min(recordingAsset.expiresAt) })
+        .select({ oldest: min(recordingAsset.expiresAt), count: count() })
         .from(recordingAsset)
         .where(lte(recordingAsset.expiresAt, clock.now()));
       return {
         lastRunAt: state?.lastRunAt.toISOString() ?? null,
         lastCompletedScanAt: state?.lastCompletedScanAt?.toISOString() ?? null,
         due: backlog?.count ?? 0,
+        pending: pending?.count ?? 0,
         scanOverdue:
           !state?.lastCompletedScanAt ||
           state.lastCompletedScanAt.getTime() + 26 * 3600000 <
