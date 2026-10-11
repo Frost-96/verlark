@@ -141,6 +141,49 @@ test("反馈固定确认文本，清楚表达零纠错且重复请求不覆盖�
   expect((await service.read(alice, practice.id)).attempts).toEqual([updated]);
 });
 
+test("更正确认文本撤销当前有效性，重新生成后才恢复，历史依据和原始转写保留", async () => {
+  const { service, practice, attempt, confirmation } = await fixture();
+  expect(attempt.currentValidFeedback).toBeNull();
+  const first = await service.requestFeedback(
+    alice,
+    practice.id,
+    attempt.id,
+    confirmation.id,
+  );
+  expect(first.currentValidFeedback).toEqual(first.feedback[0]);
+  const corrected = await service.confirmTranscript(
+    alice,
+    practice.id,
+    attempt.id,
+    {
+      rawTranscriptId: attempt.rawTranscript!.id,
+      expectedConfirmationId: confirmation.id,
+      text: "I will write tomorrow.",
+    },
+  );
+  expect(corrected.currentValidFeedback).toBeNull();
+  expect(corrected.feedback).toEqual(first.feedback);
+  expect(corrected.confirmations[0]).toEqual(confirmation);
+  expect(corrected.rawTranscript).toEqual(attempt.rawTranscript);
+  const latest = corrected.confirmations.at(-1)!;
+  expect(latest).toMatchObject({ revision: 2, text: "I will write tomorrow." });
+  const second = await service.requestFeedback(
+    alice,
+    practice.id,
+    attempt.id,
+    latest.id,
+  );
+  expect(second.currentValidFeedback).toMatchObject({
+    confirmationId: latest.id,
+    status: "succeeded",
+    result: { issues: [] },
+  });
+  expect(
+    second.feedback.find((item) => item.confirmationId === confirmation.id),
+  ).toEqual(first.feedback[0]);
+  expect((await service.read(alice, practice.id)).attempts).toEqual([second]);
+});
+
 test.each([
   [{ kind: "unknown" }, "unknown"],
   [{ kind: "failed" }, "failed"],
@@ -186,6 +229,7 @@ test.each([
     { status, result: null, generatedAt: null },
   ]);
   expect(updated.feedback[0]!.failure).toMatch(/重试/);
+  expect(updated.currentValidFeedback).toBeNull();
 });
 
 test("空白或无可识别内容不能生成反馈，网络异常保留结果未知", async () => {
@@ -316,6 +360,125 @@ test("过期处理权可恢复；并发重试和迟到结果不能覆盖成功�
   });
   expect(await old).toMatchObject({ code: "stale" });
   expect((await service.read(alice, practice.id)).attempts).toEqual([valid]);
+});
+
+test.each([false, true])(
+  "V1 反馈在 V2 确认后迟到仅作为历史，V2 已取得反馈：%s",
+  async (finishV2First) => {
+    const started = deferred<void>();
+    const remote = deferred<unknown>();
+    const { service, practice, attempt, confirmation } = await fixture(
+      async ({ text }) => {
+        if (text === "I will read tomorrow.") {
+          started.resolve();
+          return remote.promise;
+        }
+        return {
+          kind: "generated",
+          summary: "写作计划表达清楚。",
+          issues: [],
+          alternatives: [],
+          provenance: { provider: "test", model: "v2" },
+        };
+      },
+    );
+    const pending = service.requestFeedback(
+      alice,
+      practice.id,
+      attempt.id,
+      confirmation.id,
+    );
+    await started.promise;
+    const corrected = await service.confirmTranscript(
+      alice,
+      practice.id,
+      attempt.id,
+      {
+        rawTranscriptId: attempt.rawTranscript!.id,
+        expectedConfirmationId: confirmation.id,
+        text: "I will write tomorrow.",
+      },
+    );
+    expect(corrected.currentValidFeedback).toBeNull();
+    const latest = corrected.confirmations.at(-1)!;
+    const second = finishV2First
+      ? await service.requestFeedback(alice, practice.id, attempt.id, latest.id)
+      : null;
+    remote.resolve({
+      kind: "generated",
+      summary: "阅读计划表达清楚。",
+      issues: [],
+      alternatives: [],
+      provenance: { provider: "test", model: "v1-late" },
+    });
+    const late = await pending;
+    expect(late.currentValidFeedback).toEqual(
+      second?.currentValidFeedback ?? null,
+    );
+    expect(
+      late.feedback.find((item) => item.confirmationId === confirmation.id),
+    ).toMatchObject({
+      status: "succeeded",
+      result: { summary: "阅读计划表达清楚。" },
+    });
+    expect(late.confirmations).toEqual(corrected.confirmations);
+    expect(late.rawTranscript).toEqual(attempt.rawTranscript);
+    expect((await service.read(alice, practice.id)).attempts).toEqual([late]);
+  },
+);
+
+test("已有反馈的 V1 被并发更正时只追加一个 V2，失败编辑可核对后确认 V3", async () => {
+  const { service, practice, attempt, confirmation } = await fixture();
+  const first = await service.requestFeedback(
+    alice,
+    practice.id,
+    attempt.id,
+    confirmation.id,
+  );
+  const input = {
+    rawTranscriptId: attempt.rawTranscript!.id,
+    expectedConfirmationId: confirmation.id,
+  };
+  const outcomes = await Promise.allSettled([
+    service.confirmTranscript(alice, practice.id, attempt.id, {
+      ...input,
+      text: "I will write tomorrow.",
+    }),
+    service.confirmTranscript(alice, practice.id, attempt.id, {
+      ...input,
+      text: "I will swim tomorrow.",
+    }),
+  ]);
+  expect(
+    outcomes.filter((result) => result.status === "fulfilled"),
+  ).toHaveLength(1);
+  expect(outcomes.find((result) => result.status === "rejected")).toMatchObject(
+    { reason: { code: "stale" } },
+  );
+  const current = (await service.read(alice, practice.id)).attempts[0]!;
+  expect(current.currentValidFeedback).toBeNull();
+  expect(current.confirmations).toHaveLength(2);
+  expect(current.confirmations[0]).toEqual(confirmation);
+  expect(current.feedback).toEqual(first.feedback);
+  const reconciled = await service.confirmTranscript(
+    alice,
+    practice.id,
+    attempt.id,
+    {
+      ...input,
+      expectedConfirmationId: current.confirmations.at(-1)!.id,
+      text: "I will visit tomorrow.",
+    },
+  );
+  expect(reconciled.confirmations.at(-1)).toMatchObject({
+    revision: 3,
+    text: "I will visit tomorrow.",
+  });
+  expect(reconciled.confirmations.slice(0, 2)).toEqual(current.confirmations);
+  expect(reconciled.feedback).toEqual(first.feedback);
+  expect((await service.read(alice, practice.id)).attempts).toEqual([
+    reconciled,
+  ]);
 });
 
 test("未确认、跨作答版本和跨账号请求均被拒绝，外部调用前检查权限", async () => {

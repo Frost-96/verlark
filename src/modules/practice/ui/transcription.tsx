@@ -168,6 +168,7 @@ export function TranscriptionReview({
               <p>
                 只纠正识别错误，让文本还原你实际说的话。改进原本说法，请再次录音作答。
               </p>
+              {latest && <p>再次确认会保存为新版本，旧反馈只对应旧文本。</p>}
               <p>尚未确认的编辑只保留在当前页面，刷新或离开可能丢失。</p>
               {stale && (
                 <p className="message">
