@@ -17,13 +17,7 @@ const digest = (bytes: Uint8Array) =>
 // Exclusive, flushed records survive restart. A partial record fails closed; never
 // delete a request marker to force a retry after an ambiguous provider result.
 async function save(path: string, value: unknown) {
-  const file = await open(path, "wx", 0o600);
-  try {
-    await file.writeFile(JSON.stringify(value, null, 2) + "\n");
-    await file.sync();
-  } finally {
-    await file.close();
-  }
+  await writeDurable(path, JSON.stringify(value, null, 2) + "\n");
 }
 async function read(path: string): Promise<unknown | undefined> {
   try {
@@ -34,7 +28,7 @@ async function read(path: string): Promise<unknown | undefined> {
     throw error;
   }
 }
-async function saveBytes(path: string, bytes: Uint8Array) {
+async function writeDurable(path: string, bytes: string | Uint8Array) {
   const file = await open(path, "wx", 0o600);
   try {
     await file.writeFile(bytes);
@@ -240,6 +234,7 @@ export async function prepareBailianMaterial(
     const result = successSchema.parse(success);
     const rawPath = `${base}.wav`;
     let raw: Buffer;
+    let downloadedNow = false;
     try {
       raw = await readFile(rawPath);
     } catch (error) {
@@ -258,7 +253,7 @@ export async function prepareBailianMaterial(
         throw new Error("已合成音频下载失败；仅可重试同一下载，不得重新合成。");
       }
       raw = await boundedBody(response, maxBytes);
-      await saveBytes(rawPath, raw);
+      downloadedNow = true;
     }
     const downloaded = {
       digest: digest(raw),
@@ -266,10 +261,17 @@ export async function prepareBailianMaterial(
       requestId: result.requestId,
     };
     const priorDownload = await read(`${base}.download.json`);
-    if (priorDownload === undefined)
+    if (priorDownload === undefined) {
+      if (!downloadedNow)
+        throw new Error(
+          "已有音频缺少可信下载回执，可能部分落盘；停止制作并保留现场。",
+        );
+      // Commit the complete response hash/length BEFORE writing its final WAV.
+      // A crash during that write can no longer bless a truncated placeholder WAV.
       await save(`${base}.download.json`, downloaded);
-    else if (!isDeepStrictEqual(priorDownload, downloaded))
+    } else if (!isDeepStrictEqual(priorDownload, downloaded))
       throw new Error("已下载音频被修改，停止制作。");
+    if (downloadedNow) await writeDurable(rawPath, raw);
     if (
       raw.toString("ascii", 0, 4) !== "RIFF" ||
       raw.toString("ascii", 8, 12) !== "WAVE"
@@ -312,7 +314,7 @@ export async function prepareBailianMaterial(
   } catch (error) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT"))
       throw error;
-    await saveBytes(audioFile, bytes);
+    await writeDurable(audioFile, bytes);
   }
   const audio = {
     ...inspected,

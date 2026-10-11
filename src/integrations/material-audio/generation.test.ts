@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
@@ -239,4 +239,88 @@ test("refuses generation without confirmed free budget and does not follow an un
       }),
     ),
   ).rejects.toThrow("下载地址不受支持");
+});
+
+test("refuses a partially written placeholder WAV without a durable download receipt after a crash", async () => {
+  const outputDirectory = await directory();
+  const options = { ...settings, source, outputDirectory };
+  await expect(
+    prepareBailianMaterial(options, async (_input, init) => {
+      if (init?.method === "POST")
+        return Response.json({
+          request_id: "first-request",
+          output: {
+            audio: {
+              url: "https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/first.wav",
+            },
+          },
+          usage: { characters: 6 },
+        });
+      throw new Error("download interrupted");
+    }),
+  ).rejects.toThrow("download interrupted");
+  // Actual process-death state: a partial final file exists, but no checksum was persisted.
+  await writeFile(
+    join(outputDirectory, "turn-1.wav"),
+    providerWav().subarray(0, 24044),
+  );
+  await expect(
+    prepareBailianMaterial(options, async (_input, init) => {
+      if (init?.method === "POST")
+        return Response.json({
+          request_id: "second-request",
+          output: {
+            audio: {
+              url: "https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/second.wav",
+            },
+          },
+          usage: { characters: 3 },
+        });
+      return new Response(providerWav());
+    }),
+  ).rejects.toThrow("下载回执");
+  await expect(
+    readFile(join(outputDirectory, "review.json")),
+  ).rejects.toMatchObject({ code: "ENOENT" });
+  await expect(
+    readFile(join(outputDirectory, "turn-1.download.json")),
+  ).rejects.toMatchObject({ code: "ENOENT" });
+});
+
+test("recovers a missing WAV against its durable receipt but rejects a partially written WAV against the same receipt", async () => {
+  const outputDirectory = await directory();
+  const options = { ...settings, source, outputDirectory };
+  const path = await prepareBailianMaterial(options, async (_input, init) => {
+    if (init?.method === "POST")
+      return Response.json({
+        request_id: "request",
+        output: {
+          audio: {
+            url: "https://dashscope-result-bj.oss-cn-beijing.aliyuncs.com/audio.wav",
+          },
+        },
+        usage: { characters: 6 },
+      });
+    return new Response(providerWav());
+  });
+  const rawPath = join(outputDirectory, "turn-1.wav");
+  // Crash after receipt commit but before the final WAV exists: download the same result.
+  await rm(rawPath);
+  expect(
+    await prepareBailianMaterial(options, async (_input, init) => {
+      if (init?.method === "POST")
+        throw new Error("must not synthesize an already receipted turn");
+      return new Response(providerWav());
+    }),
+  ).toBe(path);
+  expect(JSON.parse(await readFile(path, "utf8")).audio.durationSeconds).toBe(
+    2.3,
+  );
+  // Crash during that WAV write: the full-response receipt must reject the partial file.
+  await writeFile(rawPath, providerWav().subarray(0, 24044));
+  await expect(
+    prepareBailianMaterial(options, async () => {
+      throw new Error("network forbidden");
+    }),
+  ).rejects.toThrow("已下载音频被修改");
 });

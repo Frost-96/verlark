@@ -23,7 +23,7 @@ pnpm exec tsx scripts/generate-material-audio.ts /absolute/private/weekend-plans
 - `plan.json`：完整内容、摘要、模型、主机、音色、文本及参数与本次预留字符数。
 - `turn-N.request.json`：请求发送前排他写入并刷盘；结果未确认前保留为 unknown。
 - `turn-N.response.json`：已确认成功的 request ID、用量、短期下载 URL。HTTP 失败另留 `failure.json`；不记录供应商错误原文。
-- `turn-N.wav` / `turn-N.download.json`：原始下载与字节摘要。下载只允许北京官方结果域名，提升为 HTTPS，拒绝重定向；超时与流式大小均有上限。
+- `turn-N.wav` / `turn-N.download.json`：完整网络响应的长度与摘要先持久化，再写原始下载；恢复时已有 WAV 若缺少回执或与回执不符则拒绝使用，不能根据残留文件补写成功摘要。下载只允许北京官方结果域名，提升为 HTTPS，拒绝重定向；超时与流式大小均有上限。
 - `material.wav`：可试听、完整封装的合成音频。
 - `review.json`：绑定确切内容与音频摘要的待审校包，模型、角色音色与制作摘要保留；审校人、时间和结论保持空白。
 
