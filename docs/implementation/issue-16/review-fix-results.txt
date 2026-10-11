@@ -1,0 +1,8 @@
+2026-10-11; review P3 shared verification helper refactor
+Running 4 tests using 1 worker
+  ✓  1 [desktop] › tests/e2e/isolation.spec.ts:59:1 › A04 两个真实会话覆盖全部练习 HTTP 操作、嵌套标识与删除记录读取 (7.4s)
+  ✓  2 [desktop] › tests/e2e/journey.spec.ts:23:1 › 一份材料贯穿注册验证、离开继续、更正、再次作答、结束历史、重练和删除 (8.5s)
+  ✓  3 [mobile] › tests/e2e/isolation.spec.ts:59:1 › A04 两个真实会话覆盖全部练习 HTTP 操作、嵌套标识与删除记录读取 (2.3s)
+  ✓  4 [mobile] › tests/e2e/journey.spec.ts:23:1 › 一份材料贯穿注册验证、离开继续、更正、再次作答、结束历史、重练和删除 (9.2s)
+  4 passed (30.7s)
+Typecheck, lint, format:check passed.
