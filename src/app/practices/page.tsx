@@ -1,3 +1,4 @@
+import { DeletePractice, DeletionStatus } from "@/modules/practice/ui/deletion";
 import Link from "next/link";
 import { learningAccess } from "../learning-access";
 export const runtime = "nodejs";
@@ -5,6 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function PracticesPage() {
   const { services, learner } = await learningAccess();
   const records = await services.practice.list(learner);
+  const deletions = await services.practice.listDeletions(learner);
   return (
     <section className="intro">
       <h1>练习记录</h1>
@@ -31,8 +33,20 @@ export default async function PracticesPage() {
           <Link className="button" href={`/practice/${record.id}`}>
             {record.status === "in-progress" ? "继续练习" : "查看记录"}
           </Link>
+          <DeletePractice id={record.id} />
         </article>
       ))}
+      {deletions.length > 0 && (
+        <section aria-label="删除与录音清理">
+          <h2>删除与录音清理</h2>
+          <p>
+            这里保留删除结果，以便刷新后查询和重试。真实文件保留与清理规则仍待接入时确认。
+          </p>
+          {deletions.map((deletion) => (
+            <DeletionStatus key={deletion.id} deletion={deletion} />
+          ))}
+        </section>
+      )}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, gt } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import type { Learner } from "../identity/contracts";
@@ -9,8 +9,10 @@ import {
   type Feedback,
   type PracticeDetail,
   type PracticeSummary,
+  type PracticeDeletion,
 } from "./contracts";
 import {
+  practiceDeletion,
   expressionFeedback,
   attemptRecord,
   practiceRecord,
@@ -133,7 +135,7 @@ export function createPractice(
       .where(
         and(eq(practiceRecord.id, id), eq(practiceRecord.learnerId, owner.id)),
       );
-    if (!row) throw new PracticeError("not-found");
+    if (!row || row.deletedAt) throw new PracticeError("not-found");
     return row;
   }
   function requireLearner(learner: Learner | null): Learner {
@@ -190,7 +192,7 @@ export function createPractice(
           ),
         )
         .for("update");
-      if (!practice) throw new PracticeError("not-found");
+      if (!practice || practice.deletedAt) throw new PracticeError("not-found");
       if (practice.endedAt) throw new PracticeError("ended");
       const [row] = await tx
         .select()
@@ -205,7 +207,140 @@ export function createPractice(
       return action(tx, row);
     });
   }
+  function deletionResult(
+    row: typeof practiceDeletion.$inferSelect,
+  ): PracticeDeletion {
+    return {
+      id: row.practiceId,
+      deletedAt: row.deletedAt.toISOString(),
+      status: row.status,
+      leaseExpiresAt: row.leaseExpiresAt?.toISOString() ?? null,
+      failure: row.failure,
+    };
+  }
+  async function readDeletion(
+    learner: Learner | null,
+    id: string,
+  ): Promise<PracticeDeletion> {
+    const owner = requireLearner(learner);
+    if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+    const [row] = await db
+      .select({ cleanup: practiceDeletion })
+      .from(practiceDeletion)
+      .innerJoin(
+        practiceRecord,
+        eq(practiceRecord.id, practiceDeletion.practiceId),
+      )
+      .where(
+        and(eq(practiceRecord.id, id), eq(practiceRecord.learnerId, owner.id)),
+      );
+    if (!row) throw new PracticeError("not-found");
+    return deletionResult(row.cleanup);
+  }
+  async function retryDeletion(
+    learner: Learner | null,
+    id: string,
+  ): Promise<PracticeDeletion> {
+    const owner = requireLearner(learner);
+    await readDeletion(owner, id);
+    const token = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(practiceDeletion)
+        .where(eq(practiceDeletion.practiceId, id))
+        .for("update");
+      if (!row) throw new PracticeError("not-found");
+      if (
+        row.status === "processing" &&
+        row.leaseExpiresAt &&
+        row.leaseExpiresAt > clock.now()
+      )
+        return null;
+      const token = crypto.randomUUID();
+      await tx
+        .update(practiceDeletion)
+        .set({
+          status: "processing",
+          leaseToken: token,
+          leaseExpiresAt: new Date(clock.now().getTime() + 60_000),
+          failure: null,
+        })
+        .where(eq(practiceDeletion.practiceId, id));
+      return token;
+    });
+    if (!token) return readDeletion(owner, id);
+    let failure: string | null = null;
+    try {
+      if (!files || files.mode === "unavailable")
+        throw new Error("Unavailable");
+      await files.removePractice({ learnerId: owner.id, practiceId: id });
+    } catch {
+      failure = "练习记录已删除，但录音清理未完成或结果未知。请重试清理。";
+    }
+    await db
+      .update(practiceDeletion)
+      .set({
+        status: failure ? "failed" : "succeeded",
+        failure,
+        leaseToken: null,
+        leaseExpiresAt: null,
+      })
+      .where(
+        and(
+          eq(practiceDeletion.practiceId, id),
+          eq(practiceDeletion.leaseToken, token),
+          gt(practiceDeletion.leaseExpiresAt, clock.now()),
+        ),
+      );
+    return readDeletion(owner, id);
+  }
   return {
+    readDeletion,
+    retryDeletion,
+    async listDeletions(learner: Learner | null): Promise<PracticeDeletion[]> {
+      const owner = requireLearner(learner);
+      const rows = await db
+        .select({ cleanup: practiceDeletion })
+        .from(practiceDeletion)
+        .innerJoin(
+          practiceRecord,
+          eq(practiceRecord.id, practiceDeletion.practiceId),
+        )
+        .where(eq(practiceRecord.learnerId, owner.id))
+        .orderBy(desc(practiceDeletion.deletedAt));
+      return rows.map((row) => deletionResult(row.cleanup));
+    },
+    async delete(
+      learner: Learner | null,
+      id: string,
+    ): Promise<PracticeDeletion> {
+      const owner = requireLearner(learner);
+      if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+      await db.transaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(
+            and(
+              eq(practiceRecord.id, id),
+              eq(practiceRecord.learnerId, owner.id),
+            ),
+          )
+          .for("update");
+        if (!row) throw new PracticeError("not-found");
+        if (row.deletedAt) return;
+        const deletedAt = clock.now();
+        await tx
+          .update(practiceRecord)
+          .set({ deletedAt })
+          .where(eq(practiceRecord.id, id));
+        await tx.insert(practiceDeletion).values({ practiceId: id, deletedAt });
+        // Cascades remove raw/confirmed transcripts and feedback, invalidating all processing claims.
+        await tx.delete(attemptRecord).where(eq(attemptRecord.practiceId, id));
+      });
+      const result = await readDeletion(owner, id);
+      return result.status === "succeeded" ? result : retryDeletion(owner, id);
+    },
     async requestFeedback(
       learner: Learner | null,
       id: string,
@@ -621,6 +756,7 @@ export function createPractice(
         learnerId: row.learnerId,
         practiceId: row.id,
       });
+      await owned(learner, id);
       return { reference: recording.reference };
     },
     async submit(
@@ -667,7 +803,7 @@ export function createPractice(
             ),
           )
           .for("update");
-        if (!row) throw new PracticeError("not-found");
+        if (!row || row.deletedAt) throw new PracticeError("not-found");
         const [existing] = await tx
           .select()
           .from(attemptRecord)
@@ -744,6 +880,7 @@ export function createPractice(
         eq(practiceRecord.requestId, requestId),
       );
       async function accepted(row: typeof practiceRecord.$inferSelect) {
+        if (row.deletedAt) throw new PracticeError("not-found");
         const result = await detail(row);
         if (result.content.materialKey !== materialKey)
           throw new PracticeError("conflict");
@@ -781,7 +918,7 @@ export function createPractice(
             eq(practiceRecord.learnerId, owner.id),
           ),
         );
-      if (!row) throw new PracticeError("not-found");
+      if (!row || row.deletedAt) throw new PracticeError("not-found");
       return detail(row);
     },
     async list(learner: Learner | null): Promise<PracticeSummary[]> {
@@ -789,7 +926,12 @@ export function createPractice(
       const rows = await db
         .select()
         .from(practiceRecord)
-        .where(eq(practiceRecord.learnerId, owner.id))
+        .where(
+          and(
+            eq(practiceRecord.learnerId, owner.id),
+            isNull(practiceRecord.deletedAt),
+          ),
+        )
         .orderBy(desc(practiceRecord.createdAt), desc(practiceRecord.id));
       return Promise.all(
         rows.map(async (row) => {

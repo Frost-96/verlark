@@ -862,3 +862,85 @@ test("反馈 HTTP 使用真实会话，拒绝伪造身份、跨账号和跨站�
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("删除 HTTP 入口只采用会话身份，刷新可查询结果，拒绝伪造与跨账号操作", async () => {
+  const { handleDeletionRequest } =
+    await import("../../app/api/practices/deletion-http");
+  const owner = await register();
+  const visitor = await register();
+  const source = await content.publish({
+    materialKey: `delete-http-${crypto.randomUUID()}`,
+    revision: 1,
+    title: "周末",
+    summary: "周末安排",
+    materialText: "Any plans?",
+    translation: "有什么计划？",
+    task: "说说你的计划。",
+    keywords: ["plan：计划"],
+    sentenceStarters: ["I will …"],
+    example: "I will read.",
+    audioPath: "/audio/weekend-v1.wav",
+  });
+  const started = await practice.start(
+    owner.learner,
+    source.materialKey,
+    crypto.randomUUID(),
+  );
+  const services = { identity, practice };
+  function request(
+    method: string,
+    cookie?: string,
+    body?: object,
+    origin = "http://localhost:3000",
+  ) {
+    return handleDeletionRequest(
+      new Request(
+        `http://localhost:3000/api/practices/${started.id}/deletion`,
+        {
+          method,
+          headers: {
+            origin,
+            ...(cookie ? { cookie } : {}),
+            ...(body ? { "content-type": "application/json" } : {}),
+          },
+          ...(body ? { body: JSON.stringify(body) } : {}),
+        },
+      ),
+      services,
+      started.id,
+    );
+  }
+  expect(
+    (await request("DELETE", undefined, { userId: owner.learner.id })).status,
+  ).toBe(401);
+  expect((await request("DELETE", visitor.cookie)).status).toBe(404);
+  expect(
+    (await request("DELETE", owner.cookie, { userId: visitor.learner.id }))
+      .status,
+  ).toBe(400);
+  expect(
+    (
+      await request(
+        "DELETE",
+        owner.cookie,
+        undefined,
+        "https://attacker.example",
+      )
+    ).status,
+  ).toBe(403);
+  expect((await practice.read(owner.learner, started.id)).id).toBe(started.id);
+  const deleted = await request("DELETE", owner.cookie);
+  expect(deleted.status).toBe(200);
+  expect(await deleted.json()).toMatchObject({
+    id: started.id,
+    status: "failed",
+  });
+  expect((await request("GET", visitor.cookie)).status).toBe(404);
+  expect(await (await request("GET", owner.cookie)).json()).toMatchObject({
+    id: started.id,
+    status: "failed",
+  });
+  await expect(practice.read(owner.learner, started.id)).rejects.toMatchObject({
+    code: "not-found",
+  });
+});

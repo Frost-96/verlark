@@ -39,6 +39,12 @@ test("文件 Adapter 自身也拒绝生产启用，未配置模式不假装保�
   const disabled = createRecordingFiles({ development: false });
   expect(disabled.mode).toBe("unavailable");
   await expect(
+    disabled.removePractice({
+      learnerId: "owner",
+      practiceId: crypto.randomUUID(),
+    }),
+  ).rejects.toThrow("尚未配置");
+  await expect(
     disabled.save({
       learnerId: "owner",
       practiceId: crypto.randomUUID(),
@@ -53,5 +59,31 @@ test("文件 Adapter 自身也拒绝生产启用，未配置模式不假装保�
     );
   } finally {
     vi.unstubAllEnvs();
+  }
+});
+
+test("整次清理跨实例幂等并封闭录音范围，迟到保存不能恢复文件", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "verlark-delete-files-"));
+  try {
+    const adapter = createRecordingFiles({ development: true, directory });
+    const input = {
+      learnerId: "owner",
+      practiceId: crypto.randomUUID(),
+      mediaType: "audio/webm",
+      bytes: new Uint8Array([1, 2]),
+    };
+    const saved = await adapter.save(input);
+    const other = await adapter.save({
+      ...input,
+      practiceId: crypto.randomUUID(),
+    });
+    await adapter.removePractice(input);
+    const resumed = createRecordingFiles({ development: true, directory });
+    await resumed.removePractice(input);
+    expect(await resumed.read(saved.reference)).toBeNull();
+    expect(await resumed.inspect(other.reference)).toEqual(other);
+    await expect(resumed.save(input)).rejects.toThrow("已删除");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

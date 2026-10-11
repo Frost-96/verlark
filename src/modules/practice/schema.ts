@@ -30,6 +30,7 @@ export const practiceRecord = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     endedAt: timestamp("ended_at", { withTimezone: true }),
   },
   (table) => [
@@ -144,3 +145,19 @@ export const expressionFeedback = pgTable(
     ),
   ],
 );
+
+// Kept separately from learning data so cleanup remains visible after deletion.
+export const practiceDeletion = pgTable("practice_deletion", {
+  practiceId: uuid("practice_id")
+    .primaryKey()
+    .references(() => practiceRecord.id),
+  status: text("status", {
+    enum: ["pending", "processing", "succeeded", "failed"],
+  })
+    .notNull()
+    .default("pending"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull(),
+  leaseToken: uuid("lease_token"),
+  leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+  failure: text("failure"),
+});

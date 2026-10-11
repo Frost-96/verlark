@@ -50,6 +50,13 @@
       "when": 1791623401381,
       "tag": "0006_third_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791697794988,
+      "tag": "0007_practice_deletion",
+      "breakpoints": true
     }
   ]
 }
