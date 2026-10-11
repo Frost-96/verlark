@@ -62,6 +62,9 @@ export function createPractice(
   clock: { now: () => Date } = { now: () => new Date() },
   feedback?: ExpressionFeedback,
 ) {
+  function expired(row: typeof attemptRecord.$inferSelect) {
+    return row.acceptedAt.getTime() + 30 * 86400000 <= clock.now().getTime();
+  }
   async function attempt(
     row: typeof attemptRecord.$inferSelect,
     reader: Pick<Database, "select"> = db,
@@ -108,6 +111,7 @@ export function createPractice(
       id: row.id,
       submissionId: row.submissionId,
       acceptedAt: row.acceptedAt.toISOString(),
+      recordingStatus: expired(row) ? "expired" : "available",
       status: row.identificationStatus,
       failure: row.identificationFailure,
       leaseExpiresAt: row.leaseExpiresAt?.toISOString() ?? null,
@@ -295,6 +299,78 @@ export function createPractice(
     return readDeletion(owner, id);
   }
   return {
+    async issueRecordingUpload(
+      learner: Learner | null,
+      id: string,
+      input: { uploadId: string; mediaType: string },
+    ) {
+      const owner = await owned(learner, id);
+      if (owner.endedAt) throw new PracticeError("ended");
+      if (
+        !z.uuid().safeParse(input.uploadId).success ||
+        !/^audio\/(webm|ogg|mp4|wav)(;codecs=[a-zA-Z0-9., -]+)?$/.test(
+          input.mediaType,
+        )
+      )
+        throw new PracticeError("recording-invalid");
+      if (!files?.issueUpload) throw new PracticeError("recording-unavailable");
+      const result = await files.issueUpload({
+        ...input,
+        learnerId: owner.learnerId,
+        practiceId: id,
+      });
+      const current = await owned(learner, id);
+      if (current.endedAt) throw new PracticeError("ended");
+      return result;
+    },
+    async completeRecordingUpload(
+      learner: Learner | null,
+      id: string,
+      reference: string,
+    ) {
+      const owner = await owned(learner, id);
+      if (owner.endedAt) throw new PracticeError("ended");
+      if (!files?.completeUpload)
+        throw new PracticeError("recording-unavailable");
+      const result = await files.completeUpload(
+        { learnerId: owner.learnerId, practiceId: id },
+        reference,
+      );
+      const current = await owned(learner, id);
+      if (current.endedAt) throw new PracticeError("ended");
+      return { reference: result.reference };
+    },
+    async readRecording(
+      learner: Learner | null,
+      id: string,
+      attemptId: string,
+    ) {
+      const owner = await owned(learner, id);
+      if (!z.uuid().safeParse(attemptId).success)
+        throw new PracticeError("not-found");
+      const [row] = await db
+        .select()
+        .from(attemptRecord)
+        .where(
+          and(
+            eq(attemptRecord.id, attemptId),
+            eq(attemptRecord.practiceId, id),
+          ),
+        );
+      if (!row) throw new PracticeError("not-found");
+      if (expired(row)) throw new PracticeError("recording-expired");
+      const recording = await files?.read(row.recordingReference);
+      if (
+        !recording ||
+        recording.learnerId !== owner.learnerId ||
+        recording.practiceId !== id ||
+        recording.digest !== row.recordingDigest
+      )
+        throw new PracticeError("recording-missing");
+      await owned(learner, id);
+      if (expired(row)) throw new PracticeError("recording-expired");
+      return recording;
+    },
     async finish(learner: Learner | null, id: string): Promise<PracticeDetail> {
       const owner = requireLearner(learner);
       if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
@@ -584,6 +660,7 @@ export function createPractice(
         id,
         attemptId,
         async (tx, row) => {
+          if (expired(row)) throw new PracticeError("recording-expired");
           if (!transcription || transcription.mode === "unavailable")
             throw new PracticeError("transcription-unavailable");
           if (row.identificationStatus === "processing")
@@ -872,6 +949,8 @@ export function createPractice(
           recording.practiceId !== id
         )
           throw new PracticeError("recording-invalid");
+        const acceptedAt = clock.now();
+        await files?.accept?.(reference, acceptedAt, tx);
         const [saved] = await tx
           .insert(attemptRecord)
           .values({
@@ -879,6 +958,7 @@ export function createPractice(
             submissionId,
             recordingReference: reference,
             recordingDigest: recording.digest,
+            acceptedAt,
           })
           .returning();
         return attempt(saved!, tx);

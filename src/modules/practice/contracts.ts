@@ -29,6 +29,7 @@ export type Attempt = {
   id: string;
   submissionId: string;
   acceptedAt: string;
+  recordingStatus?: "available" | "expired";
   status:
     | "pending-identification"
     | "processing"
@@ -52,7 +53,7 @@ export type PracticeDetail = PracticeSummary & {
   attempts: Attempt[];
   feedbackMode?: "development" | "unavailable";
   transcriptionMode?: "development" | "unavailable";
-  recordingMode: "development" | "unavailable";
+  recordingMode: "development" | "unavailable" | "private";
 };
 export class PracticeError extends Error {
   readonly name = "PracticeError";
@@ -65,6 +66,8 @@ export class PracticeError extends Error {
       | "ended"
       | "feedback-required"
       | "recording-invalid"
+      | "recording-expired"
+      | "recording-missing"
       | "recording-unavailable"
       | "processing"
       | "stale"
@@ -85,6 +88,9 @@ export class PracticeError extends Error {
         "feedback-unavailable": "反馈服务尚未配置，暂时不能生成反馈。",
         "transcription-unavailable": "识别服务尚未配置，暂时不能识别。",
         "recording-invalid": "录音无效、已不可用或不属于本次练习，请重新录音。",
+        "recording-expired":
+          "录音已到期，文字和反馈仍保留。无法重新识别，请再次作答。",
+        "recording-missing": "原录音已不可用，文字和反馈仍保留。",
         "recording-unavailable": "录音存储尚未配置，暂时不能提交。",
       }[code],
     );
@@ -102,6 +108,8 @@ export function isPracticeErrorCode(
     code === "ended" ||
     code === "feedback-required" ||
     code === "recording-invalid" ||
+    code === "recording-expired" ||
+    code === "recording-missing" ||
     code === "recording-unavailable" ||
     code === "processing" ||
     code === "stale" ||

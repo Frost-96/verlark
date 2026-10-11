@@ -86,7 +86,7 @@ export function DeletionStatus({ deletion }: { deletion: PracticeDeletion }) {
       </p>
       <p>
         {deletion.status === "succeeded"
-          ? "开发录音清理已执行。"
+          ? "录音清理已完成。"
           : deletion.status === "processing"
             ? "录音清理正在处理；若请求失联，一分钟后可重试清理。"
             : (deletion.failure ?? "录音尚待清理，请重试清理。")}

@@ -8,17 +8,33 @@ import { createRecordingFiles } from "../integrations/files/server";
 import { createExpressionFeedback } from "../integrations/expression-feedback/server";
 import { createTranscription } from "../integrations/transcription/server";
 import { createPractice } from "../modules/practice/server";
+import { createPrivateRecordingFiles } from "../integrations/files/private";
+import { createBlobObjectStore } from "../integrations/files/blob";
+import { validateRecordingAudio } from "../integrations/files/media";
 
 function compose() {
   const config = readConfig();
   const connection = connectDatabase(config.databaseURL);
   const content = createLearningContent(connection.db);
+  const files = config.privateRecordings
+    ? createPrivateRecordingFiles(
+        connection.db,
+        createBlobObjectStore(config.blobToken!),
+        validateRecordingAudio,
+        undefined,
+        {
+          uploadsEnabled: config.recordingUploadsEnabled,
+          requireMaintenance: true,
+        },
+      )
+    : createRecordingFiles({ development: config.developmentRecordings });
   return {
     content,
+    files,
     practice: createPractice(
       connection.db,
       content,
-      createRecordingFiles({ development: config.developmentRecordings }),
+      files,
       createTranscription({ development: config.developmentTranscription }),
       undefined,
       createExpressionFeedback({ development: config.developmentFeedback }),

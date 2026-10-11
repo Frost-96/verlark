@@ -12,9 +12,14 @@ import * as schema from "./schema";
 
 export function createIdentity(
   db: Database,
-  config: Omit<
+  config: Pick<
     AppConfig,
-    "developmentRecordings" | "developmentTranscription" | "developmentFeedback"
+    | "databaseURL"
+    | "baseURL"
+    | "secret"
+    | "allowedEmails"
+    | "developmentMail"
+    | "production"
   >,
   mail: MailAdapter,
 ) {
