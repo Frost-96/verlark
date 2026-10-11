@@ -140,6 +140,20 @@ test("结束检查当前反馈、显示只读及真实状态，并能核对丢�
     navigationPrompts++;
     await dialog.dismiss();
   });
+  // Upload succeeds, but the acceptance request never reaches the server. Its recovery marker remains.
+  await page.route("**/submissions", async (route) => {
+    if (route.request().method() === "POST") await route.abort("failed");
+    else await route.continue();
+  });
+  await page.getByRole("button", { name: "提交本次录音", exact: true }).click();
+  await expect(
+    page.getByText(
+      "接收结果尚未确认，请核对并重发同一次提交；不要重新创建作答。",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.unroute("**/submissions");
+  expect((await read()).attempts).toHaveLength(4);
   // No reload after the feedback change: ending must use current server state.
   await page.route("**/finish", async (route) => {
     await route.fetch();
@@ -196,6 +210,22 @@ test("结束检查当前反馈、显示只读及真实状态，并能核对丢�
     path: `docs/implementation/issue-13/ended-${info.project.name}.png`,
     fullPage: true,
   });
+  await page.getByRole("link", { name: "练习记录", exact: true }).click();
+  await expect(page).toHaveURL(/\/practices$/);
+  expect(navigationPrompts).toBe(0);
+  await page.goto(url);
+  await page.reload();
+  await expect(
+    page.getByText("练习已结束，记录只读。", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "核对并重发同一次提交", exact: true }),
+  ).toHaveCount(0);
+  expect(await read()).toEqual(ended);
+  await page.getByRole("link", { name: "练习记录", exact: true }).click();
+  await expect(page).toHaveURL(/\/practices$/);
+  expect(navigationPrompts).toBe(0);
+  await page.goto(url);
   await page.getByRole("button", { name: "按原版本重练", exact: true }).click();
   await expect(page).not.toHaveURL(url);
   await page.goto(url);
