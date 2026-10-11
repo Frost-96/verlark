@@ -4,6 +4,14 @@ if (!databaseURL || !new URL(databaseURL).pathname.endsWith("_test"))
   throw new Error("浏览器验证需要独立 E2E_DATABASE_URL，库名以 _test 结尾。");
 process.env.E2E_PREFIX ??= `browser-${Date.now()}`;
 const emails = [
+  "deletion-desktop",
+  "deletion-mobile",
+  "repeat-desktop",
+  "repeat-mobile",
+  "repeat-other-desktop",
+  "repeat-other-mobile",
+  "another-attempt-desktop",
+  "another-attempt-mobile",
   "revisions-desktop",
   "revisions-mobile",
   "feedback-desktop",

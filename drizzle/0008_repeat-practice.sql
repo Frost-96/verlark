@@ -1,0 +1,1 @@
+ALTER TABLE "practice" ADD COLUMN "repeat_of_id" uuid;

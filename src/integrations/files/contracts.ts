@@ -12,6 +12,13 @@ export type Recording = {
  */
 export interface RecordingFiles {
   readonly mode: "development" | "unavailable";
+  /** Idempotently seal this scope against saves, then remove its recordings.
+   * A resolved call means cleanup succeeded; failure may be partial and must be retried.
+   */
+  removePractice(scope: {
+    learnerId: string;
+    practiceId: string;
+  }): Promise<void>;
   save(input: {
     learnerId: string;
     practiceId: string;

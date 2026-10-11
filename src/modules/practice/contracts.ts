@@ -115,3 +115,11 @@ export function isPracticeError(error: unknown): error is PracticeError {
     isPracticeErrorCode(error.code)
   );
 }
+
+export type PracticeDeletion = {
+  id: string;
+  deletedAt: string;
+  status: "pending" | "processing" | "succeeded" | "failed";
+  leaseExpiresAt: string | null;
+  failure: string | null;
+};
