@@ -402,3 +402,89 @@ test("cleanup releases version locks before slow storage I/O and concurrent clea
   }
   expect(await cleaning).toEqual({ cleaned: 1, failed: 0 });
 });
+
+test("concurrent versions cannot share a private object and the rejected publication returns a content error", async () => {
+  const content = createLearningContent(connection.db, { files });
+  const f = fixture();
+  const reference = await files.putImmutable(f.bytes);
+  const secondSource = { ...f.source, revision: 2 };
+  const metadata = {
+    ...f.metadata,
+    reference,
+    model: "fixture",
+    voice: "fixture",
+    parameters: {},
+  };
+  const results = await Promise.allSettled([
+    content.publish({
+      ...f.source,
+      privateAudio: { ...metadata, review: f.review },
+    }),
+    content.publish({
+      ...secondSource,
+      privateAudio: {
+        ...metadata,
+        review: {
+          ...f.review,
+          contentDigest: reviewContentDigest(secondSource),
+        },
+      },
+    }),
+  ]);
+  expect(
+    results.filter((result) => result.status === "fulfilled"),
+  ).toHaveLength(1);
+  const rejected = results.find((result) => result.status === "rejected");
+  expect(rejected?.reason).toMatchObject({
+    name: "ContentError",
+    code: "invalid",
+  });
+  const accepted = results.find((result) => result.status === "fulfilled");
+  if (!accepted) throw new Error("Expected one immutable publication");
+  expect(await content.readAudio(accepted.value.id)).toEqual(f.bytes);
+});
+
+test("an expired cleanup owner cannot mark audio cleaned even before another worker acquires the lease", async () => {
+  let now = new Date("2026-10-12T00:00:00Z");
+  let expireLease = false;
+  const slowFiles: MaterialAudioStore = {
+    ...files,
+    async remove(reference) {
+      await files.remove(reference);
+      if (expireLease) now = new Date(now.getTime() + 90_000);
+    },
+  };
+  const content = createLearningContent(connection.db, {
+    files: slowFiles,
+    now: () => now,
+  });
+  const f = fixture();
+  const published = await content.publish({
+    ...f.source,
+    privateAudio: {
+      ...f.metadata,
+      reference: await files.putImmutable(f.bytes),
+      model: "fixture",
+      voice: "fixture",
+      parameters: {},
+      review: f.review,
+    },
+  });
+  const referenceId = crypto.randomUUID();
+  await connection.db.transaction((tx) =>
+    content.retainPracticeReference(published.id, referenceId, tx),
+  );
+  await content.withdraw(published.id);
+  await connection.db.transaction((tx) =>
+    content.releasePracticeReference(published.id, referenceId, tx),
+  );
+  now = new Date("2027-01-01T00:00:00Z");
+  expireLease = true;
+  expect(await content.cleanupAudio()).toEqual({ cleaned: 0, failed: 0 });
+  expect((await content.readVersion(published.id)).audioStatus).toBe(
+    "unavailable",
+  );
+  expireLease = false;
+  expect(await content.cleanupAudio()).toEqual({ cleaned: 1, failed: 0 });
+  expect((await content.readVersion(published.id)).audioStatus).toBe("cleaned");
+});
