@@ -21,6 +21,8 @@ export const practiceRecord = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     requestId: uuid("request_id").notNull().defaultRandom(),
+    // Request identity only: deleting the original must not delete an independent repeat.
+    repeatOfId: uuid("repeat_of_id"),
     learnerId: text("learner_id")
       .notNull()
       .references(() => user.id),

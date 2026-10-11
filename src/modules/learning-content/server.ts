@@ -28,7 +28,7 @@ const sourceSchema = z
 
 export function createLearningContent(db: Database) {
   function version(row: typeof contentVersion.$inferSelect): ContentVersion {
-    return { ...row.content, id: row.id };
+    return { ...row.content, id: row.id, available: row.available };
   }
   return {
     // Maintenance-only entry point, never exposed through user HTTP requests.
@@ -72,8 +72,13 @@ export function createLearningContent(db: Database) {
         summary: row.content.summary,
       }));
     },
-    async latestAvailable(materialKey: string): Promise<ContentVersion> {
-      const [row] = await db
+    // A practice creation transaction holds this share lock until its insert commits.
+    // Withdrawal updates the same row and therefore cannot pass a creation in flight.
+    async latestAvailable(
+      materialKey: string,
+      reader: Pick<Database, "select"> = db,
+    ): Promise<ContentVersion> {
+      const [row] = await reader
         .select()
         .from(contentVersion)
         .where(
@@ -83,9 +88,36 @@ export function createLearningContent(db: Database) {
           ),
         )
         .orderBy(desc(contentVersion.revision))
-        .limit(1);
+        .limit(1)
+        .for("share");
       if (!row) throw new ContentError("unavailable");
       return version(row);
+    },
+    async availableVersion(
+      id: string,
+      reader: Pick<Database, "select"> = db,
+    ): Promise<ContentVersion> {
+      if (!z.uuid().safeParse(id).success)
+        throw new ContentError("unavailable");
+      const [row] = await reader
+        .select()
+        .from(contentVersion)
+        .where(
+          and(eq(contentVersion.id, id), eq(contentVersion.available, true)),
+        )
+        .for("share");
+      if (!row) throw new ContentError("withdrawn");
+      return version(row);
+    },
+    // Maintenance-only; withdrawn revisions remain immutable and cannot be republished.
+    async withdraw(id: string): Promise<void> {
+      if (!z.uuid().safeParse(id).success) throw new ContentError("invalid");
+      const rows = await db
+        .update(contentVersion)
+        .set({ available: false })
+        .where(eq(contentVersion.id, id))
+        .returning({ id: contentVersion.id });
+      if (!rows.length) throw new ContentError("unavailable");
     },
     async readVersion(id: string): Promise<ContentVersion> {
       if (!z.uuid().safeParse(id).success)
