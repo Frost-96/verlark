@@ -66,7 +66,12 @@ test("删除整次练习后刷新仍显示清理结果，可再次核对且原�
   await page.getByRole("link", { name: "返回练习记录", exact: true }).click();
   await expect(page).toHaveURL(/\/practices$/);
   await expect(
-    page.getByText("开发录音清理已执行。", { exact: true }),
+    page.getByText("录音清理已完成。", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("开发录音清理 · 仅供本地流程验证，不代表真实存储验收。", {
+      exact: true,
+    }),
   ).toBeVisible();
   await page.reload();
   await expect(

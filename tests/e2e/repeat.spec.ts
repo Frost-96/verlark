@@ -8,7 +8,9 @@ test("历史按原版重练、未知结果重发、目录新版及撤下提示",
   browser,
 }, info) => {
   const connection = connectDatabase(process.env.E2E_DATABASE_URL!);
-  const content = createLearningContent(connection.db);
+  const content = createLearningContent(connection.db, {
+    requirePrivateAudio: false,
+  });
   const source = {
     materialKey: `repeat-${crypto.randomUUID()}`,
     revision: 1,
