@@ -944,3 +944,75 @@ test("删除 HTTP 入口只采用会话身份，刷新可查询结果，拒绝�
     code: "not-found",
   });
 });
+
+test("JSON 写入入口限制流式请求大小，拒绝损坏正文并保持中文传输失败响应", async () => {
+  const owner = await register();
+  const { handleRepeatRequest } =
+    await import("../../app/api/practices/repeat-http");
+  const { handleFeedbackRequest } =
+    await import("../../app/api/practices/feedback-http");
+  const { handleTranscriptionRequest } =
+    await import("../../app/api/practices/transcription-http");
+  const id = crypto.randomUUID();
+  const attemptId = crypto.randomUUID();
+  const endpoints = [
+    {
+      limit: 1024,
+      handle: (request: Request) =>
+        handleRepeatRequest(request, { identity, practice }, id),
+    },
+    {
+      limit: 1024,
+      handle: (request: Request) =>
+        handleFeedbackRequest(request, { identity, practice }, id, attemptId),
+    },
+    {
+      limit: 100_000,
+      handle: (request: Request) =>
+        handleTranscriptionRequest(
+          request,
+          { identity, practice },
+          id,
+          attemptId,
+        ),
+    },
+  ];
+  for (const { limit, handle } of endpoints) {
+    function request(body: BodyInit | null) {
+      return new Request("http://localhost:3000/api/practices", {
+        method: "POST",
+        headers: { cookie: owner.cookie, origin: "http://localhost:3000" },
+        body,
+        ...{ duplex: "half" },
+      });
+    }
+    for (const body of [null, "{"]) {
+      const response = await handle(request(body));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: "invalid" });
+    }
+    let cancelled = false;
+    const oversized = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        controller.enqueue(new TextEncoder().encode(" ".repeat(limit + 1)));
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const rejected = await handle(request(oversized));
+    expect(rejected.status).toBe(400);
+    expect(await rejected.json()).toMatchObject({ code: "invalid" });
+    expect(cancelled).toBe(true);
+    const interrupted = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(new Error("Connection reset"));
+      },
+    });
+    const failed = await handle(request(interrupted));
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toMatchObject({
+      message: expect.stringMatching(/暂时无法/),
+    });
+  }
+});

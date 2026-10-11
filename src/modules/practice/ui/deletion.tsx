@@ -15,15 +15,11 @@ export function DeletePractice({ id }: { id: string }) {
       const response = await fetch(`/api/practices/${id}/deletion`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error((await response.json()).message);
+      if (!response.ok) throw new Error("Deletion result unavailable");
       router.replace("/practices");
       router.refresh();
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "无法核对删除结果，请刷新练习记录。",
-      );
+    } catch {
+      setError("暂时无法核对删除结果。请刷新练习记录，查看删除与清理状态。");
       setBusy(false);
     }
   }
@@ -68,7 +64,7 @@ export function DeletionStatus({ deletion }: { deletion: PracticeDeletion }) {
       const response = await fetch(`/api/practices/${deletion.id}/deletion`, {
         method: "POST",
       });
-      if (!response.ok) throw new Error((await response.json()).message);
+      if (!response.ok) throw new Error("Deletion result unavailable");
       router.refresh();
     } catch {
       setError("暂时无法核对清理结果，请稍后刷新或重试。");

@@ -1,3 +1,4 @@
+import { readBoundedJSON } from "./read-json";
 import { z } from "zod";
 import type { createIdentity } from "../../../modules/identity/server";
 import type { Practice } from "../../../modules/practice/server";
@@ -35,30 +36,7 @@ export async function handleTranscriptionRequest(
       return json({ message: "不支持此操作。" }, 405);
     if (request.headers.get("origin") !== new URL(request.url).origin)
       return json({ message: "请求来源无效，请在本站重新操作。" }, 403);
-    const reader = request.body?.getReader();
-    if (!reader) throw new PracticeError("invalid");
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        size += value.length;
-        if (size > 100_000) {
-          await reader.cancel();
-          throw new PracticeError("invalid");
-        }
-        chunks.push(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-    let body: unknown;
-    try {
-      body = JSON.parse(Buffer.concat(chunks).toString());
-    } catch {
-      throw new PracticeError("invalid");
-    }
+    const body = await readBoundedJSON(request, 100_000);
     const parsed = command.safeParse(body);
     if (!parsed.success) throw new PracticeError("invalid");
     const input = parsed.data;
