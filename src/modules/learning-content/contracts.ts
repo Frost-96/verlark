@@ -1,3 +1,4 @@
+import type { MaterialAudioMetadata } from "../../integrations/material-audio/contracts";
 export type ContentVersionId = string;
 export type ContentSource = {
   materialKey: string;
@@ -10,9 +11,16 @@ export type ContentSource = {
   keywords: string[];
   sentenceStarters: string[];
   example: string;
-  audioPath: string;
+  audioPath?: string;
+  privateAudio?: MaterialAudioMetadata;
 };
-export type ContentVersion = ContentSource & {
+export type ContentVersion = Omit<
+  ContentSource,
+  "audioPath" | "privateAudio"
+> & {
+  audioPath: string;
+  audioProvenance: "reviewed" | "development";
+  audioStatus: "available" | "unavailable" | "cleaned";
   id: ContentVersionId;
   available: boolean;
 };
