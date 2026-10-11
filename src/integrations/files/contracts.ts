@@ -11,7 +11,34 @@ export type Recording = {
  * Missing references return null. Providers must not reassign an existing reference to new content.
  */
 export interface RecordingFiles {
-  readonly mode: "development" | "unavailable";
+  readonly mode: "development" | "unavailable" | "private";
+  issueUpload?(input: {
+    learnerId: string;
+    practiceId: string;
+    uploadId: string;
+    mediaType: string;
+  }): Promise<{ reference: string; pathname: string; clientToken: string }>;
+  completeUpload?(
+    scope: { learnerId: string; practiceId: string },
+    reference: string,
+  ): Promise<Recording>;
+  accept?(
+    reference: string,
+    acceptedAt: Date,
+    tx: Parameters<
+      Parameters<import("../../db/client").Database["transaction"]>[0]
+    >[0],
+  ): Promise<void>;
+  cleanupBatch?(
+    limit?: number,
+  ): Promise<{ processed: number; pending: number }>;
+  maintenanceStatus?(): Promise<{
+    lastRunAt: string | null;
+    lastCompletedScanAt: string | null;
+    due: number;
+    scanOverdue: boolean;
+    cleanupOverdue: boolean;
+  }>;
   /** Idempotently seal this scope against saves, then remove its recordings.
    * A resolved call means cleanup succeeded; failure may be partial and must be retried.
    */

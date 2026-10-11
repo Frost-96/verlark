@@ -2,6 +2,7 @@ packages:
   - .
 
 allowBuilds:
+  ffmpeg-static: true
   esbuild: true
   sharp: true
   unrs-resolver: true

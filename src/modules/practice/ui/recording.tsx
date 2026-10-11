@@ -1,5 +1,6 @@
 "use client";
 import { TranscriptionReview } from "./transcription";
+import { put as uploadPrivateBlob } from "@vercel/blob/client";
 
 import { useEffect, useRef, useState } from "react";
 import type { Attempt, PracticeDetail } from "../contracts";
@@ -14,7 +15,7 @@ type Phase =
   | "draft"
   | "sending"
   | "uncertain";
-const limit = 12 * 1024 * 1024;
+const limit = 8 * 1024 * 1024;
 
 export function Recording({ practice }: { practice: PracticeDetail }) {
   const [attempts, setAttempts] = useState(practice.attempts);
@@ -30,11 +31,14 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
   const stream = useRef<MediaStream | null>(null);
   const objectURL = useRef<string | null>(null);
   const busy = useRef(false);
+  const recordingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyPrefix = `verlark:submission:${practice.id}:`;
   const submissionKey = (id: string) => `${keyPrefix}${id}`;
   const base = `/api/practices/${practice.id}`;
 
   function releaseCapture() {
+    if (recordingTimer.current) clearTimeout(recordingTimer.current);
+    recordingTimer.current = null;
     const active = recorder.current;
     recorder.current = null;
     if (active) {
@@ -257,7 +261,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         if (!event.data.size) return;
         size += event.data.size;
         if (size > limit) {
-          fail("录音超过当前开发上传限制（12 MB），请缩短录音后重录。");
+          fail("录音超过 8 MiB，请缩短录音后重录。");
           return;
         }
         parts.push(event.data);
@@ -289,6 +293,13 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         setPhase("draft");
       };
       active.start(250);
+      // Leave room for codec padding; server independently validates at most 120 decoded seconds.
+      recordingTimer.current = setTimeout(() => {
+        if (active.state === "recording") {
+          setMessage("已达到录音时长上限，请试听后提交。");
+          active.stop();
+        }
+      }, 119000);
       setPhase("recording");
     } catch (error) {
       if (generation.current !== token) return;
@@ -343,14 +354,55 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         }
       }
       if (!value && draft) {
-        const upload = await fetch(`${base}/recordings`, {
-          method: "POST",
-          headers: { "Content-Type": draft.blob.type },
-          body: draft.blob,
-          signal: AbortSignal.timeout(30000),
-        });
-        if (!upload.ok) throw new Error("upload");
-        const recording = await upload.json();
+        let recording: { reference: string };
+        if (practice.recordingMode === "private") {
+          const reference = `recording:${draft.submissionId}`;
+          const complete = () =>
+            fetch(`${base}/uploads`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "complete", reference }),
+              signal: AbortSignal.timeout(60000),
+            });
+          // Same upload identity recovers an uncertain finalization before issuing another transfer.
+          let completed = await complete();
+          if (!completed.ok) {
+            const permission = await fetch(`${base}/uploads`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                action: "issue",
+                uploadId: draft.submissionId,
+                mediaType: draft.blob.type,
+              }),
+              signal: AbortSignal.timeout(15000),
+            });
+            if (!permission.ok) throw new Error("upload");
+            const permit = await permission.json();
+            try {
+              await uploadPrivateBlob(permit.pathname, draft.blob, {
+                token: permit.clientToken,
+                access: "private",
+                contentType: draft.blob.type,
+                abortSignal: AbortSignal.timeout(30000),
+              });
+            } catch {
+              /* Completion reads the actual object; an uncertain upload is never treated as accepted. */
+            }
+            completed = await complete();
+          }
+          if (!completed.ok) throw new Error("upload");
+          recording = await completed.json();
+        } else {
+          const upload = await fetch(`${base}/recordings`, {
+            method: "POST",
+            headers: { "Content-Type": draft.blob.type },
+            body: draft.blob,
+            signal: AbortSignal.timeout(30000),
+          });
+          if (!upload.ok) throw new Error("upload");
+          recording = await upload.json();
+        }
         const candidate = {
           submissionId: draft.submissionId,
           reference: recording.reference,
@@ -532,11 +584,29 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
             <li key={item.id}>
               <section aria-labelledby={`attempt-heading-${item.id}`}>
                 <h3 id={`attempt-heading-${item.id}`}>作答 {index + 1}</h3>
+                {item.recordingStatus === "expired" ? (
+                  <p>录音已到期，文字和反馈仍保留。</p>
+                ) : (
+                  <audio
+                    aria-label={`回放作答 ${index + 1}`}
+                    controls
+                    preload="none"
+                    src={`${base}/attempts/${item.id}/audio`}
+                    onError={() =>
+                      setMessage(
+                        "原录音已到期、缺失或暂不可用，请刷新核对；文字和反馈仍保留。",
+                      )
+                    }
+                  />
+                )}
                 <TranscriptionReview
                   initial={item}
                   practiceId={practice.id}
                   ended={practice.status === "ended"}
-                  enabled={practice.transcriptionMode === "development"}
+                  enabled={
+                    practice.transcriptionMode === "development" &&
+                    item.recordingStatus !== "expired"
+                  }
                   feedbackEnabled={practice.feedbackMode === "development"}
                 />
               </section>
