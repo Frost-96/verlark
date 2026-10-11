@@ -8,6 +8,8 @@ const emails = [
   "repeat-mobile",
   "repeat-other-desktop",
   "repeat-other-mobile",
+  "another-attempt-desktop",
+  "another-attempt-mobile",
   "revisions-desktop",
   "revisions-mobile",
   "feedback-desktop",
