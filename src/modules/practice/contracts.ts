@@ -131,7 +131,7 @@ export function isPracticeError(error: unknown): error is PracticeError {
 export type PracticeDeletion = {
   id: string;
   deletedAt: string;
-  status: "pending" | "processing" | "succeeded" | "failed";
+  status: "pending" | "processing" | "succeeded" | "failed" | "receipt-expired";
   leaseExpiresAt: string | null;
   failure: string | null;
 };

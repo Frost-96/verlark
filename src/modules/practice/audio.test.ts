@@ -164,4 +164,15 @@ test("作答录音由所有者回放，30 天到期立即拒绝新回放和识�
   expect((await service.read(alice, practice.id)).attempts).toMatchObject([
     { id: attempt.id, recordingStatus: "expired" },
   ]);
+  await service.delete(alice, practice.id);
+  now = new Date(now.getTime() + 30 * 86400000);
+  await service.pruneDeletionReceipts();
+  expect(await service.readDeletion(alice, practice.id)).toMatchObject({
+    status: "receipt-expired",
+    failure: null,
+    leaseExpiresAt: null,
+  });
+  await expect(service.readDeletion(bob, practice.id)).rejects.toMatchObject({
+    code: "not-found",
+  });
 });

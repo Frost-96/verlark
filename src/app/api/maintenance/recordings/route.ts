@@ -17,13 +17,14 @@ export async function GET(request: Request) {
       { message: "需要维护授权。" },
       { status: 401, headers },
     );
-  const { files } = getServices();
+  const { files, practice } = getServices();
   if (!files.cleanupBatch || !files.maintenanceStatus)
     return Response.json(
       { message: "私有录音清理尚未配置。" },
       { status: 503, headers },
     );
   try {
+    await practice.pruneDeletionReceipts();
     const batch = await files.cleanupBatch();
     const status = await files.maintenanceStatus();
     return Response.json(

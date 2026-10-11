@@ -85,13 +85,19 @@ export function DeletionStatus({ deletion }: { deletion: PracticeDeletion }) {
         </time>
       </p>
       <p>
-        {deletion.status === "succeeded"
-          ? "录音清理已完成。"
-          : deletion.status === "processing"
-            ? "录音清理正在处理；若请求失联，一分钟后可重试清理。"
-            : (deletion.failure ?? "录音尚待清理，请重试清理。")}
+        {deletion.status === "receipt-expired"
+          ? "完整清理回执已过 30 天保留期，仅保留删除标识；不表示物理清理已全部完成。"
+          : deletion.status === "succeeded"
+            ? "录音清理已完成。"
+            : deletion.status === "processing"
+              ? "录音清理正在处理；若请求失联，一分钟后可重试清理。"
+              : (deletion.failure ?? "录音尚待清理，请重试清理。")}
       </p>
-      <button type="button" disabled={busy} onClick={retry}>
+      <button
+        type="button"
+        disabled={busy || deletion.status === "receipt-expired"}
+        onClick={retry}
+      >
         {busy
           ? "正在核对清理…"
           : deletion.status === "succeeded"

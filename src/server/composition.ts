@@ -1,4 +1,5 @@
 import "server-only";
+import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
 import { createIdentity } from "../modules/identity/server";
 import { createMailAdapter } from "../integrations/mail/server";
@@ -15,7 +16,11 @@ import { validateRecordingAudio } from "../integrations/files/media";
 function compose() {
   const config = readConfig();
   const connection = connectDatabase(config.databaseURL);
-  const content = createLearningContent(connection.db);
+  const content = createLearningContent(connection.db, {
+    files: config.blobToken
+      ? createMaterialAudioStore(config.blobToken)
+      : undefined,
+  });
   const files = config.privateRecordings
     ? createPrivateRecordingFiles(
         connection.db,

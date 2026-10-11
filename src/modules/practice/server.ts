@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, gt } from "drizzle-orm";
+import { and, desc, eq, isNull, gt, lte } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import type { Learner } from "../identity/contracts";
@@ -217,9 +217,18 @@ export function createPractice(
     return {
       id: row.practiceId,
       deletedAt: row.deletedAt.toISOString(),
-      status: row.status,
-      leaseExpiresAt: row.leaseExpiresAt?.toISOString() ?? null,
-      failure: row.failure,
+      status:
+        row.deletedAt.getTime() + 30 * 86400000 <= clock.now().getTime()
+          ? "receipt-expired"
+          : row.status,
+      leaseExpiresAt:
+        row.deletedAt.getTime() + 30 * 86400000 <= clock.now().getTime()
+          ? null
+          : (row.leaseExpiresAt?.toISOString() ?? null),
+      failure:
+        row.deletedAt.getTime() + 30 * 86400000 <= clock.now().getTime()
+          ? null
+          : row.failure,
     };
   }
   async function readDeletion(
@@ -238,15 +247,36 @@ export function createPractice(
       .where(
         and(eq(practiceRecord.id, id), eq(practiceRecord.learnerId, owner.id)),
       );
-    if (!row) throw new PracticeError("not-found");
-    return deletionResult(row.cleanup);
+    if (row) return deletionResult(row.cleanup);
+    const [tombstone] = await db
+      .select()
+      .from(practiceRecord)
+      .where(
+        and(
+          eq(practiceRecord.id, id),
+          eq(practiceRecord.learnerId, owner.id),
+          lte(
+            practiceRecord.deletedAt,
+            new Date(clock.now().getTime() - 30 * 86400000),
+          ),
+        ),
+      );
+    if (!tombstone?.deletedAt) throw new PracticeError("not-found");
+    return {
+      id,
+      deletedAt: tombstone.deletedAt.toISOString(),
+      status: "receipt-expired",
+      leaseExpiresAt: null,
+      failure: null,
+    };
   }
   async function retryDeletion(
     learner: Learner | null,
     id: string,
   ): Promise<PracticeDeletion> {
     const owner = requireLearner(learner);
-    await readDeletion(owner, id);
+    const receipt = await readDeletion(owner, id);
+    if (receipt.status === "receipt-expired") return receipt;
     const token = await db.transaction(async (tx) => {
       const [row] = await tx
         .select()
@@ -299,6 +329,16 @@ export function createPractice(
     return readDeletion(owner, id);
   }
   return {
+    async pruneDeletionReceipts() {
+      await db
+        .delete(practiceDeletion)
+        .where(
+          lte(
+            practiceDeletion.deletedAt,
+            new Date(clock.now().getTime() - 30 * 86400000),
+          ),
+        );
+    },
     async issueRecordingUpload(
       learner: Learner | null,
       id: string,
@@ -454,6 +494,11 @@ export function createPractice(
           .set({ deletedAt })
           .where(eq(practiceRecord.id, id));
         await tx.insert(practiceDeletion).values({ practiceId: id, deletedAt });
+        await content.releasePracticeReference(
+          row.contentVersionId,
+          row.id,
+          tx,
+        );
         // Cascades remove raw/confirmed transcripts and feedback, invalidating all processing claims.
         await tx.delete(attemptRecord).where(eq(attemptRecord.practiceId, id));
       });
@@ -1035,6 +1080,11 @@ export function createPractice(
           .from(practiceRecord)
           .where(sameRequest);
         if (!created) throw new Error("练习保存失败，请稍后重试。");
+        await content.retainPracticeReference(
+          created.contentVersionId,
+          created.id,
+          tx,
+        );
         return created;
       });
       return accepted(row);
@@ -1096,6 +1146,11 @@ export function createPractice(
         if (!created || created.repeatOfId !== id)
           throw new PracticeError("conflict");
         if (created.deletedAt) throw new PracticeError("not-found");
+        await content.retainPracticeReference(
+          created.contentVersionId,
+          created.id,
+          tx,
+        );
         return created;
       });
       return detail(row);
