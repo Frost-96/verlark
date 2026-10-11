@@ -98,10 +98,16 @@ export function FeedbackReview({
         <h4>
           {historical
             ? `历史反馈 · 依据确认文本版本 ${confirmation.revision}`
-            : item?.status === "succeeded"
+            : attempt.currentValidFeedback
               ? "当前有效反馈"
               : "当前确认文本尚无有效反馈。"}
         </h4>
+        {historical && <p>仅供对照，不适用于当前确认文本。</p>}
+        {!historical &&
+          confirmation.revision > 1 &&
+          !attempt.currentValidFeedback && (
+            <p>文本已更正，请为当前版本重新获取表达反馈。</p>
+          )}
         <p>依据：确认文本版本 {confirmation.revision}</p>
         <p lang="en" className="transcript-text">
           {confirmation.text}

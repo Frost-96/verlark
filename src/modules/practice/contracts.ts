@@ -23,6 +23,8 @@ export type Feedback = {
   generatedAt: string | null;
 };
 export type Attempt = {
+  // Derived from the current confirmation and its successful result; never stored separately.
+  currentValidFeedback: Feedback | null;
   feedback: Feedback[];
   id: string;
   submissionId: string;

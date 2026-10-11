@@ -6,6 +6,7 @@ import type { LearningContent } from "../learning-content/server";
 import {
   PracticeError,
   type Attempt,
+  type Feedback,
   type PracticeDetail,
   type PracticeSummary,
 } from "./contracts";
@@ -63,6 +64,44 @@ export function createPractice(
     row: typeof attemptRecord.$inferSelect,
     reader: Pick<Database, "select"> = db,
   ): Promise<Attempt> {
+    // One statement gives confirmations and feedback the same PostgreSQL snapshot.
+    // Separate reads can combine an older result set with a newer confirmation version.
+    const revisions = await reader
+      .select({
+        confirmation: confirmedTranscript,
+        feedback: expressionFeedback,
+      })
+      .from(confirmedTranscript)
+      .leftJoin(
+        expressionFeedback,
+        eq(expressionFeedback.confirmationId, confirmedTranscript.id),
+      )
+      .where(eq(confirmedTranscript.attemptId, row.id))
+      .orderBy(confirmedTranscript.revision);
+    const confirmations = revisions.map(({ confirmation: item }) => ({
+      id: item.id,
+      revision: item.revision,
+      text: item.text,
+      rawTranscriptId: item.rawTranscriptId,
+      confirmedAt: item.confirmedAt.toISOString(),
+    }));
+    const results: Feedback[] = revisions.flatMap(({ feedback: item }) =>
+      item
+        ? [
+            {
+              confirmationId: item.confirmationId,
+              status: item.status,
+              rulesVersion: item.rulesVersion,
+              requestId: item.requestId,
+              leaseExpiresAt: item.leaseExpiresAt?.toISOString() ?? null,
+              failure: item.failure,
+              result: item.result,
+              provenance: item.provenance,
+              generatedAt: item.generatedAt?.toISOString() ?? null,
+            },
+          ]
+        : [],
+    );
     return {
       id: row.id,
       submissionId: row.submissionId,
@@ -74,37 +113,17 @@ export function createPractice(
         row.rawTranscriptId && row.rawTranscriptText
           ? { id: row.rawTranscriptId, text: row.rawTranscriptText }
           : null,
-      feedback: (
-        await reader
-          .select()
-          .from(expressionFeedback)
-          .where(eq(expressionFeedback.attemptId, row.id))
-      ).map((item) => ({
-        confirmationId: item.confirmationId,
-        status: item.status,
-        rulesVersion: item.rulesVersion,
-        requestId: item.requestId,
-        leaseExpiresAt: item.leaseExpiresAt?.toISOString() ?? null,
-        failure: item.failure,
-        result: item.result,
-        provenance: item.provenance,
-        generatedAt: item.generatedAt?.toISOString() ?? null,
-      })),
-      confirmations: (
-        await reader
-          .select()
-          .from(confirmedTranscript)
-          .where(eq(confirmedTranscript.attemptId, row.id))
-          .orderBy(confirmedTranscript.revision)
-      ).map((item) => ({
-        id: item.id,
-        revision: item.revision,
-        text: item.text,
-        rawTranscriptId: item.rawTranscriptId,
-        confirmedAt: item.confirmedAt.toISOString(),
-      })),
+      feedback: results,
+      confirmations,
+      currentValidFeedback:
+        results.find(
+          (item) =>
+            item.confirmationId === confirmations.at(-1)?.id &&
+            item.status === "succeeded",
+        ) ?? null,
     };
   }
+
   async function owned(learner: Learner | null, id: string) {
     const owner = requireLearner(learner);
     if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
