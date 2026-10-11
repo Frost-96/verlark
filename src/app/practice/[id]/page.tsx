@@ -1,6 +1,6 @@
+import { PracticeSession } from "@/modules/practice/ui/practice-session";
 import { DeletePractice } from "@/modules/practice/ui/deletion";
 import { RepeatPractice } from "@/modules/practice/ui/repeat-practice";
-import { Recording } from "@/modules/practice/ui/recording";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { learningAccess } from "../../learning-access";
@@ -28,13 +28,10 @@ export default async function PracticePage({
         <Link href="/materials">选择其他材料</Link>
       </div>
       <h1>{practice.title}</h1>
-      <p>
-        {practice.status === "ended" ? "已结束" : "未结束"} · 内容版本{" "}
-        {practice.content.revision}
-      </p>
-      <DeletePractice id={practice.id} />
-      <ListeningMaterial content={practice.content} />
-      <Recording key={practice.id} practice={practice} />
+      <PracticeSession key={practice.id} initial={practice}>
+        <DeletePractice id={practice.id} />
+        <ListeningMaterial content={practice.content} />
+      </PracticeSession>
       <RepeatPractice
         key={`repeat-${practice.id}`}
         id={practice.id}

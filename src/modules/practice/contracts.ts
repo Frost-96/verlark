@@ -63,6 +63,7 @@ export class PracticeError extends Error {
       | "invalid"
       | "conflict"
       | "ended"
+      | "feedback-required"
       | "recording-invalid"
       | "recording-unavailable"
       | "processing"
@@ -76,6 +77,8 @@ export class PracticeError extends Error {
         "not-found": "找不到该练习，请返回练习记录。",
         invalid: "请求格式不正确，请重新选择材料。",
         conflict: "请求标识已用于其他材料或录音，请核对已接收记录。",
+        "feedback-required":
+          "至少需要一份针对当前确认文本的有效反馈，才能结束练习。历史反馈不能用于结束。",
         ended: "练习已结束，不能再提交录音或修改作答。",
         processing: "请求仍在处理中，请稍后查询；超时后可恢复处理状态。",
         stale: "作答状态或确认文本已改变，请重新加载后核对。",
@@ -97,6 +100,7 @@ export function isPracticeErrorCode(
     code === "invalid" ||
     code === "conflict" ||
     code === "ended" ||
+    code === "feedback-required" ||
     code === "recording-invalid" ||
     code === "recording-unavailable" ||
     code === "processing" ||
