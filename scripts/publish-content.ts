@@ -20,7 +20,9 @@ try {
     .parse(source);
   await access(resolve("public", `.${audioPath}`));
   const published = await createLearningContent(connection.db).publish(source);
-  console.log(`材料已发布：${published.title}（版本 ${published.revision}）。`);
+  console.log(
+    `材料${published.available ? "已发布" : "已撤下，不会重新上架"}：${published.title}（版本 ${published.revision}，标识 ${published.id}）。`,
+  );
 } catch (error) {
   console.error(
     error instanceof ContentError

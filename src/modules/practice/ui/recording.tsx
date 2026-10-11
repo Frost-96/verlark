@@ -23,6 +23,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
   const [pending, setPending] = useState<Pending[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [message, setMessage] = useState("");
+  const captureHeading = useRef<HTMLHeadingElement | null>(null);
   const alive = useRef(false);
   const generation = useRef(0);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -402,7 +403,9 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
 
   return (
     <section aria-labelledby="recording-heading">
-      <h2 id="recording-heading">录下你的表达</h2>
+      <h2 id="recording-heading" ref={captureHeading} tabIndex={-1}>
+        录下你的表达
+      </h2>
       <p className="notice">
         未提交录音仅临时保存在此页面，刷新或离开后可能丢失。试听、丢弃和重录不计入作答；主动提交并被接收后才进入记录。
       </p>
@@ -483,7 +486,12 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
       {pending.length > 1 && (
         <p>还有 {pending.length} 次提交待核对，请逐一处理。</p>
       )}
-      <h2>本次作答</h2>
+      <h2>本次练习的作答</h2>
+      {attempts.length > 0 && (
+        <p>
+          每次作答独立保留，可对照各次确认文本和反馈。再次作答会提交新的录音；重试识别或反馈仍处理原来的作答。
+        </p>
+      )}
       {practice.transcriptionMode === "development" ? (
         <p className="message">
           开发识别替身：下方转写为固定测试文本，不代表真实录音识别结果。
@@ -497,17 +505,39 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         <ol>
           {attempts.map((item, index) => (
             <li key={item.id}>
-              <strong>作答 {index + 1}</strong>
-              <TranscriptionReview
-                initial={item}
-                practiceId={practice.id}
-                ended={practice.status === "ended"}
-                enabled={practice.transcriptionMode === "development"}
-                feedbackEnabled={practice.feedbackMode === "development"}
-              />
+              <section aria-labelledby={`attempt-heading-${item.id}`}>
+                <h3 id={`attempt-heading-${item.id}`}>作答 {index + 1}</h3>
+                <TranscriptionReview
+                  initial={item}
+                  practiceId={practice.id}
+                  ended={practice.status === "ended"}
+                  enabled={practice.transcriptionMode === "development"}
+                  feedbackEnabled={practice.feedbackMode === "development"}
+                />
+              </section>
             </li>
           ))}
         </ol>
+      )}
+      {attempts.length > 0 && practice.status !== "ended" && (
+        <div className="actions">
+          <button
+            type="button"
+            disabled={
+              !initialized ||
+              phase !== "idle" ||
+              pending.length > 0 ||
+              practice.recordingMode === "unavailable"
+            }
+            onClick={() => {
+              captureHeading.current?.focus();
+              captureHeading.current?.scrollIntoView({ block: "start" });
+              void start();
+            }}
+          >
+            再次作答
+          </button>
+        </div>
       )}
     </section>
   );

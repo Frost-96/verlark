@@ -403,3 +403,39 @@ test("清理处理权过期后迟到成功也不能宣称已完成；刷新后�
     status: "succeeded",
   });
 });
+
+test("删除与重练保持独立：删除重练记录不可重放复活，删除原练习不能再重练", async () => {
+  const { service, practice } = await fixture();
+  const requestId = crypto.randomUUID();
+  const repeated = await service.repeat(alice, practice.id, requestId);
+  await service.delete(alice, repeated.id);
+  await expect(
+    service.repeat(alice, practice.id, requestId),
+  ).rejects.toMatchObject({ code: "not-found" });
+  expect((await service.read(alice, practice.id)).attempts).toHaveLength(1);
+  const another = await service.repeat(alice, practice.id, crypto.randomUUID());
+  await service.delete(alice, practice.id);
+  await expect(
+    service.repeat(alice, practice.id, crypto.randomUUID()),
+  ).rejects.toMatchObject({ code: "not-found" });
+  expect((await service.read(alice, another.id)).id).toBe(another.id);
+});
+
+test("删除与重练竞争同一原记录，允许已创建的独立练习但原记录不会复活", async () => {
+  const { service, practice } = await fixture();
+  const [removed, repeated] = await Promise.allSettled([
+    service.delete(alice, practice.id),
+    service.repeat(alice, practice.id, crypto.randomUUID()),
+  ]);
+  expect(removed.status).toBe("fulfilled");
+  await expect(service.read(alice, practice.id)).rejects.toMatchObject({
+    code: "not-found",
+  });
+  if (repeated.status === "fulfilled") {
+    expect((await service.read(alice, repeated.value.id)).id).not.toBe(
+      practice.id,
+    );
+  } else {
+    expect(repeated.reason).toMatchObject({ code: "not-found" });
+  }
+});

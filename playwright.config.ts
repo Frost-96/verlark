@@ -6,6 +6,12 @@ process.env.E2E_PREFIX ??= `browser-${Date.now()}`;
 const emails = [
   "deletion-desktop",
   "deletion-mobile",
+  "repeat-desktop",
+  "repeat-mobile",
+  "repeat-other-desktop",
+  "repeat-other-mobile",
+  "another-attempt-desktop",
+  "another-attempt-mobile",
   "revisions-desktop",
   "revisions-mobile",
   "feedback-desktop",

@@ -882,7 +882,10 @@ export function createPractice(
       async function accepted(row: typeof practiceRecord.$inferSelect) {
         if (row.deletedAt) throw new PracticeError("not-found");
         const result = await detail(row);
-        if (result.content.materialKey !== materialKey)
+        if (
+          row.repeatOfId !== null ||
+          result.content.materialKey !== materialKey
+        )
           throw new PracticeError("conflict");
         return result;
       }
@@ -891,20 +894,87 @@ export function createPractice(
         .from(practiceRecord)
         .where(sameRequest);
       if (existing) return accepted(existing);
-      const version = await content.latestAvailable(materialKey);
-      await db
-        .insert(practiceRecord)
-        .values({
-          learnerId: owner.id,
-          contentVersionId: version.id,
-          requestId,
-        })
-        .onConflictDoNothing({
-          target: [practiceRecord.learnerId, practiceRecord.requestId],
-        });
-      const [row] = await db.select().from(practiceRecord).where(sameRequest);
-      if (!row) throw new Error("练习保存失败，请稍后重试。");
+      const row = await db.transaction(async (tx) => {
+        const version = await content.latestAvailable(materialKey, tx);
+        await tx
+          .insert(practiceRecord)
+          .values({
+            learnerId: owner.id,
+            contentVersionId: version.id,
+            requestId,
+          })
+          .onConflictDoNothing({
+            target: [practiceRecord.learnerId, practiceRecord.requestId],
+          });
+        const [created] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(sameRequest);
+        if (!created) throw new Error("练习保存失败，请稍后重试。");
+        return created;
+      });
       return accepted(row);
+    },
+    async repeat(
+      learner: Learner | null,
+      id: string,
+      requestId: string,
+    ): Promise<PracticeDetail> {
+      const owner = requireLearner(learner);
+      if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
+      if (!z.uuid().safeParse(requestId).success)
+        throw new PracticeError("invalid");
+      const row = await db.transaction(async (tx) => {
+        const [original] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(
+            and(
+              eq(practiceRecord.id, id),
+              eq(practiceRecord.learnerId, owner.id),
+            ),
+          )
+          .for("update");
+        if (!original || original.deletedAt)
+          throw new PracticeError("not-found");
+        const sameRequest = and(
+          eq(practiceRecord.learnerId, owner.id),
+          eq(practiceRecord.requestId, requestId),
+        );
+        const [existing] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(sameRequest);
+        if (existing) {
+          if (existing.deletedAt) throw new PracticeError("not-found");
+          if (existing.repeatOfId !== id) throw new PracticeError("conflict");
+          return existing;
+        }
+        const version = await content.availableVersion(
+          original.contentVersionId,
+          tx,
+        );
+        await tx
+          .insert(practiceRecord)
+          .values({
+            learnerId: owner.id,
+            contentVersionId: version.id,
+            requestId,
+            repeatOfId: id,
+          })
+          .onConflictDoNothing({
+            target: [practiceRecord.learnerId, practiceRecord.requestId],
+          });
+        const [created] = await tx
+          .select()
+          .from(practiceRecord)
+          .where(sameRequest);
+        if (!created || created.repeatOfId !== id)
+          throw new PracticeError("conflict");
+        if (created.deletedAt) throw new PracticeError("not-found");
+        return created;
+      });
+      return detail(row);
     },
     async read(learner: Learner | null, id: string): Promise<PracticeDetail> {
       const owner = requireLearner(learner);
