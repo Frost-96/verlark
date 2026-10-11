@@ -1,6 +1,6 @@
 {
   "id": "49c1b35e-7023-44fd-a7ed-611cc39867a9",
-  "prevId": "2b82dec2-006c-4044-a196-ccf24586c2dc",
+  "prevId": "8c6207e4-9293-4246-b3d4-4ff8fa056269",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -836,6 +836,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -897,6 +903,66 @@
           "tableFrom": "practice",
           "tableTo": "learning_content_version",
           "columnsFrom": ["content_version_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.practice_deletion": {
+      "name": "practice_deletion",
+      "schema": "",
+      "columns": {
+        "practice_id": {
+          "name": "practice_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lease_token": {
+          "name": "lease_token",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lease_expires_at": {
+          "name": "lease_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure": {
+          "name": "failure",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "practice_deletion_practice_id_practice_id_fk": {
+          "name": "practice_deletion_practice_id_practice_id_fk",
+          "tableFrom": "practice_deletion",
+          "tableTo": "practice",
+          "columnsFrom": ["practice_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

@@ -1,5 +1,13 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  rename,
+  writeFile,
+  readdir,
+  rm,
+  access,
+} from "node:fs/promises";
 import { join } from "node:path";
 import type { Recording, RecordingFiles } from "./contracts";
 
@@ -11,6 +19,9 @@ export function createRecordingFiles(options: {
   if (!options.development)
     return {
       mode: "unavailable",
+      async removePractice() {
+        throw new Error("录音存储尚未配置。");
+      },
       async save() {
         throw new Error("录音存储尚未配置。");
       },
@@ -24,9 +35,57 @@ export function createRecordingFiles(options: {
   if (process.env.NODE_ENV === "production")
     throw new Error("正式环境禁止开发录音文件 Adapter。");
   const directory = options.directory ?? ".dev-recordings";
+  function scopeKey(scope: { learnerId: string; practiceId: string }) {
+    return createHash("sha256")
+      .update(JSON.stringify([scope.learnerId, scope.practiceId]))
+      .digest("hex");
+  }
+  function sealPath(scope: { learnerId: string; practiceId: string }) {
+    return join(directory, `${scopeKey(scope)}.deleted`);
+  }
+  async function sealed(scope: { learnerId: string; practiceId: string }) {
+    try {
+      await access(sealPath(scope));
+      return true;
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT")
+        return false;
+      throw error;
+    }
+  }
   return {
     mode: "development",
+    async removePractice(scope) {
+      await mkdir(directory, { recursive: true, mode: 0o700 });
+      // Persist the fence before sweeping. Every save checks it before and after publication.
+      await writeFile(sealPath(scope), "deleted", { mode: 0o600 });
+      for (const entry of await readdir(directory)) {
+        if (entry.startsWith(`${scopeKey(scope)}.`) && entry.endsWith(".tmp")) {
+          await rm(join(directory, entry), { force: true });
+          continue;
+        }
+        if (!/^[a-f0-9]{64}\.json$/.test(entry)) continue;
+        try {
+          const recording = JSON.parse(
+            await readFile(join(directory, entry), "utf8"),
+          );
+          if (
+            recording.learnerId === scope.learnerId &&
+            recording.practiceId === scope.practiceId
+          )
+            await rm(join(directory, entry), { force: true });
+        } catch (error) {
+          if (!(
+            error instanceof Error &&
+            "code" in error &&
+            error.code === "ENOENT"
+          ))
+            throw error;
+        }
+      }
+    },
     async save({ bytes, ...scope }) {
+      if (await sealed(scope)) throw new Error("练习已删除，不能保存录音。");
       const digest = createHash("sha256").update(bytes).digest("hex");
       const key = createHash("sha256")
         .update(
@@ -46,17 +105,28 @@ export function createRecordingFiles(options: {
       };
       await mkdir(directory, { recursive: true, mode: 0o700 });
       // One atomic document prevents readers from observing half-uploaded metadata/audio.
-      const temporary = join(directory, `${crypto.randomUUID()}.tmp`);
-      await writeFile(
-        temporary,
-        JSON.stringify({
-          ...recording,
-          data: Buffer.from(bytes).toString("base64"),
-        }),
-        { mode: 0o600 },
+      const temporary = join(
+        directory,
+        `${scopeKey(scope)}.${crypto.randomUUID()}.tmp`,
       );
-      await rename(temporary, join(directory, `${key}.json`));
-      return recording;
+      try {
+        await writeFile(
+          temporary,
+          JSON.stringify({
+            ...recording,
+            data: Buffer.from(bytes).toString("base64"),
+          }),
+          { mode: 0o600 },
+        );
+        await rename(temporary, join(directory, `${key}.json`));
+        if (await sealed(scope)) {
+          await rm(join(directory, `${key}.json`), { force: true });
+          throw new Error("练习已删除，不能保存录音。");
+        }
+        return recording;
+      } finally {
+        await rm(temporary, { force: true });
+      }
     },
     async inspect(reference) {
       const found = await this.read(reference);
@@ -81,6 +151,7 @@ export function createRecordingFiles(options: {
         );
         const bytes = Buffer.from(data, "base64");
         if (
+          (await sealed(recording)) ||
           recording.reference !== reference ||
           bytes.length !== recording.size ||
           createHash("sha256").update(bytes).digest("hex") !== recording.digest
