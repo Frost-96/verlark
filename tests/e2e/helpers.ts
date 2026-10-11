@@ -29,3 +29,16 @@ export async function signIn(request: APIRequestContext, email: string) {
   expect(login.ok()).toBe(true);
   return login.json();
 }
+
+export async function verificationLink(email: string): Promise<string> {
+  const messages = await Promise.all(
+    (await readdir(".dev-mail")).map(async (file) =>
+      JSON.parse(await readFile(`.dev-mail/${file}`, "utf8")),
+    ),
+  );
+  const message = messages.findLast(
+    (value) => value.to === email && value.kind === "verification",
+  );
+  expect(message?.url).toBeTruthy();
+  return message.url;
+}
