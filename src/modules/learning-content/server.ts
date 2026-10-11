@@ -4,7 +4,7 @@ import {
   reviewContentDigest,
 } from "../../integrations/material-audio/preparation";
 import { isDeepStrictEqual } from "node:util";
-import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import {
@@ -154,7 +154,8 @@ export function createLearningContent(
             eq(contentVersion.revision, source.revision),
           ),
         );
-      if (!row) throw new ContentError("unavailable");
+      if (!row)
+        throw new ContentError(source.privateAudio ? "invalid" : "unavailable");
       if (!isDeepStrictEqual(row.content, source))
         throw new ContentError("immutable");
       return version(row);
@@ -306,10 +307,11 @@ export function createLearningContent(
           await files.remove(claim.reference);
           if ((await files.read(claim.reference)) !== null)
             throw new ContentError("unavailable");
+          const completedAt = options.now?.() ?? new Date();
           const completed = await db
             .update(contentVersion)
             .set({
-              audioCleanedAt: options.now?.() ?? new Date(),
+              audioCleanedAt: completedAt,
               audioCleanupToken: null,
               audioCleanupLeaseUntil: null,
             })
@@ -317,6 +319,7 @@ export function createLearningContent(
               and(
                 eq(contentVersion.id, candidate.id),
                 eq(contentVersion.audioCleanupToken, claim.token),
+                gt(contentVersion.audioCleanupLeaseUntil, completedAt),
               ),
             )
             .returning({ id: contentVersion.id });

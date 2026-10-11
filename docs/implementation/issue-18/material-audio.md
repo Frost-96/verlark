@@ -27,8 +27,10 @@
 - 红→绿：损坏 WAV 拒绝、私有音频发布／历史读取、引用保留与 30 天清理、正式环境开发音频隔离。
 - 实际 Better Auth 注册／验证／会话与名单撤回下的 GET／HEAD／Range，非法 Range、无会话与撤销资格均拒绝；未转发存储 URL。
 - 删除成功但响应丢失后，不误报完成；处理权到期可通过 origin 不存在对账恢复。
+- 并发发布两个版本并复用同一对象时，仅一个版本成功，另一方得到材料格式错误；唯一约束覆盖竞争写入。
+- 清理处理权即使尚未被新工作者接管，到期后也不能标记完成，重新取得处理权并确认不存在后才可完成。
 - 暂停外部删除期间，同版本数据库更新可以提交，证明云 I/O 不持有版本锁；并发扫描不能窃取未到期处理权。
-- 从空测试 schema 应用迁移；材料、准备器、practice／repeat／deletion 回归共 **37 项通过**（6 个测试文件）。命令：`TEST_DATABASE_URL=postgresql://issue18:issue18@127.0.0.1:55439/verlark_issue18_material_test node_modules/.bin/vitest run src/modules/learning-content src/integrations/material-audio src/modules/practice/practice.test.ts src/modules/practice/deletion.test.ts src/modules/practice/repeat.test.ts`。
+- 从空测试 schema 应用迁移；材料、准备器、practice／repeat／deletion 回归共 **39 项通过**（6 个测试文件）。命令：`TEST_DATABASE_URL=postgresql://issue18:issue18@127.0.0.1:55439/verlark_issue18_material_test node_modules/.bin/vitest run src/modules/learning-content src/integrations/material-audio src/modules/practice/practice.test.ts src/modules/practice/deletion.test.ts src/modules/practice/repeat.test.ts`。
 - 改动文件 ESLint、TypeScript `tsc --noEmit` 通过；格式使用仓库 Prettier。
 
 ## 未验收
