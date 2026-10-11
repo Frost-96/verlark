@@ -85,6 +85,20 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
     // Each unresolved ID has its own key: concurrent tabs never overwrite each other.
     void Promise.resolve().then(async () => {
       if (cancelled) return;
+      if (practice.status === "ended") {
+        // The final server snapshot already contains every accepted attempt. No submission
+        // can be accepted now, so browser recovery markers no longer represent pending work.
+        try {
+          for (const storedKey of Object.keys(localStorage)) {
+            if (storedKey.startsWith(keyPrefix))
+              localStorage.removeItem(storedKey);
+          }
+        } catch {
+          // Unavailable storage must not make a read-only record dirty again.
+        }
+        setInitialized(true);
+        return;
+      }
       try {
         const keys = Object.keys(localStorage);
         const values: Pending[] = [];
@@ -139,7 +153,7 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
       releaseCapture();
       if (objectURL.current) URL.revokeObjectURL(objectURL.current);
     };
-    // The component is keyed by practice ID. Only this effect instance may finish entry recovery.
+    // The component is keyed by practice ID and status. Only this effect instance may finish entry recovery.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyPrefix]);
 
