@@ -141,9 +141,12 @@ export function FeedbackReview({
           </p>
         )}
         {item?.status === "unknown" && (
-          <p>
-            反馈结果未知；供应商可能已消耗额度。重试将重新占用额度，不会自动重发。
-          </p>
+          <>
+            <p>反馈结果未知</p>
+            {real && (
+              <p>供应商可能已消耗额度。重试将重新占用额度，不会自动重发。</p>
+            )}
+          </>
         )}
         {item?.result && (
           <>
