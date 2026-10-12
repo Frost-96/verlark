@@ -53,6 +53,7 @@ function request(
       body: body ? JSON.stringify(body) : undefined,
     }),
     instance,
+    config.baseURL,
   );
 }
 function cookieFrom(response: Response) {
@@ -383,6 +384,7 @@ test("外部 Origin 和外部回调 URL 被拒绝，邮件链接固定在应用�
       body: JSON.stringify({ email }),
     }),
     identity,
+    config.baseURL,
   );
   expect(foreign.status).toBe(403);
   expect(

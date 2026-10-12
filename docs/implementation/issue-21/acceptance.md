@@ -19,7 +19,7 @@
 
 ## 未执行与阻塞
 
-当前环境未配置 Resend API key、经核验 Free 套餐、发信身份，也未取得本轮明确授权的收件地址。没有发送任何真实邮件、购买域名、开通账号或变更 DNS。真实收件箱验证与恢复、供应商拒收/退信、生产域名 DNS、部署环境 HTTPS cookie、生产/预览独立数据库和 secret、大陆及海外实际收信时延均未验证。
+当前环境未配置 Resend API key、经核验 Free 套餐及发信身份。用户已明确授权本人收件邮箱用于验证与重置测试（地址不写入公开证据）。没有发送任何真实邮件、购买域名、开通账号或变更 DNS。真实收件箱验证与恢复、供应商拒收/退信、生产域名 DNS、部署环境 HTTPS cookie、生产/预览独立数据库和 secret、大陆及海外实际收信时延均未验证。
 
 ## 解除阻塞后的验收
 
@@ -31,3 +31,8 @@
 协议依据：[Resend send-email](https://resend.com/docs/api-reference/emails/send-email)（2026-10-12 核对）；套餐与账号前提以已确认 [#17 决策](../../research/2026-10-11-real-services-decision.md) 为准。没有重新授权付费。
 
 最终验证：4 文件 23 项目标测试通过；`pnpm typecheck` 与变更代码 ESLint 通过。发送头包含发信人、收件人、邮件种类、链接及模板版本的 SHA-256 幂等键；Resend 官方说明保留 24 小时，不将其解释为永久去重或自动重试授权。依据：[Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys)。每次发送前清理超过两分钟的收件人分钟桶；全局日/月计数保留用于用量核对。
+
+
+## 审查修正
+
+身份 HTTP 来源策略和邮件失败的 503 映射移至 `app/api/auth/http.ts`；identity 模块只传播投递未确认错误。既有来源、回调和失败回归继续通过。Resend 接收 ID 当前不写入本地投递日志，实际验收须按脱敏收件人和发送时间在供应商控制台查找 ID，再人工记录；本实现不宣称已有自动退信追踪。

@@ -16,7 +16,7 @@ export function readFeedbackConfig(
     !/^ws-[a-z0-9]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(config.host) ||
     !Number.isSafeInteger(config.freeTokenBudget) ||
     config.freeTokenBudget <= 0 ||
-    !(config.freeUntil > new Date()) ||
+    !Number.isFinite(config.freeUntil.getTime()) ||
     env.FEEDBACK_FREE_ONLY_VERIFIED !== "true"
   )
     throw new Error(
