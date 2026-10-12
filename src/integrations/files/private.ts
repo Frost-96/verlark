@@ -3,6 +3,13 @@ import { and, eq, lte, gt, isNull, or, count, min, sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import type { Recording, RecordingFiles } from "./contracts";
 import { recordingAsset, recordingMaintenance } from "./schema";
+import {
+  uploadInventorySchema,
+  deletionMarkerSchema,
+  type UploadInventory,
+  type DeletionMarker,
+  type RecoveryJournal,
+} from "../recovery/contracts";
 
 export const MAX_RECORDING_BYTES = 8 * 1024 * 1024;
 type Scope = { learnerId: string; practiceId: string };
@@ -23,8 +30,22 @@ export function createPrivateRecordingFiles(
   validate: ValidateAudio,
   clock = { now: () => new Date() },
   options = { uploadsEnabled: true, requireMaintenance: false },
+  journal?: RecoveryJournal,
 ) {
   type Row = typeof recordingAsset.$inferSelect;
+  function inventory(row: Row): UploadInventory {
+    return {
+      kind: "upload",
+      id: row.id,
+      learnerId: row.learnerId,
+      practiceId: row.practiceId,
+      temporaryPath: row.temporaryPath,
+      finalPath: row.finalPath,
+      requestedMediaType: row.requestedMediaType,
+      createdAt: row.createdAt.toISOString(),
+      permitExpiresAt: row.permitExpiresAt.toISOString(),
+    };
+  }
   function id(reference: string) {
     if (
       !/^recording:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
@@ -78,6 +99,70 @@ export function createPrivateRecordingFiles(
   }
   const adapter = {
     mode: "private" as const,
+    async recoveryInventory(): Promise<UploadInventory[]> {
+      return (await db.select().from(recordingAsset)).map(inventory);
+    },
+    /** Restores metadata only. Never reads or deletes production objects during a drill. */
+    async replayInventory(
+      entries: UploadInventory[],
+      deletions: DeletionMarker[],
+    ) {
+      for (const input of entries) {
+        const entry = uploadInventorySchema.parse(input);
+        await db.transaction(async (tx) => {
+          const [existing] = await tx
+            .select()
+            .from(recordingAsset)
+            .where(eq(recordingAsset.id, entry.id))
+            .for("update");
+          if (existing) {
+            if (
+              JSON.stringify(
+                uploadInventorySchema.parse(inventory(existing)),
+              ) !== JSON.stringify(entry)
+            )
+              throw new Error("恢复文件清单归属或路径冲突。");
+          } else {
+            await tx.insert(recordingAsset).values({
+              id: entry.id,
+              learnerId: entry.learnerId,
+              practiceId: entry.practiceId,
+              temporaryPath: entry.temporaryPath,
+              finalPath: entry.finalPath,
+              requestedMediaType: entry.requestedMediaType,
+              createdAt: new Date(entry.createdAt),
+              permitExpiresAt: new Date(entry.permitExpiresAt),
+              expiresAt: new Date(
+                Math.min(
+                  clock.now().getTime(),
+                  new Date(entry.createdAt).getTime() + 86400000,
+                ),
+              ),
+              cleanupAfter: clock.now(),
+              sealed: true,
+            });
+          }
+        });
+      }
+      for (const input of deletions) {
+        const marker = deletionMarkerSchema.parse(input);
+        await db
+          .update(recordingAsset)
+          .set({
+            sealed: true,
+            leaseToken: null,
+            leaseExpiresAt: null,
+            expiresAt: sql`least(${recordingAsset.expiresAt}, ${marker.deletedAt}::timestamptz)`,
+            cleanupAfter: clock.now(),
+          })
+          .where(
+            and(
+              eq(recordingAsset.practiceId, marker.practiceId),
+              eq(recordingAsset.learnerId, marker.learnerId),
+            ),
+          );
+      }
+    },
     async issueUpload(input: Scope & { uploadId: string; mediaType: string }) {
       if (!options.uploadsEnabled)
         throw new Error("新增上传已暂停，等待维护者核实服务额度。");
@@ -113,6 +198,10 @@ export function createPrivateRecordingFiles(
         row.permitExpiresAt <= now
       )
         throw new Error("上传标识冲突或许可已到期，请重新录音。");
+      await journal?.recordUpload(inventory(row));
+      const current = await lookup(`recording:${row.id}`);
+      if (!current || current.sealed || current.permitExpiresAt <= clock.now())
+        throw new Error("上传许可已失效。");
       return {
         reference: `recording:${row.id}`,
         pathname: row.temporaryPath,
@@ -419,6 +508,12 @@ export function createPrivateRecordingFiles(
             clock.now().getTime(),
       };
     },
-  } satisfies RecordingFiles;
+  } satisfies RecordingFiles & {
+    recoveryInventory(): Promise<UploadInventory[]>;
+    replayInventory(
+      entries: UploadInventory[],
+      deletions: DeletionMarker[],
+    ): Promise<void>;
+  };
   return adapter;
 }

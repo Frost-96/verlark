@@ -9,6 +9,12 @@ import { createLearningContent } from "../learning-content/server";
 import type { Transcription } from "../../integrations/transcription/contracts";
 import { createPractice } from "./server";
 import { createRecordingFiles } from "../../integrations/files/server";
+import {
+  createRecoveryJournal,
+  type JournalObjects,
+} from "../../integrations/recovery/journal";
+import { eq } from "drizzle-orm";
+import { practiceDeletion } from "./schema";
 
 const url = process.env.TEST_DATABASE_URL;
 if (
@@ -111,6 +117,93 @@ test("整次删除持久化清理结果，拒绝跨账号，删除后不可读�
   expect(
     (await resumed.list(alice)).some((item) => item.id === practice.id),
   ).toBe(false);
+});
+
+test("恢复日志不可用时不删除正文，跨账号不能写标记；响应丢失和并发删除可核对同一标记", async () => {
+  const { service: original, practice, files } = await fixture();
+  const data = new Map<string, Uint8Array>();
+  let offline = false;
+  let loseResponse = false;
+  let writes = 0;
+  const objects: JournalObjects = {
+    async read(key) {
+      if (offline) throw new Error("journal offline");
+      return data.get(key) ?? null;
+    },
+    async putIfAbsent(key, bytes) {
+      writes++;
+      if (data.has(key)) throw new Error("exists");
+      data.set(key, bytes);
+      if (loseResponse) throw new Error("lost response");
+    },
+    async *keys(prefix) {
+      for (const key of data.keys()) if (key.startsWith(prefix)) yield key;
+    },
+  };
+  const journal = createRecoveryJournal(objects, "deletion-test");
+  await journal.initialize([]);
+  const service = createPractice(
+    connection.db,
+    content,
+    files,
+    undefined,
+    undefined,
+    undefined,
+    journal,
+  );
+  await expect(service.delete(bob, practice.id)).rejects.toMatchObject({
+    code: "not-found",
+  });
+  expect(writes).toBe(1);
+  offline = true;
+  await expect(service.delete(alice, practice.id)).rejects.toThrow("offline");
+  expect((await original.read(alice, practice.id)).attempts).toHaveLength(1);
+  offline = false;
+  loseResponse = true;
+  await Promise.all([
+    service.delete(alice, practice.id),
+    service.delete(alice, practice.id),
+  ]);
+  const entries = (await journal.readAll()).entries;
+  expect(entries).toHaveLength(1);
+  expect(entries[0]).toMatchObject({
+    kind: "deletion",
+    learnerId: alice.id,
+    practiceId: practice.id,
+  });
+  await expect(original.read(alice, practice.id)).rejects.toMatchObject({
+    code: "not-found",
+  });
+  expect((await service.readDeletion(alice, practice.id)).deletedAt).toBe(
+    entries[0]!.kind === "deletion" ? entries[0]!.deletedAt : null,
+  );
+});
+
+test("恢复不能沿用旧成功回执，超过 30 天只保留最小删除标记", async () => {
+  const { service, practice, files } = await fixture();
+  const receipt = await service.delete(alice, practice.id);
+  expect(receipt.status).toBe("succeeded");
+  const marker = (await service.recoveryMarkers()).find(
+    (row) => row.practiceId === practice.id,
+  )!;
+  await service.replayDeletion(marker);
+  expect((await service.readDeletion(alice, practice.id)).status).toBe(
+    "pending",
+  );
+  const later = createPractice(connection.db, content, files, undefined, {
+    now: () => new Date(new Date(marker.deletedAt).getTime() + 31 * 86400000),
+  });
+  await later.replayDeletion(marker);
+  await later.delete(alice, practice.id);
+  expect((await later.readDeletion(alice, practice.id)).status).toBe(
+    "receipt-expired",
+  );
+  expect(
+    await connection.db
+      .select()
+      .from(practiceDeletion)
+      .where(eq(practiceDeletion.practiceId, practice.id)),
+  ).toHaveLength(0);
 });
 
 function gate<T>() {
