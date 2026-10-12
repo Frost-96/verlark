@@ -1,4 +1,13 @@
-import { and, desc, eq, isNull, gt, lte, inArray } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  isNull,
+  isNotNull,
+  gt,
+  lte,
+  inArray,
+} from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import type { Learner } from "../identity/contracts";
@@ -20,6 +29,11 @@ import {
 } from "./schema";
 import type { ExpressionFeedback } from "../../integrations/expression-feedback/contracts";
 import type { RecordingFiles } from "../../integrations/files/contracts";
+import {
+  deletionMarkerSchema,
+  type DeletionMarker,
+  type RecoveryJournal,
+} from "../../integrations/recovery/contracts";
 
 import type {
   Transcription,
@@ -61,7 +75,62 @@ export function createPractice(
   transcription?: Transcription,
   clock: { now: () => Date } = { now: () => new Date() },
   feedback?: ExpressionFeedback,
+  journal?: RecoveryJournal,
 ) {
+  async function applyDeletion(input: DeletionMarker, replay = false) {
+    const marker = deletionMarkerSchema.parse(input);
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(practiceRecord)
+        .where(eq(practiceRecord.id, marker.practiceId))
+        .for("update");
+      // A restore missing the original practice cannot safely reconstruct its request identity.
+      if (!row || row.learnerId !== marker.learnerId)
+        throw new Error("恢复删除标记与练习不匹配，必须保持隔离。");
+      const deletedAt = new Date(
+        Math.min(
+          new Date(marker.deletedAt).getTime(),
+          row.deletedAt?.getTime() ?? Infinity,
+        ),
+      );
+      if (!row.deletedAt || row.deletedAt > deletedAt)
+        await tx
+          .update(practiceRecord)
+          .set({ deletedAt })
+          .where(eq(practiceRecord.id, row.id));
+      if (deletedAt.getTime() + 30 * 86400000 <= clock.now().getTime()) {
+        await tx
+          .delete(practiceDeletion)
+          .where(eq(practiceDeletion.practiceId, row.id));
+      } else if (replay) {
+        // A backup's old cleanup receipt cannot certify the current storage state.
+        const reset = {
+          deletedAt,
+          status: "pending" as const,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          failure: null,
+        };
+        await tx
+          .insert(practiceDeletion)
+          .values({ practiceId: row.id, ...reset })
+          .onConflictDoUpdate({
+            target: practiceDeletion.practiceId,
+            set: reset,
+          });
+      } else {
+        await tx
+          .insert(practiceDeletion)
+          .values({ practiceId: row.id, deletedAt })
+          .onConflictDoNothing();
+      }
+      await content.releasePracticeReference(row.contentVersionId, row.id, tx);
+      await tx
+        .delete(attemptRecord)
+        .where(eq(attemptRecord.practiceId, row.id));
+    });
+  }
   function expired(row: typeof attemptRecord.$inferSelect) {
     return row.acceptedAt.getTime() + 30 * 86400000 <= clock.now().getTime();
   }
@@ -329,6 +398,20 @@ export function createPractice(
     return readDeletion(owner, id);
   }
   return {
+    /** Offline recovery interface; never exposed as a learner HTTP operation. */
+    replayDeletion: (marker: DeletionMarker) => applyDeletion(marker, true),
+    async recoveryMarkers(): Promise<DeletionMarker[]> {
+      const rows = await db
+        .select()
+        .from(practiceRecord)
+        .where(isNotNull(practiceRecord.deletedAt));
+      return rows.map((row) => ({
+        kind: "deletion",
+        learnerId: row.learnerId,
+        practiceId: row.id,
+        deletedAt: row.deletedAt!.toISOString(),
+      }));
+    },
     async pruneDeletionReceipts() {
       const receipts = await db
         .select({ id: practiceDeletion.practiceId })
@@ -485,33 +568,27 @@ export function createPractice(
     ): Promise<PracticeDeletion> {
       const owner = requireLearner(learner);
       if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
-      await db.transaction(async (tx) => {
-        const [row] = await tx
-          .select()
-          .from(practiceRecord)
-          .where(
-            and(
-              eq(practiceRecord.id, id),
-              eq(practiceRecord.learnerId, owner.id),
-            ),
-          )
-          .for("update");
-        if (!row) throw new PracticeError("not-found");
-        if (row.deletedAt) return;
-        const deletedAt = clock.now();
-        await tx
-          .update(practiceRecord)
-          .set({ deletedAt })
-          .where(eq(practiceRecord.id, id));
-        await tx.insert(practiceDeletion).values({ practiceId: id, deletedAt });
-        await content.releasePracticeReference(
-          row.contentVersionId,
-          row.id,
-          tx,
+      const [row] = await db
+        .select()
+        .from(practiceRecord)
+        .where(
+          and(
+            eq(practiceRecord.id, id),
+            eq(practiceRecord.learnerId, owner.id),
+          ),
         );
-        // Cascades remove raw/confirmed transcripts and feedback, invalidating all processing claims.
-        await tx.delete(attemptRecord).where(eq(attemptRecord.practiceId, id));
-      });
+      if (!row) throw new PracticeError("not-found");
+      const proposed: DeletionMarker = {
+        kind: "deletion",
+        practiceId: id,
+        learnerId: owner.id,
+        deletedAt: (row.deletedAt ?? clock.now()).toISOString(),
+      };
+      // Persist outside the database transaction. A failed journal must not erase the only copy.
+      const marker = journal
+        ? await journal.recordDeletion(proposed)
+        : proposed;
+      await applyDeletion(marker);
       const result = await readDeletion(owner, id);
       return result.status === "succeeded" ? result : retryDeletion(owner, id);
     },

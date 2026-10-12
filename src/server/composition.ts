@@ -12,10 +12,14 @@ import { createPractice } from "../modules/practice/server";
 import { createPrivateRecordingFiles } from "../integrations/files/private";
 import { createBlobObjectStore } from "../integrations/files/blob";
 import { validateRecordingAudio } from "../integrations/files/media";
+import { createBlobRecoveryJournal } from "../integrations/recovery/blob";
 
 function compose() {
   const config = readConfig();
   const connection = connectDatabase(config.databaseURL);
+  const journal = config.privateRecordings
+    ? createBlobRecoveryJournal(config.blobToken!, "verlark-media-v1")
+    : undefined;
   const content = createLearningContent(connection.db, {
     files: config.blobToken
       ? createMaterialAudioStore(config.blobToken)
@@ -31,6 +35,7 @@ function compose() {
           uploadsEnabled: config.recordingUploadsEnabled,
           requireMaintenance: true,
         },
+        journal,
       )
     : createRecordingFiles({ development: config.developmentRecordings });
   return {
@@ -43,6 +48,7 @@ function compose() {
       createTranscription({ development: config.developmentTranscription }),
       undefined,
       createExpressionFeedback({ development: config.developmentFeedback }),
+      journal,
     ),
     identity: createIdentity(
       connection.db,

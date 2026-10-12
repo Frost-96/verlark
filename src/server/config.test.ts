@@ -7,6 +7,11 @@ const valid: NodeJS.ProcessEnv = {
   TESTER_EMAILS: "learner@example.com",
   NODE_ENV: "test",
 };
+test("隔离恢复期间拒绝启动业务服务，不能用旧会话访问恢复中的数据库", () => {
+  expect(() =>
+    readConfig({ ...valid, MEDIA_RECOVERY_OFFLINE: "true" }),
+  ).toThrow("恢复隔离中");
+});
 test("正式环境拒绝开发邮件替身", () => {
   expect(() =>
     readConfig({ ...valid, NODE_ENV: "production", DEVELOPMENT_MAIL: "true" }),

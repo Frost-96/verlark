@@ -1,6 +1,8 @@
 export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
+  if (env.MEDIA_RECOVERY_OFFLINE === "true")
+    throw new ConfigurationError("数据库恢复隔离中，业务访问尚未开放。");
   const developmentFeedback = env.DEVELOPMENT_FEEDBACK === "true";
   if (
     developmentFeedback &&
