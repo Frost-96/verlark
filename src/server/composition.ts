@@ -1,3 +1,4 @@
+import { createBailianFeedback } from "../integrations/expression-feedback/bailian";
 import "server-only";
 import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
@@ -42,7 +43,9 @@ function compose() {
       files,
       createTranscription({ development: config.developmentTranscription }),
       undefined,
-      createExpressionFeedback({ development: config.developmentFeedback }),
+      config.realFeedback
+        ? createBailianFeedback(connection.db, config.realFeedback)
+        : createExpressionFeedback({ development: config.developmentFeedback }),
     ),
     identity: createIdentity(
       connection.db,
