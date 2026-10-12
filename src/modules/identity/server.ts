@@ -84,6 +84,25 @@ export function createIdentity(
     logger: { disabled: true },
     hooks: {
       before: createAuthMiddleware(async (context) => {
+        for (const value of [
+          context.body?.callbackURL,
+          context.body?.redirectTo,
+          context.query?.callbackURL,
+        ]) {
+          if (value === undefined) continue;
+          try {
+            if (
+              typeof value !== "string" ||
+              new URL(value, config.baseURL).origin !== config.baseURL
+            )
+              throw new Error();
+          } catch {
+            throw new APIError("FORBIDDEN", {
+              code: "INVALID_ORIGIN",
+              message: "跳转地址不属于当前应用。",
+            });
+          }
+        }
         if (context.path === "/verify-email") {
           const token: unknown = context.query?.token;
           if (typeof token !== "string")
@@ -142,10 +161,18 @@ export function createIdentity(
     getCurrentLearner,
     // Opaque Better Auth protocol adapter; HTTP policy belongs to app/api/auth.
     async handleAuthRequest(request: Request): Promise<Response> {
+      if (
+        request.method !== "GET" &&
+        request.headers.get("origin") !== config.baseURL
+      )
+        return Response.json({ code: "INVALID_ORIGIN" }, { status: 403 });
       return delivery.run({ failed: false }, async () => {
         const response = await auth.handler(request);
         if (delivery.getStore()?.failed)
-          throw new Error("邮件未能发送，请重新申请。");
+          return Response.json(
+            { code: "MAIL_DELIVERY_UNCONFIRMED" },
+            { status: 503 },
+          );
         return response;
       });
     },

@@ -77,7 +77,7 @@ export function AuthForm({
         mode === "signup"
           ? "注册请求已完成。若该邮箱符合条件，请打开验证链接后再登录。"
           : mode === "forgot"
-            ? "若该邮箱已注册，将生成密码重置邮件。"
+            ? "若该邮箱已注册，邮件服务已接收重置请求；这不代表已送达。请检查收件箱与垃圾邮件，未收到可稍后重试。"
             : mode === "verify"
               ? "邮箱验证成功，现在可以登录。"
               : "密码已重置，所有旧会话已撤销，请使用新密码登录。",
@@ -109,7 +109,7 @@ export function AuthForm({
       setFailed(!response.ok);
       setMessage(
         response.ok
-          ? "若该邮箱尚未验证，将生成新的验证邮件。"
+          ? "若该邮箱尚未验证，邮件服务已接收验证请求；这不代表已送达。未收到可稍后重试。"
           : (result.message ?? authErrorMessage(result.code)),
       );
     } catch {
