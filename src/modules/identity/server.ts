@@ -7,7 +7,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "../../db/client";
 import type { AppConfig } from "../../server/config";
 import type { MailAdapter } from "../../integrations/mail/contracts";
-import type { Learner } from "./contracts";
+import { MailDeliveryUnconfirmedError, type Learner } from "./contracts";
 import * as schema from "./schema";
 
 export function createIdentity(
@@ -161,18 +161,10 @@ export function createIdentity(
     getCurrentLearner,
     // Opaque Better Auth protocol adapter; HTTP policy belongs to app/api/auth.
     async handleAuthRequest(request: Request): Promise<Response> {
-      if (
-        request.method !== "GET" &&
-        request.headers.get("origin") !== config.baseURL
-      )
-        return Response.json({ code: "INVALID_ORIGIN" }, { status: 403 });
       return delivery.run({ failed: false }, async () => {
         const response = await auth.handler(request);
         if (delivery.getStore()?.failed)
-          return Response.json(
-            { code: "MAIL_DELIVERY_UNCONFIRMED" },
-            { status: 503 },
-          );
+          throw new MailDeliveryUnconfirmedError();
         return response;
       });
     },

@@ -30,3 +30,5 @@ export function authErrorMessage(code?: string): string {
       return "操作未完成，请检查输入后重试；若仍失败，请联系维护者。";
   }
 }
+
+export class MailDeliveryUnconfirmedError extends Error {}

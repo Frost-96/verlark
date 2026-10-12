@@ -1,14 +1,45 @@
-import { expect, test } from "vitest";
+import { expect, test, beforeAll, afterAll } from "vitest";
 import { createBailianFeedback } from "./bailian";
-import { connectDatabase } from "../../db/client";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "../../db/schema";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 
+// Every mocked provider request uses a disposable schema; never mix synthetic
+// reservations with the application's durable live-service budget ledger.
+const url = process.env.TEST_DATABASE_URL;
+if (
+  !url ||
+  !new URL(url).pathname.endsWith("_test") ||
+  url === process.env.DATABASE_URL
+)
+  throw new Error(
+    "需要独立 TEST_DATABASE_URL，库名以 _test 结尾且不得等于 DATABASE_URL。",
+  );
+const namespace = `feedback_mock_${crypto.randomUUID().replaceAll("-", "")}`;
+const admin = new Pool({ connectionString: url });
+const pool = new Pool({
+  connectionString: url,
+  options: `-c search_path=${namespace}`,
+});
+const db = { db: drizzle(pool, { schema }) };
+beforeAll(async () => {
+  await admin.query(`CREATE SCHEMA "${namespace}"`);
+  await migrate(db.db, {
+    migrationsFolder: "drizzle",
+    migrationsSchema: namespace,
+  });
+});
+afterAll(async () => {
+  await pool.end();
+  try {
+    await admin.query(`DROP SCHEMA IF EXISTS "${namespace}" CASCADE`);
+  } finally {
+    await admin.end();
+  }
+});
+
 test("真实反馈发送前拒绝空输入、未启用或已过期额度", async () => {
-  const url = process.env.TEST_DATABASE_URL!;
-  if (!url || !new URL(url).pathname.endsWith("_test"))
-    throw new Error("需要隔离数据库");
-  const db = connectDatabase(url);
-  await migrate(db.db, { migrationsFolder: "drizzle" });
   let calls = 0;
   const adapter = createBailianFeedback(
     db.db,
@@ -33,11 +64,9 @@ test("真实反馈发送前拒绝空输入、未启用或已过期额度", async
     }),
   ).toEqual({ kind: "failed" });
   expect(calls).toBe(0);
-  await db.close();
 });
 
 test("并发相同请求只发送一次，未知不自动重发，预算不足停止", async () => {
-  const db = connectDatabase(process.env.TEST_DATABASE_URL!);
   const input = {
     text: "I will read tomorrow.",
     confirmationId: crypto.randomUUID(),
@@ -76,11 +105,9 @@ test("并发相同请求只发送一次，未知不自动重发，预算不足�
     await stopped.generate({ ...input, requestId: crypto.randomUUID() }),
   ).toEqual({ kind: "failed" });
   expect(calls).toBe(1);
-  await db.close();
 });
 
 test("真实协议携带文本依据与规则，合法响应无强制纠错，截断与超限响应不能当成功", async () => {
-  const db = connectDatabase(process.env.TEST_DATABASE_URL!);
   const config = {
     enabled: true,
     apiKey: "test",
@@ -129,11 +156,9 @@ test("真实协议携带文本依据与规则，合法响应无强制纠错，�
       ),
     ).toEqual({ kind: "unknown" });
   }
-  await db.close();
 });
 
 test("过期额度和空输入不触发远端，供应商拒绝不伪造反馈", async () => {
-  const db = connectDatabase(process.env.TEST_DATABASE_URL!);
   let calls = 0;
   const config = {
     enabled: true,
@@ -170,5 +195,4 @@ test("过期额度和空输入不触发远端，供应商拒绝不伪造反馈",
     await createBailianFeedback(db.db, config, transport).generate(input),
   ).toEqual({ kind: "unknown" });
   expect(calls).toBe(1);
-  await db.close();
 });
