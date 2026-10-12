@@ -3,7 +3,7 @@ import { createBailianFeedback } from "./bailian";
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../../db/schema";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { readFile } from "node:fs/promises";
 
 // Every mocked provider request uses a disposable schema; never mix synthetic
 // reservations with the application's durable live-service budget ledger.
@@ -25,10 +25,11 @@ const pool = new Pool({
 const db = { db: drizzle(pool, { schema }) };
 beforeAll(async () => {
   await admin.query(`CREATE SCHEMA "${namespace}"`);
-  await migrate(db.db, {
-    migrationsFolder: "drizzle",
-    migrationsSchema: namespace,
-  });
+  // Only this provider ledger is required. Full application migrations include
+  // explicit public-schema foreign keys and must not cross this test boundary.
+  await pool.query(
+    await readFile("drizzle/0012_feedback_provider_request.sql", "utf8"),
+  );
 });
 afterAll(async () => {
   await pool.end();

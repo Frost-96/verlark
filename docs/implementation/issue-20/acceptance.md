@@ -44,4 +44,6 @@
 
 ## 审查修正（2026-10-12）
 
-`bailian.test.ts` 在测试文件加载时统一拒绝非 `_test` 数据库或与 DATABASE_URL 相同的地址；每次运行创建随机独立 PostgreSQL schema 与独立迁移表，结束后删除该 schema。mock 发送不会写入真实服务长期额度账本，避免测试次数改变后续额度判断。免费额度截止时间格式仍须合法，但已过期的有效配置不阻止应用装配；Adapter 继续拒绝新增生成，身份、历史与内容读取可继续运行。已执行配置过期先红后绿，以及反馈 Adapter 与身份 HTTP 共18项目标回归、typecheck、变更代码 ESLint。
+`bailian.test.ts` 在测试文件加载时统一拒绝非 `_test` 数据库或与 DATABASE_URL 相同的地址；每次运行创建随机独立 PostgreSQL schema，只执行无外键的 `0012_feedback_provider_request.sql` 建立 Adapter 所需账本，结束后删除该 schema。mock 发送不会写入真实服务长期额度账本，避免测试次数改变后续额度判断。免费额度截止时间格式仍须合法，但已过期的有效配置不阻止应用装配；Adapter 继续拒绝新增生成，身份、历史与内容读取可继续运行。已执行配置过期先红后绿，以及反馈 Adapter 与身份 HTTP 共18项目标回归、typecheck、变更代码 ESLint。
+
+复核在全新 `verlark_feedback_isolation_test`（无 public 业务表）重现全量迁移外键失败，改用 Adapter 专用迁移后该 suite 4 项通过；再次运行后 public 表和临时 schema 均为 0。
