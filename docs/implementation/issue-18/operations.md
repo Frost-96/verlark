@@ -69,4 +69,4 @@ Vercel 项目 `verlark` 的生产域名为 `https://articu-lab.vercel.app`，预
 - 已发布材料音频匿名访问返回 401，Cache-Control 为 private, no-store。登录后播放仍待测试账号登录。
 - `/api/auth/get-session` 返回 404，经源代码核对属于接口未开放的预期行为，不能拿该路径作为登录健康检查。生产登录是否成功单独验收。
 
-供应商终止／分段回收保证、自然定时触发、独立删除日志与隔离恢复、免费层停用恢复以及真实设备／地区仍未通过。公开社区发帖已获授权，但首次登录协议确认尚未完成，尚无帖子 URL。#18 保持开放。
+本节上线时，供应商终止／分段回收保证、自然定时触发、独立删除日志与隔离恢复、免费层停用恢复以及真实设备／地区仍未通过。后续独立恢复实现和演练已在 [PR #38](https://github.com/Frost-96/verlark/pull/38) 交付但未生产启用；17:43 已发布[社区咨询](https://community.vercel.com/t/verifiable-cleanup-of-in-flight-and-incomplete-multipart-uploads-in-private-blob/50608)，尚无人工作答。最新证据见 [恢复与运行补验](recovery-plan.md)。#18 保持开放。
