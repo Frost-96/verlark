@@ -85,3 +85,9 @@
 Vercel 已自动部署提交 `7abf274`（GitHub deployment `7010707967`，Preview success）。HTTPS 首页可访问，账号页报“暂时无法完成操作”。Vercel 控制台显示数据库和身份必需配置仅在 Production，Preview 无独立数据库/身份配置，未发现 Resend 配置。Neon 当前仅 dev 分支。此结果仅证明云端配置门槛未满足，不是部署验收通过。
 
 拟使用 Neon `issue21-mail-preview`，仅复制结构、一天自动删除；仅给 Vercel 当前集成 Git 分支配置 Preview 变量和独立认证密钥。确认凭据云端托管范围前，不创建分支、不上传本机 Resend key、不复用生产数据库。反馈额度和生产部署不随本次邮件验收变更。
+
+### 专用 Preview 环境已配置
+
+用户确认后，2026-10-12 17:45（Asia/Shanghai）创建 Neon Free 分支 `issue21-mail-preview`（`br-restless-dew-azyddyv6`），只复制结构，不复制现有用户数据，设置 2026-10-13 17:45 自动删除。为避免结构复制后没有迁移记录，在该临时分支内新建空库 `issue21_mail_test` 并完成全部迁移；未修改父分支数据。
+
+Vercel 已保存 17 项 Secret，作用域仅 `Preview / integrate/issues-20-21`：独立数据库和 BETTER_AUTH_SECRET、固定 HTTPS 分支回调地址、本人名单及 Resend 配置；全部开发替身、真实反馈、录音与上传关闭。Production 配置未改。稳定入口为 `https://verlark-git-integrate-issues-20-21-p396500554-3359s-projects.vercel.app`。等待此配置后的新部署，再执行云端账号验收；暂不标记通过。
