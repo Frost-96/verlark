@@ -57,3 +57,16 @@ Vercel 项目 `verlark` 的生产域名为 `https://articu-lab.vercel.app`，预
 - 类型检查、ESLint、格式检查通过；没有数据库 schema 变更。
 - 在独立源码快照目录完成 `pnpm exec next build --webpack`，Next.js 16.4 的编译、类型检查、静态生成与路由跟踪通过；未污染运行中的开发服务器构建目录。这是本机构建，不等于云端构建。
 - 未部署本轮改动，未观察真实定时触发，未执行设备／地区或备份恢复验收。
+
+## 2026-10-12 生产配置修正与上线
+
+维护者修正录音上传和开发邮件开关后，页面实际复核 `RECORDING_UPLOADS_ENABLED=false`、`DEVELOPMENT_MAIL=false`；登录 origin 正确，私有录音开启、开发录音关闭。通过现有变量编辑表单保留原值，把 CRON_SECRET、BETTER_AUTH_SECRET 转为 Secret，并把本轮 11 个应用配置限定在 Production；未导入或重新录入密钥。DATABASE_URL 已是 Production Secret，其实际连接通过线上维护查询验证，不在页面读取值。
+
+- [PR #36](https://github.com/Frost-96/verlark/pull/36) 已合并，生产提交 `5a08ea01cb4b1ed7166ed3aa3390f7b47720e4fc`。Vercel 生产部署 `9q9EYxvKhoc4p1YqzLL9mNjbxihF` Ready，域名 `https://articu-lab.vercel.app`。云端构建约 42 秒。
+- 2026-10-12T07:41:08Z 正确维护密钥的只读状态请求成功，未刷新旧扫描时间；同一入口匿名访问返回 401。
+- 07:41:32Z 脚本执行一次真实有界扫描成功；录音 due/pending 与材料 pending 均为 0，attentionRequired=false。这是空扫描，不是有文件删除证据。
+- Vercel Cron 页面显示 Enabled，计划为 UTC 03:00，每日北京时间 11:00，Hobby 提示一小时弹性窗口。平台 Run 手动触发后，07:42:09Z 的只读查询确认完成时间更新为 07:42:01.293Z；不能将这次手动触发写成自然定时触发通过。
+- 已发布材料音频匿名访问返回 401，Cache-Control 为 private, no-store。登录后播放仍待测试账号登录。
+- `/api/auth/get-session` 返回 404，经源代码核对属于接口未开放的预期行为，不能拿该路径作为登录健康检查。生产登录是否成功单独验收。
+
+供应商终止／分段回收保证、自然定时触发、独立删除日志与隔离恢复、免费层停用恢复以及真实设备／地区仍未通过。公开社区发帖已获授权，但首次登录协议确认尚未完成，尚无帖子 URL。#18 保持开放。
