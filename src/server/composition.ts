@@ -1,4 +1,7 @@
 import { createBailianFeedback } from "../integrations/expression-feedback/bailian";
+import { readMailConfig } from "../integrations/mail/config";
+import { createResendMail } from "../integrations/mail/resend";
+import { limitMail } from "../integrations/mail/limited";
 import "server-only";
 import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
@@ -34,6 +37,11 @@ function compose() {
         },
       )
     : createRecordingFiles({ development: config.developmentRecordings });
+  const mailConfig = readMailConfig(
+    process.env,
+    config.baseURL,
+    config.allowedEmails,
+  );
   return {
     content,
     files,
@@ -50,7 +58,9 @@ function compose() {
     identity: createIdentity(
       connection.db,
       config,
-      createMailAdapter(config.developmentMail),
+      mailConfig
+        ? limitMail(connection.db, createResendMail(mailConfig))
+        : createMailAdapter(config.developmentMail),
     ),
   };
 }
