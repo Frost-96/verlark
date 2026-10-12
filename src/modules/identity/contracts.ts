@@ -6,6 +6,8 @@ export const identityMessages = {
 };
 export function authErrorMessage(code?: string): string {
   switch (code) {
+    case "MAIL_DELIVERY_UNCONFIRMED":
+      return "邮件发送未确认，可能暂不可用或已达发送限制。请先检查收件箱，稍后重新申请；仍失败请联系维护者。";
     case "NOT_INVITED":
       return "该邮箱不在测试名单中，请联系维护者。";
     case "EMAIL_NOT_VERIFIED":
