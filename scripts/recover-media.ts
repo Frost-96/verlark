@@ -13,6 +13,7 @@ import {
 } from "../src/integrations/files/private";
 import { createBlobRecoveryJournal } from "../src/integrations/recovery/blob";
 import { replayMediaRecovery } from "../src/server/media-recovery";
+import { withMediaRecoveryBaselineLock } from "../src/server/media-recovery-baseline";
 
 const command = process.argv[2] ?? "inspect";
 let close: (() => Promise<void>) | undefined;
@@ -64,11 +65,16 @@ try {
       remove: forbidden,
     };
     const files = createPrivateRecordingFiles(connection.db, store, forbidden);
-    const inventory = await files.recoveryInventory();
-    const markers = await practice.recoveryMarkers();
     if (command === "initialize") {
-      await journal.initialize([...inventory, ...markers]);
-      const verified = await journal.readAll();
+      const verified = await withMediaRecoveryBaselineLock(
+        connection.db,
+        async () => {
+          const inventory = await files.recoveryInventory();
+          const markers = await practice.recoveryMarkers();
+          await journal.initialize([...inventory, ...markers]);
+          return journal.readAll();
+        },
+      );
       console.log(
         JSON.stringify({
           initialized: true,
