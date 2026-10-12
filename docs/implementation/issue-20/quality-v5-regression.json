@@ -1,0 +1,157 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "clear-minor-past",
+    "text": "On Monday I walk to work because the buses were late.",
+    "requestId": "28304148-85d4-4331-8909-c468aa5db41c",
+    "confirmationId": "a0b973d6-0d44-4b55-8734-a186a37495c0",
+    "elapsedMs": 1277,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者在周一步行去上班，原因是公交车晚点了。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "clear-article",
+    "text": "Could you pass me pencil on the table?",
+    "requestId": "61a4e7ac-b508-4ae7-b099-7c17d8750300",
+    "confirmationId": "7cfe2061-5601-46b0-8f8c-c15d5094fccb",
+    "elapsedMs": 1664,
+    "result": {
+      "kind": "generated",
+      "summary": "说话人请求听者把桌上的铅笔递给自己。",
+      "issues": [
+        {
+          "original": "pencil",
+          "improved": "the pencil",
+          "explanation": "如果你想表达桌上特定的那支铅笔，需要加上定冠词以明确指代对象。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "unclear-reference-new",
+    "text": "Lena emailed Nora after she changed her appointment.",
+    "requestId": "019ff0f5-5934-4716-bc76-f2b2ace50484",
+    "confirmationId": "6fd6b550-2a33-4303-89d7-8aeac6e557a3",
+    "elapsedMs": 2990,
+    "result": {
+      "kind": "generated",
+      "summary": "Lena在Nora（或Lena自己）更改预约后发了邮件。",
+      "issues": [
+        {
+          "original": "after she changed her appointment",
+          "improved": "after Lena changed her appointment",
+          "explanation": "如果你想表达是Lena更改了预约，原句中的'she'指代不明，因为前文出现了Lena和Nora两个人物，无法确定'she'是指Lena还是Nora。将'she'改为'Lena'可以消除歧义。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "after she changed her appointment",
+          "improved": "after Nora changed her appointment",
+          "explanation": "如果你想表达是Nora更改了预约，原句中的'she'指代不明。将'she'改为'Nora'可以明确动作的执行者。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "contradictory-date-new",
+    "text": "I will arrive next Tuesday, which was three days ago.",
+    "requestId": "3e7fac1e-1cc7-4120-8099-d5e80c635d79",
+    "confirmationId": "1f648476-5996-45a4-99ed-aeea2cb07bb0",
+    "elapsedMs": 2768,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者计划在下周二到达，但指出该日期在逻辑上对应过去的三天前。",
+      "issues": [
+        {
+          "original": "I will arrive next Tuesday, which was three days ago.",
+          "improved": "I arrived three days ago.",
+          "explanation": "如果你想表达动作已经发生且发生在过去，原句中的 'will' (将来时) 与 'was' (过去时间) 矛盾。请确认你是否想表达‘我三天前已经到了’？如果是，建议改为过去时态并删除对日期的模糊指代。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "transfer-direction-new",
+    "text": "Could you borrow me your umbrella until tonight?",
+    "requestId": "c886ca39-c67f-4b90-b10c-23619be44051",
+    "confirmationId": "0e99777a-a102-410c-9f11-0faecd008825",
+    "elapsedMs": 2563,
+    "result": {
+      "kind": "generated",
+      "summary": "说话人请求借用对方的雨伞直到今晚。",
+      "issues": [
+        {
+          "original": "borrow me",
+          "improved": "lend me",
+          "explanation": "如果你想表达向对方借东西，英语中应使用 lend sb sth（借给某人某物），而 borrow 表示从别人那里借入，不能直接接双宾语。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "Could you borrow me your umbrella until tonight?",
+          "improved": "Can I borrow your umbrella until tonight?",
+          "explanation": "原话并非错误，只是用词不当。如果你想表达自己借伞，也可以直接用 Can I borrow... 来提问。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v5",
+    "label": "two-problems-preserve-speaker",
+    "text": "I will return yesterday. Can you borrow me your bicycle?",
+    "requestId": "6f74c9fc-a2c2-4e0b-9488-db231a8fdf6d",
+    "confirmationId": "6562a9f7-f68a-4e80-abe1-1612c50cd669",
+    "elapsedMs": 2597,
+    "result": {
+      "kind": "generated",
+      "summary": "说话人声称将在过去的时间（昨天）返回，并请求借给自行车。",
+      "issues": [
+        {
+          "original": "I will return yesterday.",
+          "improved": "I returned yesterday.",
+          "explanation": "如果你想表达动作发生在过去，'will' 与 'yesterday' 矛盾，应改为过去式。"
+        },
+        {
+          "original": "Can you borrow me your bicycle?",
+          "improved": "Can you lend me your bicycle?",
+          "explanation": "borrow 意为‘借入’，lend 意为‘借出’。你是想向对方借车（让对方借给你），所以应用 lend。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

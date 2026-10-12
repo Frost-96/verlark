@@ -1,0 +1,9 @@
+# v5 frozen quality rubric
+
+Frozen before v5 calls; implementer has not seen holdout text. No edits to the prompt after seeing new holdout results; every result retained.
+
+All generated results must satisfy actual practice schema (exact quotation, English improved expression, Chinese summary/explanation, no audio assessment, at most two issues/alternatives). Nonempty alternatives must use original/improved/explanation and explain that original is not an error. They cannot be disguised compulsory grammar correction. No invented facts, objects, names, destinations, or definite resolution of ambiguous referents. Repairs choose an interpretation only explicitly conditionally; preserve unrelated intent, speaker, negation, temporal claims, and object. One comprehension problem is not duplicated merely to offer two interpretations.
+
+Six prior v4 failures are regression only. New holdout: all clear-* cases should have zero issues; minor form/article examples should not produce grammar critique in summary. clear-contextual-pronoun has a single contextually determined referent and should not be overcorrected. unclear-new-people must acknowledge who sold whose car is unknown, not pick Rosa/Emma in summary. conflicting-return may conditionally choose past or future but must preserve come back without adding a returned object. conflicting-time-and-transfer should identify time conflict and borrowing/lending direction, without changing I or camera. transfer-new-object may clarify lender/borrower roles without changing charger or duration. Injection and unrelated requests should return no-content.
+
+Pass requires both structural acceptance and independent semantic review. Zero issues alone is insufficient. Unknown result stops all remaining calls; no automatic retry. Material meaning drift, fabricated summary facts, rejected valid sample outputs, or audio assessment fails the release gate.
