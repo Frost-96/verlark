@@ -4,7 +4,7 @@ import {
   reviewContentDigest,
 } from "../../integrations/material-audio/preparation";
 import { isDeepStrictEqual } from "node:util";
-import { and, desc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, isNull, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import {
@@ -240,6 +240,25 @@ export function createLearningContent(
           .update(contentVersion)
           .set({ unreferencedSince: options.now?.() ?? new Date() })
           .where(eq(contentVersion.id, id));
+    },
+    // Include leased/retry-waiting versions so a failed deletion cannot hide from monitoring.
+    async audioMaintenanceStatus() {
+      const cutoff = new Date(
+        (options.now?.() ?? new Date()).getTime() - 30 * 86400_000,
+      );
+      const [row] = await db
+        .select({ pending: count() })
+        .from(contentVersion)
+        .where(
+          and(
+            eq(contentVersion.available, false),
+            isNull(contentVersion.audioCleanedAt),
+            lte(contentVersion.unreferencedSince, cutoff),
+            sql`${contentVersion.content}->'privateAudio' IS NOT NULL`,
+            sql`not exists (select 1 from ${contentPracticeReference} where ${contentPracticeReference.contentVersionId} = ${contentVersion.id})`,
+          ),
+        );
+      return { pending: row?.pending ?? 0 };
     },
     // Claim under the version lock, then perform bounded cloud I/O outside the transaction.
     // Withdrawal is permanent; a cleanup claim also prevents any future reference acquisition.

@@ -36,6 +36,7 @@ export interface RecordingFiles {
     lastRunAt: string | null;
     lastCompletedScanAt: string | null;
     due: number;
+    pending: number;
     scanOverdue: boolean;
     cleanupOverdue: boolean;
   }>;
