@@ -111,3 +111,22 @@ test("中文注册、验证、登录、恢复密码、撤销会话和旧入口�
     "链接无效、已过期或已使用",
   );
 });
+
+test("验证链接缺少令牌时提供恢复入口，不显示无法操作的验证按钮", async ({
+  page,
+}) => {
+  await page.goto("/verify-email");
+  await expect(
+    page.getByRole("alert").filter({ hasText: "验证链接" }),
+  ).toContainText("验证链接不完整");
+  await expect(
+    page.getByRole("button", { name: "确认验证邮箱", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "重新申请验证邮件", exact: true }),
+  ).toHaveAttribute("href", "/login");
+  await page.goto("/verify-email?token=invalid-probe");
+  await expect(
+    page.getByRole("button", { name: "确认验证邮箱", exact: true }),
+  ).toBeEnabled();
+});
