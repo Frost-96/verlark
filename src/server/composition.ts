@@ -1,3 +1,4 @@
+import { createBailianFeedback } from "../integrations/expression-feedback/bailian";
 import { readMailConfig } from "../integrations/mail/config";
 import { createResendMail } from "../integrations/mail/resend";
 import { limitMail } from "../integrations/mail/limited";
@@ -50,7 +51,9 @@ function compose() {
       files,
       createTranscription({ development: config.developmentTranscription }),
       undefined,
-      createExpressionFeedback({ development: config.developmentFeedback }),
+      config.realFeedback
+        ? createBailianFeedback(connection.db, config.realFeedback)
+        : createExpressionFeedback({ development: config.developmentFeedback }),
     ),
     identity: createIdentity(
       connection.db,

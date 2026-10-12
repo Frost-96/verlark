@@ -24,12 +24,14 @@ export function TranscriptionReview({
   ended,
   enabled,
   feedbackEnabled,
+  realFeedback = false,
 }: {
   initial: Attempt;
   practiceId: string;
   ended: boolean;
   enabled: boolean;
   feedbackEnabled: boolean;
+  realFeedback?: boolean;
 }) {
   const [attempt, setAttempt] = useState(initial);
   const [editor, setEditor] = useState(() => editorValue(initial));
@@ -251,6 +253,7 @@ export function TranscriptionReview({
         practiceId={practiceId}
         ended={ended}
         enabled={feedbackEnabled}
+        real={realFeedback}
         beginRequest={() => ++stateRequestNumber.current}
         onUpdate={(updated, stateSequence) => {
           if (stateSequence === stateRequestNumber.current) setAttempt(updated);

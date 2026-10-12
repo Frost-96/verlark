@@ -1,0 +1,109 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "clear-plan",
+    "text": "I will read a book this weekend.",
+    "requestId": "e355a56a-d505-45f1-b9e8-4fa36880535b",
+    "confirmationId": "56875d8a-f93d-4e68-865a-ff5efbbafa83",
+    "elapsedMs": 1149,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者表示本周末计划读书，意图清晰。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "clear-negative",
+    "text": "I don't want coffee. I'd prefer tea.",
+    "requestId": "e763efe3-2039-45cb-b3ee-ce2ea0b4abd4",
+    "confirmationId": "419d049e-dd79-41a1-a749-c7c213666fb9",
+    "elapsedMs": 914,
+    "result": {
+      "kind": "generated",
+      "summary": "用户明确表示不想要咖啡，并更倾向于喝茶。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "two-ambiguities",
+    "text": "I went tomorrow. I borrow you my book.",
+    "requestId": "39ef5b1c-62ef-4109-92d8-c7b95379c64f",
+    "confirmationId": "1ff9a4a8-706a-496d-89e4-56a5df1bfff6",
+    "elapsedMs": 3109,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者表示明天去了某地，并声称借书给对方。",
+      "issues": [
+        {
+          "original": "I went tomorrow.",
+          "improved": "[Person A] will go [place] tomorrow.",
+          "explanation": "went 是过去时，与 tomorrow（将来时间）矛盾。如果你想表达将来去某地，应使用 will go 或 am going to go，并补充具体地点。"
+        },
+        {
+          "original": "I borrow you my book.",
+          "improved": "I lend you my book.",
+          "explanation": "borrow 表示‘借入’，lend 表示‘借出’。根据语境 'my book'，你是把书给对方，应使用 lend。此外，borrow 通常不与双宾语结构连用。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "unclear-reference",
+    "text": "She told her that she lost her bag.",
+    "requestId": "dbe6e7f6-7248-4cc5-be51-f434e7c333ef",
+    "confirmationId": "29ac3381-b21d-4456-8633-9ef3bf9157f3",
+    "elapsedMs": 2832,
+    "result": {
+      "kind": "generated",
+      "summary": "这句话描述了某位女性告诉另一位女性她丢失了包，但句中的人称代词指代关系不明确。",
+      "issues": [
+        {
+          "original": "She told her that she lost her bag.",
+          "improved": "[Person A] told [Person B] that [Person A/B] lost [Person A/B]'s bag.",
+          "explanation": "句中的三个 'she' 和两个 'her' 无法明确区分具体指代哪两个人物（例如：是A告诉B关于A自己的事，还是关于B的事？）。建议将代词替换为具体姓名或更明确的称谓以消除歧义。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "minor-grammar",
+    "text": "Yesterday I go to the park with my friend.",
+    "requestId": "774112d0-6d77-4cd8-b2a8-81db1ac46d64",
+    "confirmationId": "2bca5b90-8f6d-4d65-a487-8e836da32d2f",
+    "elapsedMs": 1202,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者描述昨天和朋友去公园的经历。虽然存在语法瑕疵，但时间状语 Yesterday 明确了动作发生在过去，意思清楚。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

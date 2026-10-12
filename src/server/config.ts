@@ -1,3 +1,4 @@
+import { readFeedbackConfig } from "../integrations/expression-feedback/config";
 export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -89,6 +90,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     cronSecret,
     developmentTranscription,
     developmentFeedback,
+    realFeedback: readFeedbackConfig(env),
     production,
   };
 }

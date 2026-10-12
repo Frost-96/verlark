@@ -609,7 +609,11 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
                     practice.transcriptionMode === "development" &&
                     item.recordingStatus !== "expired"
                   }
-                  feedbackEnabled={practice.feedbackMode === "development"}
+                  feedbackEnabled={
+                    practice.feedbackMode === "development" ||
+                    practice.feedbackMode === "bailian"
+                  }
+                  realFeedback={practice.feedbackMode === "bailian"}
                 />
               </section>
             </li>

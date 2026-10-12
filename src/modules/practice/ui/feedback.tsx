@@ -12,6 +12,7 @@ export function FeedbackReview({
   practiceId,
   ended,
   enabled,
+  real = false,
   onUpdate,
   beginRequest,
 }: {
@@ -19,6 +20,7 @@ export function FeedbackReview({
   practiceId: string;
   ended: boolean;
   enabled: boolean;
+  real?: boolean;
   beginRequest: () => number;
   onUpdate: (attempt: Attempt, sequence: number) => void;
 }) {
@@ -138,7 +140,11 @@ export function FeedbackReview({
             。到期后可恢复状态，再重试同一确认文本；不表示远端已取消。
           </p>
         )}
-        {item?.status === "unknown" && <p>反馈结果未知</p>}
+        {item?.status === "unknown" && (
+          <p>
+            反馈结果未知；供应商可能已消耗额度。重试将重新占用额度，不会自动重发。
+          </p>
+        )}
         {item?.result && (
           <>
             <p>{item.result.summary}</p>
@@ -228,7 +234,9 @@ export function FeedbackReview({
     <section aria-label="表达反馈">
       <h3>表达反馈</h3>
       <p>反馈仅依据确认文本，不评价发音、语调或停顿。</p>
-      {enabled ? (
+      {real ? (
+        <p>由真实服务依据确认文本生成；反馈可能有误，请结合原意判断。</p>
+      ) : enabled ? (
         <p className="message">
           开发反馈替身：仅展示固定测试样例，不代表真实模型质量。支持样例：I will
           read tomorrow. / I will read a book this weekend. / I borrow you my
