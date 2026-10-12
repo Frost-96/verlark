@@ -47,3 +47,23 @@
 `bailian.test.ts` 在测试文件加载时统一拒绝非 `_test` 数据库或与 DATABASE_URL 相同的地址；每次运行创建随机独立 PostgreSQL schema，只执行无外键的 `0012_feedback_provider_request.sql` 建立 Adapter 所需账本，结束后删除该 schema。mock 发送不会写入真实服务长期额度账本，避免测试次数改变后续额度判断。免费额度截止时间格式仍须合法，但已过期的有效配置不阻止应用装配；Adapter 继续拒绝新增生成，身份、历史与内容读取可继续运行。已执行配置过期先红后绿，以及反馈 Adapter 与身份 HTTP 共18项目标回归、typecheck、变更代码 ESLint。
 
 复核在全新 `verlark_feedback_isolation_test`（无 public 业务表）重现全量迁移外键失败，改用 Adapter 专用迁移后该 suite 4 项通过；再次运行后 public 表和临时 schema 均为 0。
+
+## v4 独立复验结果（2026-10-12 18:15，Asia/Shanghai）
+
+本轮用户明确批准：保留原账本，最多追加100,000 token预留、最多20次合成文本调用、有效期2小时；累计上限219,784，截至 `2026-10-12T12:12:00Z`，不付费、不改模型、未知即停。执行前刷新百炼北京所选模型控制台：免费额度显示990,464／1,000,000，2027-01-10到期，“免费额度用完即停”开启。该显示不取代账单核销，也没有修改供应商开关。
+
+v4 将理解障碍判定、最小改动与原意保护写成通用步骤，没有清空 issues 或使用固定结果兜底。提示编写代理未接触新保留集；另一代理准备14例合成文本并在执行前冻结[逐类语义准则](quality-v4-rubric.md)。先执行6个已暴露回归样例，再一次执行14个独立保留样例；查看保留集后没有继续调提示或重跑。详见[方案](quality-v4-plan.md)、[回归原始结果](quality-v4-regression.json)、[保留集原始结果](quality-v4-holdout.json)及[供应商回执](provider-receipts-v4.json)。
+
+20次均收到供应商响应，无未知结果、无自动重试。新增预留89,506 token、供应商报告15,535 token；原账本46行／119,784预留保留，现66行／209,290预留，低于219,784上限。原账本含旧模拟测试，不能将其 observed 总数25,354当作真实供应商总用量；两轮真实调用累计48次、预留160,348、供应商报告24,954。调用次数已到本轮授权上限，即使仍有预留空间也不继续调用。
+
+### 已改善与未通过项
+
+- 旧的轻微语法样例与复合句保留第一人称问题有所改善。新保留集8个清楚表达均为零 issues；注入与无关内容两例均返回 no-content；未输出发音、语调、停顿或评分。
+- 业务实际结构规则的离线复核：回归6/6符合；保留集11/14符合（含2个 no-content）。`clear-minor-past` 的 alternatives 使用 text/explanation，`clear-article`、`transfer-direction-new` 使用 text/note，缺少规定 original/improved/explanation 字段。现有严格业务校验会拒绝，不会把这些结果当成功反馈展示；本轮未走完整网站写回，不伪称云端写回验收。
+- `unclear-reference-new` 摘要先断言“Nora更改预约”，随后才承认人物不明确，前面的无依据事实仍是失败。
+- `two-problems-preserve-speaker` 把 `I will return yesterday.` 改为 `I returned it yesterday.`，无依据增加 it，将“返回”选成“归还某物”；解释只条件化时间，没有条件化动作含义，未满足原意保护。
+- `clear-minor-past` 虽零 issues，摘要仍大段批改时态；`contradictory-date-new` 将同一时间冲突的两个修复方案列成两条问题。这些瑕疵分别保留，不用零 issues 统计掩盖。
+
+**v4 未通过 F01–F03；#20 保持 OPEN，真实反馈继续默认禁用。** 当前可确认的是具体回归改善，不是总体可用。下一轮须先补全非空 alternatives 输出契约，再独立验证人物及动作保真；仅修复 JSON 结构不能解决已证实的语义错误。若需增加真实调用次数、扩大预算或换模型，须再次明确试验边界，不能沿用本轮授权无限续跑。
+
+离线验证：4项 Adapter 测试使用真实隔离 PostgreSQL schema 通过；类型、变更文件 ESLint 与 Prettier 通过；重复标签、错误样本形状、未知筛选3类输入均在写回执、连数据库和访问供应商前拒绝。Standards 与 Spec 两轴代码差异审查均无可操作发现；独立真实质量审查确认以上失败。代码审查通过与质量不通过分别记录。
