@@ -1,5 +1,6 @@
 /** Synthetic-only quality probe. Uses the same durable quota/request safeguards as production. */
-import { open, writeFile } from "node:fs/promises";
+import { open, readFile, writeFile } from "node:fs/promises";
+import { z } from "zod";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { connectDatabase } from "../src/db/client";
 import {
@@ -19,7 +20,7 @@ if (
   url === process.env.DATABASE_URL
 )
   throw new Error("需要显式启用、独立测试库和回执路径。");
-const samples = [
+const defaultSamples = [
   ["holdout-minor", "Last week she buy a new phone."],
   ["holdout-reference", "John told Mark that he should bring his laptop."],
   ["clear-plan", "I will read a book this weekend."],
@@ -46,6 +47,28 @@ const samples = [
   ["empty", ""],
   ["no-english", "今天下雨了。"],
 ];
+// Keep unseen evaluation cases out of the prompt and default regression set.
+// Parse before touching the receipt, database or provider. This accepts synthetic
+// [label, text] pairs only; the operator is responsible for reviewing their source.
+const samples = z
+  .array(z.tuple([z.string().min(1).max(100), z.string().max(2000)]))
+  .min(1)
+  .max(30)
+  .refine(
+    (items) => new Set(items.map(([label]) => label)).size === items.length,
+    "样本标签必须唯一",
+  )
+  .parse(
+    process.env.FEEDBACK_SAMPLES_FILE
+      ? JSON.parse(await readFile(process.env.FEEDBACK_SAMPLES_FILE, "utf8"))
+      : defaultSamples,
+  );
+const filter = process.env.FEEDBACK_SAMPLE_FILTER?.split(",");
+if (filter?.some((label) => !samples.some(([name]) => name === label)))
+  throw new Error("筛选标签必须存在于样本文件中。");
+const selectedSamples = samples.filter(
+  ([label]) => !filter || filter.includes(label),
+);
 // Refuse to overwrite an earlier run: a restart must never replay unknown calls.
 const marker = await open(receipt, "wx", 0o600);
 await marker.writeFile("[]\n");
@@ -56,16 +79,12 @@ const results: unknown[] = [];
 try {
   await migrate(connection.db, { migrationsFolder: "drizzle" });
   const adapter = createBailianFeedback(connection.db, config);
-  for (const [label, text] of samples.filter(
-    ([label]) =>
-      !process.env.FEEDBACK_SAMPLE_FILTER ||
-      process.env.FEEDBACK_SAMPLE_FILTER.split(",").includes(label!),
-  )) {
+  for (const [label, text] of selectedSamples) {
     const start = Date.now();
     const requestId = crypto.randomUUID();
     const confirmationId = crypto.randomUUID();
     const result = await adapter.generate({
-      text: text!,
+      text,
       requestId,
       confirmationId,
       rulesVersion: "expression-v1",
