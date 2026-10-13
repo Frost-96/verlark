@@ -208,7 +208,9 @@ test("每日入口清理撤下且零引用满 30 天的材料，同时保留在�
   expect(await response.json()).toMatchObject({
     materials: { cleaned: 1, failed: 0, pending: 0 },
     pending: 1,
-    attentionRequired: true,
+    providerUnverified: 1,
+    actionablePending: 0,
+    attentionRequired: false,
   });
 });
 test("只读日检不会执行清理或刷新扫描时间，并能看到等待重试的材料", async () => {
@@ -263,7 +265,7 @@ test("材料删除失败会要求维护者处理，真实存储恢复后下一�
   expect(f.objects.has(expired.reference)).toBe(false);
 });
 
-test("录音清理等待重试期间仍显示未完成，不能在下次重试前报告健康", async () => {
+test("已接受限制保留未完成计数，但不反复发出实际失败告警", async () => {
   const f = await fixture();
   const permit = await f.services.files.issueUpload({
     learnerId: crypto.randomUUID(),
@@ -283,6 +285,8 @@ test("录音清理等待重试期间仍显示未完成，不能在下次重试�
     due: 0,
     pending: 1,
     cleanupOverdue: false,
-    attentionRequired: true,
+    providerUnverified: 1,
+    actionablePending: 0,
+    attentionRequired: false,
   });
 });
