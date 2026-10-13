@@ -117,3 +117,58 @@ test("北京 workspace 主机与实际嵌套 request_id 协议受支持，其他
     createBailianTranscription({ apiKey: "test", host: "attacker.example" }),
   ).toThrow();
 });
+test("错误回执保留安全请求标识，不泄露原始消息或推断免费", async () => {
+  for (const [status, body, id] of [
+    [
+      400,
+      { request_id: "request-top", message: "private audio info" },
+      "request-top",
+    ],
+    [
+      403,
+      {
+        output: { request_id: "request-output" },
+        message: "private credential info",
+      },
+      "request-output",
+    ],
+    [
+      502,
+      {
+        error: {
+          request_id: "request-error",
+          message: "private upstream info",
+        },
+      },
+      "request-error",
+    ],
+  ] as const) {
+    const adapter = createBailianTranscription({
+      apiKey: "test",
+      fetch: async () => Response.json(body, { status }),
+    });
+    expect(await adapter.recognize({ recording, requestId: "x" })).toEqual({
+      kind: status >= 500 ? "unknown" : "failed",
+      dispatched: true,
+      reason: status === 403 ? "quota" : "provider",
+      providerRequestId: id,
+    });
+  }
+});
+test("超大或无效错误响应不保存正文或未经验证的请求标识", async () => {
+  for (const body of [
+    JSON.stringify({ request_id: "bad\nlog", message: "secret" }),
+    "x".repeat(256_001),
+  ]) {
+    const adapter = createBailianTranscription({
+      apiKey: "test",
+      fetch: async () => new Response(body, { status: 502 }),
+    });
+    expect(
+      await adapter.recognize({ recording, requestId: "x" }),
+    ).toMatchObject({ kind: "unknown", dispatched: true });
+    expect(
+      JSON.stringify(await adapter.recognize({ recording, requestId: "x" })),
+    ).not.toContain("secret");
+  }
+});

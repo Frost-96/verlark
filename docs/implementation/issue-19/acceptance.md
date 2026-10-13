@@ -63,3 +63,15 @@ pnpm exec tsx scripts/recognition-maintenance.ts reconcile CALL_ID SECONDS EVIDE
 - `E2E_DATABASE_URL=…/verlark_issue19_e2e_test pnpm exec playwright test tests/e2e/transcription.spec.ts tests/e2e/recording.spec.ts`：8 项通过，40.8 秒；桌面及移动 viewport，开发录音/识别替身，不能作为实机或生产语音验收。
 - `pnpm format:check` 初次报告新增 migration metadata 及基线已有 `drizzle/meta/0012_snapshot.json` 格式问题；本票改动的 metadata 已格式化，未修改既有 0012 快照。全库格式命令仍受该基线文件影响，不声明通过；本票改动文件格式与 `git diff --check` 通过。
 - e2e 自动写回的旧票截图已还原，不把它纳入 #19 证据。
+
+## 代码审查修复
+
+2026-10-13，按独立 Standards/Spec 审查在同一 implementer 分支完成：
+
+- 将北京主机白名单收敛为共享纯校验函数，应用配置与 Adapter 两个边界仍各自验证，避免未来不一致。
+- 免费额度有效期在取得预算锁并读完累计用量后再次核对；读录音与处理权检查完成后、调用供应商前再检查。模拟读取期间跨过免费到期时间，原测试确实错误地识别成功；修复后不发送、作答失败且预留释放。即使读取也超过 lease，确定未发送仍可释放预留，但过期作答不能写回；这与“远端是否已执行未知”的保留规则区分。
+- 非 2xx 响应与成功响应共用有界 256 KB 读取，仅提取格式受限的顶层/`output`/`error` 内 request ID。HTTP 400/403/502 保留未知用量预留，不保存或显示原始错误正文，不推断免费；超大、无效正文及恶意日志字符不进入用量回执。
+- 供应商回执晚于 lease 或恢复时，只补充缺失的 request ID 供对账；不会释放 unknown 预留、覆盖已完成的账单对账或接纳迟到转写。公开 Interface 回归测试覆盖尚未对账和已对账两个分支。
+- 所有修复均未增加真实供应商调用；实机、正式部署和真实网站全链路门槛保持开放。
+
+审查修复后的最终重跑：隔离 PostgreSQL 上 `pnpm test` 为 25 文件、163 项通过（13.65 秒）；`pnpm typecheck`、`pnpm lint`、`pnpm build`、本票修改文件 Prettier 与 `git diff --check` 均通过。此次变动未改 UI，未重复此前已通过的 8 项浏览器回归；全库格式检查的既有 0012 快照限制仍按上文报告。

@@ -755,3 +755,206 @@ test("删除运行中作答后维护仍能恢复独立用量回执，不遗失�
     committedSeconds: 120,
   });
 });
+test("录音读取期间免费额度到期，不发出识别并释放已预留的预算", async () => {
+  let time = new Date("2026-10-13T00:00:00Z");
+  const { practice, attempt, files } = await fixture();
+  const service = createPractice(
+    connection.db,
+    content,
+    {
+      ...files,
+      read: async (reference) => {
+        const recording = await files.read(reference);
+        time = new Date("2026-10-13T00:00:02Z");
+        return recording;
+      },
+    },
+    {
+      mode: "bailian",
+      recognize: async () => ({
+        kind: "recognized",
+        text: "Dispatched after free quota expired.",
+      }),
+    },
+    { now: () => time },
+    undefined,
+    undefined,
+    {
+      budgetKey: crypto.randomUUID(),
+      allowanceSeconds: 240,
+      expiresAt: new Date("2026-10-13T00:00:01Z"),
+    },
+  );
+  expect(await service.recognize(alice, practice.id, attempt.id)).toMatchObject(
+    { status: "failed", rawTranscript: null },
+  );
+  expect(await service.recognitionBudgetStatus()).toMatchObject({
+    committedSeconds: 0,
+    expired: true,
+  });
+  expect(await service.recognitionReceipts()).toMatchObject([
+    { status: "not-dispatched", reservedSeconds: 0 },
+  ]);
+});
+test("供应商错误 request ID 留在未知用量回执，4xx/5xx 不释放最坏预留", async () => {
+  const { createBailianTranscription } =
+    await import("../../integrations/transcription/bailian");
+  for (const status of [400, 403, 502]) {
+    const provider = createBailianTranscription({
+      apiKey: "offline-only",
+      fetch: async () =>
+        Response.json(
+          {
+            error: { request_id: `error-${status}`, message: "DO NOT EXPOSE" },
+            usage: { duration: 0 },
+          },
+          { status },
+        ),
+    });
+    const { service, practice, attempt } = await fixture(
+      provider.recognize,
+      () => new Date(),
+      true,
+    );
+    const result = await service.recognize(alice, practice.id, attempt.id);
+    expect(result.status).toBe(status === 502 ? "unknown" : "failed");
+    expect(JSON.stringify(result)).not.toContain("DO NOT EXPOSE");
+    expect(await service.recognitionReceipts()).toMatchObject([
+      {
+        providerRequestId: `error-${status}`,
+        status: "unknown",
+        reservedSeconds: 120,
+      },
+    ]);
+    expect(await service.recognitionBudgetStatus()).toMatchObject({
+      committedSeconds: 120,
+    });
+  }
+});
+
+test("读取原录音超过处理权后确认未发送，允许释放预留但不写回过期作答", async () => {
+  let time = new Date("2026-10-13T00:00:00Z");
+  const { practice, attempt, files } = await fixture();
+  const service = createPractice(
+    connection.db,
+    content,
+    {
+      ...files,
+      read: async (reference) => {
+        const recording = await files.read(reference);
+        time = new Date("2026-10-13T00:02:00Z");
+        return recording;
+      },
+    },
+    {
+      mode: "bailian",
+      recognize: async () => ({
+        kind: "recognized",
+        text: "Should never dispatch.",
+      }),
+    },
+    { now: () => time },
+    undefined,
+    undefined,
+    {
+      budgetKey: crypto.randomUUID(),
+      allowanceSeconds: 240,
+      expiresAt: new Date("2026-10-13T00:00:01Z"),
+    },
+  );
+  await expect(
+    service.recognize(alice, practice.id, attempt.id),
+  ).rejects.toMatchObject({ code: "stale" });
+  expect(await service.recognitionReceipts()).toMatchObject([
+    { status: "not-dispatched", reservedSeconds: 0 },
+  ]);
+  expect(
+    (await service.read(alice, practice.id)).attempts[0]?.rawTranscript,
+  ).toBeNull();
+});
+test("过期响应只补充供应商对账标识，不释放未知预留或接纳迟到转写", async () => {
+  let time = new Date("2026-10-13T00:00:00Z");
+  const started = deferred<void>();
+  const remote = deferred<{
+    kind: "recognized";
+    text: string;
+    providerRequestId: string;
+    durationSeconds: number;
+  }>();
+  const { service, practice, attempt } = await fixture(
+    async () => {
+      started.resolve();
+      return remote.promise;
+    },
+    () => time,
+    true,
+  );
+  const pending = service
+    .recognize(alice, practice.id, attempt.id)
+    .catch((error) => error);
+  await started.promise;
+  time = new Date(time.getTime() + 90_001);
+  await service.recoverRecognition(alice, practice.id, attempt.id);
+  remote.resolve({
+    kind: "recognized",
+    text: "Late speech",
+    providerRequestId: "late-receipt",
+    durationSeconds: 1,
+  });
+  expect(await pending).toMatchObject({ code: "stale" });
+  expect(await service.recognitionReceipts()).toMatchObject([
+    {
+      providerRequestId: "late-receipt",
+      status: "unknown",
+      reservedSeconds: 120,
+    },
+  ]);
+  expect((await service.read(alice, practice.id)).attempts[0]).toMatchObject({
+    status: "unknown",
+    rawTranscript: null,
+  });
+});
+test("对账完成后才到达的供应商标识不覆盖已核实用量", async () => {
+  let time = new Date("2026-10-13T00:00:00Z");
+  const started = deferred<void>();
+  const remote = deferred<{
+    kind: "recognized";
+    text: string;
+    providerRequestId: string;
+    durationSeconds: number;
+  }>();
+  const { service, practice, attempt } = await fixture(
+    async () => {
+      started.resolve();
+      return remote.promise;
+    },
+    () => time,
+    true,
+  );
+  const pending = service
+    .recognize(alice, practice.id, attempt.id)
+    .catch((error) => error);
+  await started.promise;
+  time = new Date(time.getTime() + 90_001);
+  await service.recoverRecognition(alice, practice.id, attempt.id);
+  const [receipt] = await service.recognitionReceipts();
+  await service.reconcileRecognitionUsage(receipt!.id, {
+    seconds: 2,
+    evidence: "verified-console-receipt",
+  });
+  remote.resolve({
+    kind: "recognized",
+    text: "Late speech",
+    providerRequestId: "late-after-reconcile",
+    durationSeconds: 1,
+  });
+  expect(await pending).toMatchObject({ code: "stale" });
+  expect(await service.recognitionReceipts()).toMatchObject([
+    {
+      providerRequestId: "late-after-reconcile",
+      status: "settled",
+      reservedSeconds: 2,
+      reconciliationEvidence: "verified-console-receipt",
+    },
+  ]);
+});

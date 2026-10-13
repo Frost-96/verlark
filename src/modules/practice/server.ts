@@ -963,11 +963,19 @@ export function createPractice(
             )
               throw new PracticeError("stale");
           });
+          if (transcription?.mode === "bailian")
+            recognitionBudget.assertAvailable();
           result = await transcription!.recognize({
             recording,
             requestId: claim.token,
           });
         } catch (error) {
+          if (
+            error instanceof PracticeError &&
+            error.code === "recognition-budget"
+          )
+            failure =
+              "免费识别预算已到期或不可用，尚未发送录音。请联系维护者核对额度。";
           result =
             error instanceof PracticeError
               ? { kind: "failed", dispatched: false }
