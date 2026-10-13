@@ -1,12 +1,19 @@
+import { isBeijingAsrHost } from "./beijing";
 import { z } from "zod";
 import type { Transcription, RecognitionResult } from "./contracts";
 export const ASR_MODEL = "qwen-audio-3.0-asr-flash";
+const requestIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/);
+const errorReceiptSchema = z.object({
+  request_id: requestIdSchema.optional(),
+  output: z.object({ request_id: requestIdSchema.optional() }).optional(),
+  error: z.object({ request_id: requestIdSchema.optional() }).optional(),
+});
 const responseSchema = z.object({
   output: z.object({
     text: z.string().max(20_000),
-    request_id: z.string().min(1).max(200).optional(),
+    request_id: requestIdSchema.optional(),
   }),
-  request_id: z.string().min(1).max(200).optional(),
+  request_id: requestIdSchema.optional(),
   usage: z.object({ duration: z.number().finite().nonnegative() }).optional(),
 });
 /** Single synchronous request. No automatic retry or provider idempotency claim. */
@@ -17,11 +24,7 @@ export function createBailianTranscription(options: {
   timeoutMs?: number;
 }): Transcription {
   const host = options.host ?? "dashscope.aliyuncs.com";
-  if (
-    host !== "dashscope.aliyuncs.com" &&
-    !/^ws-[a-z0-9]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(host)
-  )
-    throw new Error("识别只允许百炼北京主机。");
+  if (!isBeijingAsrHost(host)) throw new Error("识别只允许百炼北京主机。");
   const send = options.fetch ?? fetch;
   return {
     mode: "bailian",
@@ -76,16 +79,12 @@ export function createBailianTranscription(options: {
             }),
           },
         );
-        if (!response.ok) {
-          await response.body?.cancel();
-          return {
-            kind: response.status >= 500 ? "unknown" : "failed",
-            dispatched: true,
-            reason: response.status === 403 ? "quota" : "provider",
-          };
-        }
         const reader = response.body?.getReader();
-        if (!reader) return { kind: "unknown", dispatched: true };
+        if (!reader)
+          return {
+            kind: response.ok || response.status >= 500 ? "unknown" : "failed",
+            dispatched: true,
+          };
         const chunks: Uint8Array[] = [];
         let size = 0;
         try {
@@ -102,9 +101,26 @@ export function createBailianTranscription(options: {
         } finally {
           reader.releaseLock();
         }
-        const parsed = responseSchema.safeParse(
-          JSON.parse(Buffer.concat(chunks).toString("utf8")),
-        );
+        let envelope: unknown;
+        try {
+          envelope = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        } catch {
+          envelope = null;
+        }
+        if (!response.ok) {
+          const receipt = errorReceiptSchema.safeParse(envelope);
+          return {
+            kind: response.status >= 500 ? "unknown" : "failed",
+            dispatched: true,
+            reason: response.status === 403 ? "quota" : "provider",
+            providerRequestId: receipt.success
+              ? (receipt.data.request_id ??
+                receipt.data.output?.request_id ??
+                receipt.data.error?.request_id)
+              : undefined,
+          };
+        }
+        const parsed = responseSchema.safeParse(envelope);
         if (!parsed.success) return { kind: "unknown", dispatched: true };
         const { output, usage, request_id } = parsed.data;
         const accounting = {

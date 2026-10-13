@@ -1,3 +1,4 @@
+import { isBeijingAsrHost } from "../integrations/transcription/beijing";
 export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
@@ -46,11 +47,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   const bailianTranscription = env.BAILIAN_TRANSCRIPTION_ENABLED === "true";
   const dashscopeApiKey = env.DASHSCOPE_API_KEY;
   const dashscopeApiHost = env.DASHSCOPE_API_HOST ?? "dashscope.aliyuncs.com";
-  if (
-    bailianTranscription &&
-    dashscopeApiHost !== "dashscope.aliyuncs.com" &&
-    !/^ws-[a-z0-9]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(dashscopeApiHost)
-  )
+  if (bailianTranscription && !isBeijingAsrHost(dashscopeApiHost))
     throw new ConfigurationError("真实识别只允许百炼北京主机。");
   const allowanceSeconds = Number(env.BAILIAN_ASR_ALLOWANCE_SECONDS);
   const expiresAt = new Date(env.BAILIAN_ASR_FREE_EXPIRES_AT ?? "");

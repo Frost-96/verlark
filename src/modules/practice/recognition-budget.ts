@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNull, lte, sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import type { RecognitionResult } from "../../integrations/transcription/contracts";
 import { ASR_MODEL } from "../../integrations/transcription/bailian";
@@ -24,7 +24,19 @@ export function createRecognitionBudget(
       .where(eq(recognitionCall.budgetKey, policy!.budgetKey));
     return row!.seconds;
   }
+  function assertAvailable() {
+    if (
+      !policy ||
+      !policy.budgetKey ||
+      !Number.isSafeInteger(policy.allowanceSeconds) ||
+      policy.allowanceSeconds < 120 ||
+      !Number.isFinite(policy.expiresAt.getTime()) ||
+      policy.expiresAt <= now()
+    )
+      throw new PracticeError("recognition-budget");
+  }
   return {
+    assertAvailable,
     async reserve(
       tx: Transaction,
       input: {
@@ -34,23 +46,17 @@ export function createRecognitionBudget(
         deadline: Date;
       },
     ) {
-      if (
-        !policy ||
-        !policy.budgetKey ||
-        !Number.isSafeInteger(policy.allowanceSeconds) ||
-        policy.allowanceSeconds < 120 ||
-        !Number.isFinite(policy.expiresAt.getTime()) ||
-        policy.expiresAt <= now()
-      )
-        throw new PracticeError("recognition-budget");
+      assertAvailable();
       await tx.execute(
-        sql`select pg_advisory_xact_lock(hashtext(${`asr:${policy.budgetKey}`}))`,
+        sql`select pg_advisory_xact_lock(hashtext(${`asr:${policy!.budgetKey}`}))`,
       );
-      if ((await used(tx)) + 120 > policy.allowanceSeconds)
+      const committed = await used(tx);
+      assertAvailable();
+      if (committed + 120 > policy!.allowanceSeconds)
         throw new PracticeError("recognition-budget");
       await tx.insert(recognitionCall).values({
         ...input,
-        budgetKey: policy.budgetKey,
+        budgetKey: policy!.budgetKey,
         model: ASR_MODEL,
         reservedSeconds: 120,
         status: "reserved",
@@ -58,6 +64,31 @@ export function createRecognitionBudget(
       });
     },
     async settle(id: string, result: RecognitionResult) {
+      if (result.dispatched === false) {
+        // Definite local non-dispatch is evidence even when storage I/O outlived the lease.
+        await db
+          .update(recognitionCall)
+          .set({ status: "not-dispatched", reservedSeconds: 0 })
+          .where(
+            and(
+              eq(recognitionCall.id, id),
+              inArray(recognitionCall.status, ["reserved", "unknown"]),
+              isNull(recognitionCall.reconciledAt),
+            ),
+          );
+        return;
+      }
+      // Late responses may identify the external operation without owning a result or budget write.
+      if (result.providerRequestId)
+        await db
+          .update(recognitionCall)
+          .set({ providerRequestId: result.providerRequestId.slice(0, 200) })
+          .where(
+            and(
+              eq(recognitionCall.id, id),
+              isNull(recognitionCall.providerRequestId),
+            ),
+          );
       // Missing/invalid usage, errors and unknowns retain the full worst-case reservation.
       const duration = result.durationSeconds;
       const settled =
@@ -69,19 +100,8 @@ export function createRecognitionBudget(
       await db
         .update(recognitionCall)
         .set({
-          status:
-            result.dispatched === false
-              ? "not-dispatched"
-              : settled
-                ? "settled"
-                : "unknown",
-          reservedSeconds:
-            result.dispatched === false
-              ? 0
-              : settled
-                ? Math.max(1, Math.ceil(duration))
-                : 120,
-          providerRequestId: result.providerRequestId?.slice(0, 200) ?? null,
+          status: settled ? "settled" : "unknown",
+          reservedSeconds: settled ? Math.max(1, Math.ceil(duration)) : 120,
         })
         .where(
           and(
@@ -131,7 +151,7 @@ export function createRecognitionBudget(
         throw new PracticeError("invalid");
       await db.transaction(async (tx) => {
         await tx.execute(
-          sql`select pg_advisory_xact_lock(hashtext(${`asr:${policy.budgetKey}`}))`,
+          sql`select pg_advisory_xact_lock(hashtext(${`asr:${policy!.budgetKey}`}))`,
         );
         const [row] = await tx
           .select()
