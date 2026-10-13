@@ -12,7 +12,7 @@ export default function Home() {
       <aside className="notice">
         <strong>先从聆听一段日常对话开始。</strong>
         <p>
-          测试名单内的学习者可登录后选择已发布材料、查看帮助并保存练习。口头作答和表达反馈尚未开放。
+          测试名单内的学习者可登录后选择已发布材料、查看帮助并保存练习。录音提交与转写核对的可用状态以练习页为准。
         </p>
       </aside>
       <div className="actions">

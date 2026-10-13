@@ -26,10 +26,7 @@ export default function RootLayout({
           </nav>
         </header>
         <main>{children}</main>
-        <footer>
-          Verlark · 内部测试阶段 ·
-          支持聆听、录音与转写核对；真实识别和表达反馈尚未接入
-        </footer>
+        <footer>Verlark · 内部测试阶段 · 支持聆听、录音与转写核对</footer>
       </body>
     </html>
   );
