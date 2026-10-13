@@ -24,16 +24,19 @@ export function TranscriptionReview({
   ended,
   enabled,
   feedbackEnabled,
+  duplicateCostConsentRequired = false,
 }: {
   initial: Attempt;
   practiceId: string;
   ended: boolean;
   enabled: boolean;
   feedbackEnabled: boolean;
+  duplicateCostConsentRequired?: boolean;
 }) {
   const [attempt, setAttempt] = useState(initial);
   const [editor, setEditor] = useState(() => editorValue(initial));
   const [busy, setBusy] = useState(false);
+  const [acceptDuplicateCost, setAcceptDuplicateCost] = useState(false);
   const [message, setMessage] = useState("");
   const requestNumber = useRef(0);
   // Both controls read/write the same Attempt snapshot; a newer request supersedes older snapshots.
@@ -66,7 +69,11 @@ export function TranscriptionReview({
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify(
-                action === "confirm" ? { action, ...editor } : { action },
+                action === "confirm"
+                  ? { action, ...editor }
+                  : action === "recognize"
+                    ? { action, acceptDuplicateCost }
+                    : { action },
               ),
               signal: request.signal,
             },
@@ -85,6 +92,7 @@ export function TranscriptionReview({
       if (!updated) throw new PracticeError("not-found");
       if (stateSequence !== stateRequestNumber.current) return;
       setAttempt(updated);
+      setAcceptDuplicateCost(false);
       // A refresh does not discard an unsaved correction or silently rebase it onto another version.
       if (action === "confirm" || !editor.rawTranscriptId)
         setEditor(editorValue(updated));
@@ -139,13 +147,33 @@ export function TranscriptionReview({
           {message}
         </p>
       )}
+      {!ended &&
+        duplicateCostConsentRequired &&
+        attempt.status !== "pending-identification" &&
+        attempt.status !== "recognized" &&
+        attempt.status !== "processing" && (
+          <label>
+            <input
+              type="checkbox"
+              checked={acceptDuplicateCost}
+              onChange={(event) => setAcceptDuplicateCost(event.target.checked)}
+            />
+            我了解重试可能重复消耗供应商额度，仍要重新识别同一作答。
+          </label>
+        )}
       {!ended && (
         <div className="actions">
           {attempt.status !== "recognized" &&
             attempt.status !== "processing" && (
               <button
                 type="button"
-                disabled={busy || !enabled}
+                disabled={
+                  busy ||
+                  !enabled ||
+                  (duplicateCostConsentRequired &&
+                    attempt.status !== "pending-identification" &&
+                    !acceptDuplicateCost)
+                }
                 onClick={() => act("recognize")}
               >
                 {attempt.status === "pending-identification"
