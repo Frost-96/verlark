@@ -163,3 +163,33 @@ export const practiceDeletion = pgTable("practice_deletion", {
   leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   failure: text("failure"),
 });
+
+// No learner text/audio; independent lifetime keeps unknown costs after deletion.
+export const recognitionCall = pgTable(
+  "recognition_call",
+  {
+    id: uuid("id").primaryKey(),
+    budgetKey: text("budget_key").notNull(),
+    attemptId: uuid("attempt_id").references(() => attemptRecord.id, {
+      onDelete: "set null",
+    }),
+    fingerprint: text("fingerprint").notNull(),
+    model: text("model").notNull(),
+    reservedSeconds: integer("reserved_seconds").notNull(),
+    status: text("status", {
+      enum: ["reserved", "settled", "unknown", "not-dispatched"],
+    }).notNull(),
+    providerRequestId: text("provider_request_id"),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    deadline: timestamp("deadline", { withTimezone: true }).notNull(),
+    reconciledAt: timestamp("reconciled_at", { withTimezone: true }),
+    reconciliationEvidence: text("reconciliation_evidence"),
+  },
+  (table) => [
+    index("recognition_budget_idx").on(table.budgetKey),
+    check(
+      "recognition_reservation_nonnegative",
+      sql`${table.reservedSeconds} >= 0`,
+    ),
+  ],
+);

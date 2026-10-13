@@ -1,0 +1,123 @@
+import { z } from "zod";
+import type { Transcription, RecognitionResult } from "./contracts";
+export const ASR_MODEL = "qwen-audio-3.0-asr-flash";
+const responseSchema = z.object({
+  output: z.object({
+    text: z.string().max(20_000),
+    request_id: z.string().min(1).max(200).optional(),
+  }),
+  request_id: z.string().min(1).max(200).optional(),
+  usage: z.object({ duration: z.number().finite().nonnegative() }).optional(),
+});
+/** Single synchronous request. No automatic retry or provider idempotency claim. */
+export function createBailianTranscription(options: {
+  apiKey: string;
+  host?: string;
+  fetch?: typeof fetch;
+  timeoutMs?: number;
+}): Transcription {
+  const host = options.host ?? "dashscope.aliyuncs.com";
+  if (
+    host !== "dashscope.aliyuncs.com" &&
+    !/^ws-[a-z0-9]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(host)
+  )
+    throw new Error("识别只允许百炼北京主机。");
+  const send = options.fetch ?? fetch;
+  return {
+    mode: "bailian",
+    async recognize({ recording }): Promise<RecognitionResult> {
+      const mime = recording.mediaType.split(";")[0]!.trim().toLowerCase();
+      const format = (
+        {
+          "audio/webm": "webm",
+          "audio/mp4": "mp4",
+          "audio/ogg": "ogg",
+          "audio/wav": "wav",
+        } as Record<string, string>
+      )[mime];
+      // The provider's 10 MB limit applies to base64, not source bytes.
+      if (
+        !format ||
+        !recording.bytes.length ||
+        4 * Math.ceil(recording.bytes.length / 3) > 10_000_000
+      )
+        return { kind: "failed", dispatched: false, reason: "format" };
+      const signal = AbortSignal.timeout(options.timeoutMs ?? 45_000);
+      try {
+        const response = await send(
+          `https://${host}/api/v1/services/aigc/multimodal-generation/generation`,
+          {
+            method: "POST",
+            redirect: "error",
+            signal,
+            headers: {
+              Authorization: `Bearer ${options.apiKey}`,
+              "Content-Type": "application/json",
+              "X-DashScope-SSE": "disable",
+            },
+            body: JSON.stringify({
+              model: ASR_MODEL,
+              input: {
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      {
+                        type: "input_audio",
+                        input_audio: {
+                          data: `data:${mime};base64,${Buffer.from(recording.bytes).toString("base64")}`,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+              parameters: { format, language_hints: ["en"] },
+            }),
+          },
+        );
+        if (!response.ok) {
+          await response.body?.cancel();
+          return {
+            kind: response.status >= 500 ? "unknown" : "failed",
+            dispatched: true,
+            reason: response.status === 403 ? "quota" : "provider",
+          };
+        }
+        const reader = response.body?.getReader();
+        if (!reader) return { kind: "unknown", dispatched: true };
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        try {
+          while (true) {
+            const next = await reader.read();
+            if (next.done) break;
+            size += next.value.length;
+            if (size > 256_000) {
+              await reader.cancel();
+              return { kind: "unknown", dispatched: true };
+            }
+            chunks.push(next.value);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+        const parsed = responseSchema.safeParse(
+          JSON.parse(Buffer.concat(chunks).toString("utf8")),
+        );
+        if (!parsed.success) return { kind: "unknown", dispatched: true };
+        const { output, usage, request_id } = parsed.data;
+        const accounting = {
+          dispatched: true,
+          providerRequestId: request_id ?? output.request_id,
+          durationSeconds: usage?.duration,
+        };
+        return output.text.trim()
+          ? { kind: "recognized", text: output.text.trim(), ...accounting }
+          : { kind: "no-content", ...accounting };
+      } catch {
+        return { kind: "unknown", dispatched: true };
+      }
+    },
+  };
+}

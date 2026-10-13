@@ -1,3 +1,4 @@
+import { createBailianTranscription } from "../integrations/transcription/bailian";
 import "server-only";
 import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
@@ -45,10 +46,16 @@ function compose() {
       connection.db,
       content,
       files,
-      createTranscription({ development: config.developmentTranscription }),
+      config.bailianTranscription
+        ? createBailianTranscription({
+            apiKey: config.dashscopeApiKey!,
+            host: config.dashscopeApiHost,
+          })
+        : createTranscription({ development: config.developmentTranscription }),
       undefined,
       createExpressionFeedback({ development: config.developmentFeedback }),
       journal,
+      config.recognitionPolicy,
     ),
     identity: createIdentity(
       connection.db,

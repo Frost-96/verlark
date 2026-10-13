@@ -55,3 +55,27 @@ test("私有录音配置独立于新增上传开关，缺少清理凭据或同�
     readConfig({ ...configured, DEVELOPMENT_RECORDINGS: "true" }),
   ).toThrow("不能同时");
 });
+test("真实识别须显式开启、配置北京凭据和已核实免费停止策略，缺失时失败关闭", () => {
+  expect(readConfig(valid).bailianTranscription).toBe(false);
+  expect(() =>
+    readConfig({ ...valid, BAILIAN_TRANSCRIPTION_ENABLED: "true" }),
+  ).toThrow("真实识别");
+  const enabled = {
+    ...valid,
+    PRIVATE_RECORDINGS_ENABLED: "true",
+    BLOB_READ_WRITE_TOKEN: "test",
+    CRON_SECRET: "x".repeat(32),
+    BAILIAN_TRANSCRIPTION_ENABLED: "true",
+    DASHSCOPE_API_KEY: "test",
+    BAILIAN_ASR_FREE_ONLY_VERIFIED: "true",
+    BAILIAN_ASR_ALLOWANCE_SECONDS: "120",
+    BAILIAN_ASR_FREE_EXPIRES_AT: "2099-01-01T00:00:00Z",
+  };
+  expect(readConfig(enabled).recognitionPolicy).toMatchObject({
+    allowanceSeconds: 120,
+    budgetKey: "bailian-beijing-qwen-audio-3.0-asr-flash",
+  });
+  expect(() =>
+    readConfig({ ...enabled, DEVELOPMENT_TRANSCRIPTION: "true" }),
+  ).toThrow("真实识别");
+});

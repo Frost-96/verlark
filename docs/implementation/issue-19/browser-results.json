@@ -1,0 +1,56 @@
+{
+  "executedAt": "2026-10-13T06:09:34.790Z",
+  "environment": {
+    "browserVersion": "156.0.8078.4",
+    "os": "Darwin",
+    "release": "27.0.0",
+    "architecture": "arm64",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+    "source": "Synthetic 440Hz WebAudio oscillator; desktop headless Chromium; no microphone, learner data, provider or storage request."
+  },
+  "results": [
+    {
+      "requestedMime": "audio/webm;codecs=opus",
+      "supported": true,
+      "actualMime": "audio/webm;codecs=opus",
+      "size": 22514,
+      "validation": {
+        "mediaType": "audio/webm",
+        "durationMs": 1380
+      },
+      "file": "sample-0.webm"
+    },
+    {
+      "requestedMime": "audio/webm",
+      "supported": true,
+      "actualMime": "audio/webm;codecs=opus",
+      "size": 23480,
+      "validation": {
+        "mediaType": "audio/webm",
+        "durationMs": 1440
+      },
+      "file": "sample-1.webm"
+    },
+    {
+      "requestedMime": "audio/mp4",
+      "supported": true,
+      "actualMime": "audio/mp4;codecs=opus",
+      "size": 23949,
+      "validation": {
+        "mediaType": "audio/mp4",
+        "durationMs": 1360
+      },
+      "file": "sample-2.mp4"
+    },
+    {
+      "requestedMime": "audio/ogg;codecs=opus",
+      "supported": false,
+      "error": "NotSupportedError: Failed to construct 'MediaRecorder': Failed to initialize native MediaRecorder the type provided (audio/ogg;codecs=opus) is not supported."
+    },
+    {
+      "requestedMime": "audio/ogg",
+      "supported": false,
+      "error": "NotSupportedError: Failed to construct 'MediaRecorder': Failed to initialize native MediaRecorder the type provided (audio/ogg) is not supported."
+    }
+  ]
+}
