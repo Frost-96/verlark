@@ -243,7 +243,7 @@ test("校验在外部写入时删除不阻塞，迟到处理权不能发布最�
   expect(await files.read(permit.reference)).toBeNull();
 });
 
-test("清理有界并推进超过一批的清单，重试期限不会隐藏超过 48 小时的积压", async () => {
+test("已接受限制超过 48 小时且超过一批仍可上传，真实删除失败继续阻断", async () => {
   const { objects, store } = storeFixture();
   let now = new Date("2000-01-01T00:00:00Z");
   const files = createPrivateRecordingFiles(
@@ -275,7 +275,9 @@ test("清理有界并推进超过一批的清单，重试期限不会隐藏超�
   expect(await files.maintenanceStatus()).toMatchObject({
     due: 0,
     scanOverdue: false,
-    cleanupOverdue: true,
+    cleanupOverdue: false,
+    providerUnverified: 21,
+    actionablePending: 0,
   });
   const gated = createPrivateRecordingFiles(
     connection.db,
@@ -284,6 +286,22 @@ test("清理有界并推进超过一批的清单，重试期限不会隐藏超�
     { now: () => now },
     { uploadsEnabled: true, requireMaintenance: true },
   );
+  await expect(
+    gated.issueUpload({
+      ...scope,
+      uploadId: crypto.randomUUID(),
+      mediaType: "audio/webm",
+    }),
+  ).resolves.toHaveProperty("clientToken");
+  store.remove = async () => {
+    throw new Error("provider unavailable");
+  };
+  now = new Date("2000-01-04T03:00:00Z");
+  await files.cleanupBatch();
+  expect(await files.maintenanceStatus()).toMatchObject({
+    cleanupOverdue: true,
+    actionablePending: 20,
+  });
   await expect(
     gated.issueUpload({
       ...scope,
@@ -313,6 +331,9 @@ test("删除已到期但尚未扫描的录音不能重置 48 小时清理时钟"
   });
   now = new Date("2000-01-05T00:00:00Z");
   expect((await files.maintenanceStatus()).cleanupOverdue).toBe(true);
+  store.remove = async () => {
+    throw new Error("provider unavailable");
+  };
   await expect(files.removePractice(scope)).rejects.toThrow("晚到");
   expect((await files.maintenanceStatus()).cleanupOverdue).toBe(true);
 });
@@ -368,7 +389,9 @@ test("存储停用时保留清理清单与超期状态，恢复后可删除已�
   expect(objects.size).toBe(0);
   expect(await files.maintenanceStatus()).toMatchObject({
     pending: 1,
-    cleanupOverdue: true,
+    providerUnverified: 1,
+    actionablePending: 0,
+    cleanupOverdue: false,
   });
   expect(await files.read(upload.reference)).toBeNull();
 });
@@ -420,4 +443,42 @@ test("上传校验租约到期可接手，旧处理者不能清除新处理者�
   expect(Array.from((await files.read(permit.reference))!.bytes)).toEqual([
     1, 2, 3,
   ]);
+});
+
+test("已知对象证据过期或仍有有效上传许可时不得豁免保护", async () => {
+  const { store } = storeFixture();
+  let now = new Date("2000-01-01T00:00:00Z");
+  const files = createPrivateRecordingFiles(
+    connection.db,
+    store,
+    async () => ({ mediaType: "audio/webm", durationMs: 1000 }),
+    { now: () => now },
+  );
+  const scope = {
+    learnerId: crypto.randomUUID(),
+    practiceId: crypto.randomUUID(),
+  };
+  const permit = await files.issueUpload({
+    ...scope,
+    uploadId: crypto.randomUUID(),
+    mediaType: "audio/webm",
+  });
+  await expect(files.removePractice(scope)).rejects.toThrow();
+  expect(await files.maintenanceStatus()).toMatchObject({
+    providerUnverified: 0,
+    actionablePending: 1,
+  });
+  now = new Date("2000-01-01T00:06:00Z");
+  expect(await files.maintenanceStatus()).toMatchObject({
+    providerUnverified: 1,
+    actionablePending: 0,
+  });
+  now = new Date("2000-01-04T00:00:00Z");
+  expect(await files.maintenanceStatus()).toMatchObject({
+    providerUnverified: 0,
+    actionablePending: 1,
+    cleanupOverdue: true,
+    scanOverdue: true,
+  });
+  expect(await files.read(permit.reference)).toBeNull();
 });

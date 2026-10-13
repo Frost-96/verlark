@@ -57,8 +57,8 @@ export async function handleRecordingMaintenance(
           attentionRequired:
             status.scanOverdue ||
             status.cleanupOverdue ||
-            status.due > 0 ||
-            status.pending > 0 ||
+            status.actionableDue > 0 ||
+            status.actionablePending > 0 ||
             materials.pending > 0,
         },
         { headers },
@@ -95,9 +95,8 @@ export async function handleRecordingMaintenance(
           failed ||
           status.scanOverdue ||
           status.cleanupOverdue ||
-          status.due > 0 ||
-          status.pending > 0 ||
-          (batch?.pending ?? 0) > 0 ||
+          status.actionableDue > 0 ||
+          status.actionablePending > 0 ||
           (materialBatch?.failed ?? 0) > 0 ||
           materialStatus.pending > 0,
       },
