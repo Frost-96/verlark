@@ -1,0 +1,33 @@
+{
+  "executedAt": "2026-10-13T06:12:04.812Z",
+  "sourcePath": "/tmp/verlark-bailian-smoke/sample-normalized.wav",
+  "sourceSha256": "f03af3061501ef0c2a3960b9ee2179c65c4de63ec3cca5154a394f9066bd8a9e",
+  "browserVersion": "156.0.8078.4",
+  "description": "Actual desktop Chromium MediaRecorder output of pre-existing synthetic speech played via WebAudio, with 300ms lead/tail. Not user microphone or real-phone evidence. No provider calls.",
+  "results": [
+    {
+      "requestedMime": "audio/webm;codecs=opus",
+      "actualMime": "audio/webm;codecs=opus",
+      "sourceDurationMs": 1760,
+      "path": "/tmp/verlark-issue19-browser-evidence/speech.webm",
+      "size": 28700,
+      "sha256": "30bb9b80b80203a7587dfffb3cfbac7b1100cffda55a8ff95c2ed56a16197221",
+      "validation": {
+        "mediaType": "audio/webm",
+        "durationMs": 2040
+      }
+    },
+    {
+      "requestedMime": "audio/mp4",
+      "actualMime": "audio/mp4;codecs=opus",
+      "sourceDurationMs": 1760,
+      "path": "/tmp/verlark-issue19-browser-evidence/speech.mp4",
+      "size": 29183,
+      "sha256": "f05411957153f75a426b7a47080381fe5157b7253b5dbd748280b51129f5fa71",
+      "validation": {
+        "mediaType": "audio/mp4",
+        "durationMs": 1960
+      }
+    }
+  ]
+}

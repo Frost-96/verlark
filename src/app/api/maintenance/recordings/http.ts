@@ -6,7 +6,15 @@ import type { createPractice } from "../../../../modules/practice/server";
 type MaintenanceServices = {
   files: RecordingFiles;
   content: LearningContent;
-  practice: Pick<ReturnType<typeof createPractice>, "pruneDeletionReceipts">;
+  practice: Pick<ReturnType<typeof createPractice>, "pruneDeletionReceipts"> &
+    Partial<
+      Pick<
+        ReturnType<typeof createPractice>,
+        | "recoverExpiredRecognitions"
+        | "recognitionBudgetStatus"
+        | "recognitionRecoveryStatus"
+      >
+    >;
 };
 export async function handleRecordingMaintenance(
   request: Request,
@@ -50,11 +58,15 @@ export async function handleRecordingMaintenance(
         files.maintenanceStatus(),
         content.audioMaintenanceStatus(),
       ]);
+      const recognitionRecovery = await practice.recognitionRecoveryStatus?.();
       return Response.json(
         {
           ...status,
+          recognitionRecovery,
           materials,
+          recognitionBudget: await practice.recognitionBudgetStatus?.(),
           attentionRequired:
+            (recognitionRecovery?.expired ?? 0) > 0 ||
             status.scanOverdue ||
             status.cleanupOverdue ||
             status.actionableDue > 0 ||
@@ -66,33 +78,41 @@ export async function handleRecordingMaintenance(
     }
     // Independent bounded batches run together: a slow/failing provider for one
     // kind of audio must not prevent maintenance of the other kind.
-    const [recordings, materials, receipts] = await Promise.allSettled([
-      files.cleanupBatch(),
-      content.cleanupAudio(),
-      practice.pruneDeletionReceipts(),
-    ]);
+    const [recordings, materials, receipts, recognition] =
+      await Promise.allSettled([
+        files.cleanupBatch(),
+        content.cleanupAudio(),
+        practice.pruneDeletionReceipts(),
+        practice.recoverExpiredRecognitions?.(),
+      ]);
     const [status, materialStatus] = await Promise.all([
       files.maintenanceStatus(),
       content.audioMaintenanceStatus(),
     ]);
-    const failed = [recordings, materials, receipts].some(
+    const failed = [recordings, materials, receipts, recognition].some(
       (result) => result.status === "rejected",
     );
     const batch = recordings.status === "fulfilled" ? recordings.value : null;
     const materialBatch =
       materials.status === "fulfilled" ? materials.value : null;
+    const recognitionRecovery = await practice.recognitionRecoveryStatus?.();
     return Response.json(
       {
         ...batch,
+        recognitionRecovery,
         ...status,
         materials: { ...materialBatch, ...materialStatus },
+        recognition:
+          recognition.status === "fulfilled" ? recognition.value : null,
         failures: {
+          recognition: recognition.status === "rejected",
           recordings: recordings.status === "rejected",
           materials: materials.status === "rejected",
           receipts: receipts.status === "rejected",
         },
         attentionRequired:
           failed ||
+          (recognitionRecovery?.expired ?? 0) > 0 ||
           status.scanOverdue ||
           status.cleanupOverdue ||
           status.actionableDue > 0 ||
