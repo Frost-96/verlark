@@ -75,7 +75,7 @@ pnpm exec tsx scripts/recognition-maintenance.ts reconcile CALL_ID SECONDS EVIDE
 
 证据保存在 `/tmp/verlark-issue19-deploy/independent-receipt-result.md`、同目录 `independent-receipt-manifest.json.inspection.json` 与 `migration-readonly.json`；现场截图保留在本地 `/tmp`，未提交仓库。该演练证明**所选生产环境的有界维护入口实际恢复了非空、过期的独立识别回执**，比空队列状态检查多了一层执行证据；它不是真实供应商超时、worker 崩溃、非空 Attempt 处理权恢复，也不是自然 cron 按时执行证据。作答恢复和迟到转写拒绝仍只有此前隔离 PostgreSQL 的独立证据。
 
-访问范围调整目标为用上述 `k9dzt` 固定地址替换旧 `g7v` 固定地址，并保留正式域名与 #20/#21 邮件 preview；此文档提交时相关保存状态仍在核对，不能将调整目标当作已验证生效的防火墙配置。
+访问范围已通过发布后的 UI 核对：Publish 后 Review Changes 消失，重新打开已发布且启用的规则，明确列出正式域名、#20/#21 邮件 preview 和上述 `k9dzt` 固定地址三个 host，旧 `g7v` 已替换，Deny 动作保留。这证明发布配置的 UI 核对完成；匿名访问新旧固定链接均跳转 Vercel 登录，未观察到防火墙 403，因此不能把匿名 HTTP 结果作为该规则拦截生效的证明。
 
 ### 继续验收后的唯一新增供应商请求
 
