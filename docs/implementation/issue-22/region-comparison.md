@@ -1,0 +1,15 @@
+# 单区域对照：iad1 → sin1
+
+2026-10-14。本次仅将函数区域设为 Singapore `sin1`，保留原 cron。host、模型、请求协议、45 秒截止及预算规则不变；这是待验证的区域对照，不是已确认的永久修复。
+
+父级实际观测：同一41.7秒录音在本地约1.74秒得到成功；生产iad1的诊断请求在862毫秒出现request-headers-sent（TLS true），随后45秒截止，没有body-sent或响应headers。该证据定位到尚未观察到完整请求体发送的阶段，不能进一步断言地区、网络或供应商中的哪一项是根因；入口edge为sin1不等同于函数在sin1执行。
+
+Vercel官方允许Hobby选择单区域，且区域表包含sin1；使用根vercel.json的regions配置，未新增已弃用的Next preferredRegion。
+
+- https://vercel.com/docs/project-configuration/vercel-json#regions
+- https://vercel.com/docs/functions/configuring-functions/region
+- https://vercel.com/docs/regions#region-list
+
+部署后的验收需确认实际transcription函数区域，复用同一原录音、同一浏览器正常重试入口，记录安全阶段耗时、结果与预算；数据库及Blob区域保持原值，因此跨区域读写耗时也须记录。本轮剩余一次识别，截止2026-10-14T14:43:13Z；不因构建等待而续期，未知预留不释放。成功也只能支持该次对照结果，不能据单样宣布地区为唯一根因。
+
+本提交仅通过JSON解析与原cron值保持检查；没有发模型请求或部署。
