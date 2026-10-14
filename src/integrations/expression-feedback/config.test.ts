@@ -19,3 +19,23 @@ test("malformed expiry remains invalid configuration", () => {
     readFeedbackConfig({ ...env, FEEDBACK_FREE_UNTIL: "invalid" }),
   ).toThrow();
 });
+
+test("switching model requires its own explicit free-only verification", () => {
+  expect(readFeedbackConfig(env)?.model).toBe("qwen3.7-flash-2026-07-15");
+  for (const override of [
+    { FEEDBACK_MODEL: "unknown-model" },
+    { FEEDBACK_MODEL: "qwen3.8-max-0902" },
+    {
+      FEEDBACK_MODEL: "qwen3.8-max-0902",
+      FEEDBACK_FREE_MODEL_VERIFIED: "qwen3.7-flash-2026-07-15",
+    },
+  ])
+    expect(() => readFeedbackConfig({ ...env, ...override })).toThrow();
+  expect(
+    readFeedbackConfig({
+      ...env,
+      FEEDBACK_MODEL: "qwen3.8-max-0902",
+      FEEDBACK_FREE_MODEL_VERIFIED: "qwen3.8-max-0902",
+    })?.model,
+  ).toBe("qwen3.8-max-0902");
+});

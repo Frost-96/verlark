@@ -1,0 +1,101 @@
+{
+  "checkedAt": "2026-10-14T09:00:01.815Z",
+  "totals": {
+    "rows": 102,
+    "reserved": "415837",
+    "observed": "73785",
+    "charged": "415837"
+  },
+  "newReserved": 64819,
+  "newObserved": 17665,
+  "receipts": [
+    {
+      "request_id": "ae583156-b262-4d46-bed8-b224627350da",
+      "confirmation_id": "51f53b42-6ad4-4e4d-b904-806ee90bcea8",
+      "fingerprint": "3c0588aa6af74f99c02bbfb7238b9fddd7e7de8807b45a4ef8f89d37cf3acdb3",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8099,
+      "observed_tokens": 2510,
+      "provider_id": "chatcmpl-35a68d58-51a7-938f-97f6-62a8118bdd07",
+      "state": "responded"
+    },
+    {
+      "request_id": "52a40af4-8965-4f82-8466-d39faf22b452",
+      "confirmation_id": "c27b21b8-0b69-4ae3-bf03-ae131d78ec9f",
+      "fingerprint": "b8eb93f8c79049667b3c432a7cc5d6d2eee14a482605e5b8deb62b43dfbf26a2",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8103,
+      "observed_tokens": 1953,
+      "provider_id": "chatcmpl-022f405e-63e0-98c4-b9ff-964f017055d3",
+      "state": "responded"
+    },
+    {
+      "request_id": "b7860bec-e658-43d4-8952-aeed03612b1b",
+      "confirmation_id": "2bbb986c-78b6-4de4-a10d-70fafa391c94",
+      "fingerprint": "68dbbbf785f3b5c7bb4239c42670c0239f08ddf377ca0dd72e2abc3484596066",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8111,
+      "observed_tokens": 2355,
+      "provider_id": "chatcmpl-ad8d1a40-7ce5-961d-82df-7a6a5ffde447",
+      "state": "responded"
+    },
+    {
+      "request_id": "a8284bca-798b-497f-a09c-7703ae77b836",
+      "confirmation_id": "14c080f0-c58a-426c-83eb-26f2d024aaac",
+      "fingerprint": "ebec8e40d48daff1d07ae8a6e9c13f6f4c1a0275b816bf9807516e3f34c4ea88",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8083,
+      "observed_tokens": 2370,
+      "provider_id": "chatcmpl-4484580f-6e81-95eb-ba8d-e30be1cb0589",
+      "state": "responded"
+    },
+    {
+      "request_id": "00bf8df2-835c-481a-86a8-3bc721f996cb",
+      "confirmation_id": "9e0aa318-5ac7-43f2-8929-49a77b6087fb",
+      "fingerprint": "50ef05d5ba544d5649f89d23f6ffe6acb1123c4711aebec2b1677b37609acbbe",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8097,
+      "observed_tokens": 2343,
+      "provider_id": "chatcmpl-dae90a66-58e6-957a-8775-8472f2ccf05e",
+      "state": "responded"
+    },
+    {
+      "request_id": "eb2f7600-d509-4564-9c81-d67406ea29fb",
+      "confirmation_id": "9088dc68-b65c-418a-ad3f-bf9108eacd2b",
+      "fingerprint": "c45afb258bb4a6822dfdf25678f056045789963f12ff6d4489e19dadc716ae3e",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8091,
+      "observed_tokens": 2179,
+      "provider_id": "chatcmpl-432aebb7-dd24-9cce-a741-7cca4b47d26a",
+      "state": "responded"
+    },
+    {
+      "request_id": "1171063e-94ee-42c3-acd9-f5c2d7b14713",
+      "confirmation_id": "4e9bb320-359c-46ce-b059-4b4ba5cf8102",
+      "fingerprint": "59e0605d02d8e03af3c815f08961ce3685748618f9700cdc8bb5a7038345ea36",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8142,
+      "observed_tokens": 1821,
+      "provider_id": "chatcmpl-b693841d-398c-96e9-90e5-6bbdf4dfccaf",
+      "state": "responded"
+    },
+    {
+      "request_id": "c332927e-014d-4268-b9b3-f18ea393e499",
+      "confirmation_id": "db023108-6964-4c10-a722-778d6bc6902f",
+      "fingerprint": "f0ded8c01c13126314354ef0938f11fb943142a88d3fa7f61f67dc963177ac8e",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v8",
+      "reserved_tokens": 8093,
+      "observed_tokens": 2134,
+      "provider_id": "chatcmpl-07f1cb07-c765-9e41-95cd-f8c3953438fd",
+      "state": "responded"
+    }
+  ]
+}

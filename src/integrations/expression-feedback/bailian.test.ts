@@ -319,3 +319,62 @@ test("供应商无内容响应可处理且不暴露思考，剩余额度必须�
   ).toEqual({ kind: "failed" });
   expect(calls).toBe(1);
 });
+
+test("selected snapshot is traced and switching models cannot replay the same request", async () => {
+  const config = {
+    enabled: true,
+    model: "qwen3.8-max-0902" as const,
+    apiKey: "test",
+    host: "ws-test.cn-beijing.maas.aliyuncs.com",
+    freeTokenBudget: 1000000,
+    freeUntil: new Date("2099-01-01"),
+  };
+  const input = {
+    text: "Please wait here.",
+    confirmationId: crypto.randomUUID(),
+    requestId: crypto.randomUUID(),
+    rulesVersion: "expression-v1",
+  };
+  let calls = 0;
+  const transport: typeof fetch = async (_, init) => {
+    calls++;
+    expect(JSON.parse(String(init?.body)).model).toBe(config.model);
+    return Response.json({
+      id: "selected-receipt",
+      usage: { total_tokens: 42 },
+      choices: [
+        {
+          finish_reason: "stop",
+          message: {
+            content: JSON.stringify({
+              kind: "generated",
+              summary: "请在这里等候。",
+              issues: [],
+              alternatives: [],
+            }),
+          },
+        },
+      ],
+    });
+  };
+  const result = await createBailianFeedback(db.db, config, transport).generate(
+    input,
+  );
+  expect(result).toMatchObject({ provenance: { model: config.model } });
+  expect(
+    (
+      await pool.query(
+        "select model,provider_id from feedback_provider_request where request_id=$1",
+        [input.requestId],
+      )
+    ).rows,
+  ).toEqual([{ model: config.model, provider_id: "selected-receipt" }]);
+  expect(
+    await createBailianFeedback(
+      db.db,
+      { ...config, model: "qwen3.7-flash-2026-07-15" },
+      transport,
+    ).generate(input),
+  ).toEqual({ kind: "failed" });
+  expect(calls).toBe(1);
+});

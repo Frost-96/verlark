@@ -1,0 +1,145 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "clear-article",
+    "text": "Could you pass me pencil on the table?",
+    "requestId": "eb2f7600-d509-4564-9c81-d67406ea29fb",
+    "confirmationId": "9088dc68-b65c-418a-ad3f-bf9108eacd2b",
+    "elapsedMs": 22282,
+    "result": {
+      "kind": "generated",
+      "summary": "请求对方把桌上的一支铅笔递过来。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "unclear-people",
+    "text": "Rosa called Emma after she had sold her car.",
+    "requestId": "00bf8df2-835c-481a-86a8-3bc721f996cb",
+    "confirmationId": "9e0aa318-5ac7-43f2-8929-49a77b6087fb",
+    "elapsedMs": 22844,
+    "result": {
+      "kind": "generated",
+      "summary": "Rosa在出售她的汽车后给Emma打了电话，但不明确‘her’指代Rosa还是Emma。",
+      "issues": [
+        {
+          "original": "after she had sold her car",
+          "improved": "after Rosa had sold her car",
+          "explanation": "she和her存在指代歧义，无法确定是Rosa卖车还是Emma卖车。如果你想表达Rosa卖车，可将she改为Rosa。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "conflict-return",
+    "text": "I will come back two days ago.",
+    "requestId": "a8284bca-798b-497f-a09c-7703ae77b836",
+    "confirmationId": "14c080f0-c58a-426c-83eb-26f2d024aaac",
+    "elapsedMs": 26271,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者提到回来的动作与两天前的时间，但将来表达与过去时间冲突，无法确定实际发生的时刻。",
+      "issues": [
+        {
+          "original": "I will come back two days ago.",
+          "improved": "I came back two days ago.",
+          "explanation": "'will'指向将来，而'two days ago'指向过去，导致时间线矛盾，无法确定是否已返回。如果你想表达两天前已经回来，应使用过去式；若想表达将在未来两天后回来，需调整时间状语为'two days from now'或'in two days'。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "contextual-transfer",
+    "text": "Can you borrow me your umbrella? I will return it tonight.",
+    "requestId": "b7860bec-e658-43d4-8952-aeed03612b1b",
+    "confirmationId": "2bbb986c-78b6-4de4-a10d-70fafa391c94",
+    "elapsedMs": 22622,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者向对方借雨伞，并承诺当晚归还。",
+      "issues": [
+        {
+          "original": "Can you borrow me your umbrella?",
+          "improved": "Can you lend me your umbrella?",
+          "explanation": "\"borrow\"表示主语从别人那里借入，而此处语境是说话者希望从对方获得雨伞（即对方出借），使用\"borrow\"会造成动作方向混淆。如果你想表达向对方借用，应使用\"lend\"。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "clear-minor-past",
+    "text": "Yesterday I walk to work because the bus was late.",
+    "requestId": "52a40af4-8965-4f82-8466-d39faf22b452",
+    "confirmationId": "c27b21b8-0b69-4ae3-bf03-ae131d78ec9f",
+    "elapsedMs": 18727,
+    "result": {
+      "kind": "generated",
+      "summary": "昨天我步行去上班，因为公交车晚点了。",
+      "issues": [
+        {
+          "original": "Yesterday I walk to work because the bus was late.",
+          "improved": "Yesterday I walked to work because the bus was late.",
+          "explanation": "Yesterday表示过去时，walk使用了过去式未指明，导致时间指向不一致。如果你想表达昨天发生的事，应改为过去式walked。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "two-problems",
+    "text": "I arrived next month. I borrow you my bicycle.",
+    "requestId": "ae583156-b262-4d46-bed8-b224627350da",
+    "confirmationId": "51f53b42-6ad4-4e4d-b904-806ee90bcea8",
+    "elapsedMs": 26808,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者提到下个月到达，以及把自行车借给听话者。",
+      "issues": [
+        {
+          "original": "I arrived next month.",
+          "improved": "I will arrive next month.",
+          "explanation": "arrived是过去时，next month是将来时间，逻辑冲突无法确定说话者是过去还是将来到达。如果你想表达未来下个月会到达，应使用will arrive；若想强调过去的安排，需调整时间状语。"
+        },
+        {
+          "original": "I borrow you my bicycle.",
+          "improved": "I borrowed you my bicycle.",
+          "explanation": "borrow通常指从别人那里借入，此处语境似为将相机/自行车借出（lend），且与“arrive”类似可能存在时态混淆。但仅就语法结构而言，如果意指“我借给你”，应为lend；如果意指动作已完成，需用过去式。鉴于上下文可能有多个错误，若假设是想说“我借给你我的自行车（已发生）”，最直接的修复是将borrow改为lent或bought/lent的过去式。但根据最小修复原则，若原意确为“借给”，动词用词本身有误。更稳妥的修复是明确动词：'I lent you my bicycle.' 以消除 borrow/lend 混用的歧义。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

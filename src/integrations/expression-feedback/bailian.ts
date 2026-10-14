@@ -8,6 +8,11 @@ export { feedbackPromptVersion } from "./prompt";
 import { feedbackPromptVersion } from "./prompt";
 
 export const feedbackModel = "qwen3.7-flash-2026-07-15";
+export const supportedFeedbackModels = [
+  feedbackModel,
+  "qwen3.8-max-0902",
+] as const;
+export type FeedbackModel = (typeof supportedFeedbackModels)[number];
 const maxCompletionTokens = 3072;
 const suggestionSchema = {
   type: "object",
@@ -42,6 +47,7 @@ const responseSchema = {
 };
 export type FeedbackConfiguration = {
   enabled: boolean;
+  model?: FeedbackModel;
   apiKey: string;
   host: string;
   freeTokenBudget: number;
@@ -56,9 +62,11 @@ export function createBailianFeedback(
   return {
     mode: "bailian",
     async generate(input) {
+      const model = config.model ?? feedbackModel;
       if (
         !config.enabled ||
         !config.apiKey ||
+        !supportedFeedbackModels.includes(model) ||
         !/^ws-[a-z0-9]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(config.host) ||
         !Number.isSafeInteger(config.freeTokenBudget) ||
         config.freeTokenBudget <= 0 ||
@@ -70,7 +78,7 @@ export function createBailianFeedback(
       if (input.text.length > 20000 || input.rulesVersion !== "expression-v1")
         return { kind: "failed" };
       const payload = JSON.stringify({
-        model: feedbackModel,
+        model,
         messages: feedbackMessages(input.text),
         response_format: {
           type: "json_schema",
@@ -103,7 +111,7 @@ export function createBailianFeedback(
         )
           return false;
         const result = await tx.execute(
-          sql`insert into feedback_provider_request(request_id,confirmation_id,fingerprint,model,rules_version,reserved_tokens,deadline) values (${input.requestId}::uuid,${input.confirmationId}::uuid,${fingerprint},${feedbackModel},${input.rulesVersion + "/" + feedbackPromptVersion},${reservation},now()+interval '45 seconds') on conflict do nothing returning request_id`,
+          sql`insert into feedback_provider_request(request_id,confirmation_id,fingerprint,model,rules_version,reserved_tokens,deadline) values (${input.requestId}::uuid,${input.confirmationId}::uuid,${fingerprint},${model},${input.rulesVersion + "/" + feedbackPromptVersion},${reservation},now()+interval '45 seconds') on conflict do nothing returning request_id`,
         );
         return result.rows.length === 1;
       });
@@ -183,7 +191,7 @@ export function createBailianFeedback(
           return { kind: "failed" };
         return {
           ...result,
-          provenance: { provider: "bailian-beijing", model: feedbackModel },
+          provenance: { provider: "bailian-beijing", model },
         };
       } catch {
         return { kind: "unknown" };
