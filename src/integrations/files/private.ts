@@ -1,8 +1,26 @@
 import { createHash } from "node:crypto";
-import { and, eq, lte, gt, isNull, or, count, min, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  lte,
+  gt,
+  isNull,
+  or,
+  count,
+  min,
+  sql,
+  not,
+} from "drizzle-orm";
 import type { Database } from "../../db/client";
 import type { Recording, RecordingFiles } from "./contracts";
 import { recordingAsset, recordingMaintenance } from "./schema";
+import {
+  uploadInventorySchema,
+  deletionMarkerSchema,
+  type UploadInventory,
+  type DeletionMarker,
+  type RecoveryJournal,
+} from "../recovery/contracts";
 
 export const MAX_RECORDING_BYTES = 8 * 1024 * 1024;
 type Scope = { learnerId: string; practiceId: string };
@@ -23,8 +41,22 @@ export function createPrivateRecordingFiles(
   validate: ValidateAudio,
   clock = { now: () => new Date() },
   options = { uploadsEnabled: true, requireMaintenance: false },
+  journal?: RecoveryJournal,
 ) {
   type Row = typeof recordingAsset.$inferSelect;
+  function inventory(row: Row): UploadInventory {
+    return {
+      kind: "upload",
+      id: row.id,
+      learnerId: row.learnerId,
+      practiceId: row.practiceId,
+      temporaryPath: row.temporaryPath,
+      finalPath: row.finalPath,
+      requestedMediaType: row.requestedMediaType,
+      createdAt: row.createdAt.toISOString(),
+      permitExpiresAt: row.permitExpiresAt.toISOString(),
+    };
+  }
   function id(reference: string) {
     if (
       !/^recording:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
@@ -78,12 +110,81 @@ export function createPrivateRecordingFiles(
   }
   const adapter = {
     mode: "private" as const,
+    async recoveryInventory(): Promise<UploadInventory[]> {
+      return (await db.select().from(recordingAsset)).map(inventory);
+    },
+    /** Restores metadata only. Never reads or deletes production objects during a drill. */
+    async replayInventory(
+      entries: UploadInventory[],
+      deletions: DeletionMarker[],
+    ) {
+      for (const input of entries) {
+        const entry = uploadInventorySchema.parse(input);
+        await db.transaction(async (tx) => {
+          const [existing] = await tx
+            .select()
+            .from(recordingAsset)
+            .where(eq(recordingAsset.id, entry.id))
+            .for("update");
+          if (existing) {
+            if (
+              JSON.stringify(
+                uploadInventorySchema.parse(inventory(existing)),
+              ) !== JSON.stringify(entry)
+            )
+              throw new Error("恢复文件清单归属或路径冲突。");
+          } else {
+            await tx.insert(recordingAsset).values({
+              id: entry.id,
+              learnerId: entry.learnerId,
+              practiceId: entry.practiceId,
+              temporaryPath: entry.temporaryPath,
+              finalPath: entry.finalPath,
+              requestedMediaType: entry.requestedMediaType,
+              createdAt: new Date(entry.createdAt),
+              permitExpiresAt: new Date(entry.permitExpiresAt),
+              expiresAt: new Date(
+                Math.min(
+                  clock.now().getTime(),
+                  new Date(entry.createdAt).getTime() + 86400000,
+                ),
+              ),
+              cleanupAfter: clock.now(),
+              sealed: true,
+            });
+          }
+        });
+      }
+      for (const input of deletions) {
+        const marker = deletionMarkerSchema.parse(input);
+        await db
+          .update(recordingAsset)
+          .set({
+            sealed: true,
+            leaseToken: null,
+            leaseExpiresAt: null,
+            expiresAt: sql`least(${recordingAsset.expiresAt}, ${marker.deletedAt}::timestamptz)`,
+            cleanupAfter: clock.now(),
+            knownObjectsAbsentAt: null,
+          })
+          .where(
+            and(
+              eq(recordingAsset.practiceId, marker.practiceId),
+              eq(recordingAsset.learnerId, marker.learnerId),
+            ),
+          );
+      }
+    },
     async issueUpload(input: Scope & { uploadId: string; mediaType: string }) {
       if (!options.uploadsEnabled)
         throw new Error("新增上传已暂停，等待维护者核实服务额度。");
       if (options.requireMaintenance) {
         const status = await adapter.maintenanceStatus();
-        if (status.scanOverdue || status.cleanupOverdue || status.due > 20)
+        if (
+          status.scanOverdue ||
+          status.cleanupOverdue ||
+          status.actionableDue > 20
+        )
           throw new Error("清理扫描逾期或积压，已暂停新增上传。");
       }
       const now = clock.now();
@@ -113,6 +214,10 @@ export function createPrivateRecordingFiles(
         row.permitExpiresAt <= now
       )
         throw new Error("上传标识冲突或许可已到期，请重新录音。");
+      await journal?.recordUpload(inventory(row));
+      const current = await lookup(`recording:${row.id}`);
+      if (!current || current.sealed || current.permitExpiresAt <= clock.now())
+        throw new Error("上传许可已失效。");
       return {
         reference: `recording:${row.id}`,
         pathname: row.temporaryPath,
@@ -266,7 +371,12 @@ export function createPrivateRecordingFiles(
         );
       await db
         .update(recordingAsset)
-        .set({ sealed: true, leaseToken: null, leaseExpiresAt: null })
+        .set({
+          sealed: true,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          knownObjectsAbsentAt: null,
+        })
         .where(
           and(
             eq(recordingAsset.learnerId, scope.learnerId),
@@ -288,8 +398,10 @@ export function createPrivateRecordingFiles(
       for (const row of rows) {
         if (Date.now() >= deadline) break;
         let failure: string;
+        let knownObjectsAbsentAt: Date | null = null;
         try {
           failure = await clean(row);
+          knownObjectsAbsentAt = clock.now();
         } catch {
           failure = "对象删除失败或结果未知，等待重试。";
         }
@@ -298,6 +410,7 @@ export function createPrivateRecordingFiles(
           .set({
             cleanupAfter: new Date(clock.now().getTime() + 3600000),
             cleanupFailure: failure,
+            knownObjectsAbsentAt,
           })
           .where(eq(recordingAsset.id, row.id));
       }
@@ -337,6 +450,7 @@ export function createPrivateRecordingFiles(
             .update(recordingAsset)
             .set({
               sealed: true,
+              knownObjectsAbsentAt: null,
               leaseToken: token,
               leaseExpiresAt: new Date(clock.now().getTime() + 60000),
             })
@@ -346,8 +460,10 @@ export function createPrivateRecordingFiles(
         if (!claim) break;
         // All provider calls run outside the short lease/CAS transactions.
         let failure: string;
+        let knownObjectsAbsentAt: Date | null = null;
         try {
           failure = await clean(claim.row);
+          knownObjectsAbsentAt = clock.now();
         } catch {
           failure = "对象删除失败或结果未知，等待重试。";
         }
@@ -356,6 +472,7 @@ export function createPrivateRecordingFiles(
           .set({
             cleanupAfter: new Date(clock.now().getTime() + 3600000),
             cleanupFailure: failure,
+            knownObjectsAbsentAt,
             leaseToken: null,
             leaseExpiresAt: null,
           })
@@ -400,25 +517,54 @@ export function createPrivateRecordingFiles(
         .select({ count: count() })
         .from(recordingAsset)
         .where(lte(recordingAsset.cleanupAfter, clock.now()));
+      // Accepted provider uncertainty is not an operational deletion failure.
+      // Require fresh origin evidence, expired permits and no active writer.
+      // COALESCE keeps legacy/null evidence fail-closed.
+      const accepted = sql<boolean>`coalesce((
+        ${recordingAsset.sealed} = true
+        and ${recordingAsset.permitExpiresAt} <= ${clock.now()}
+        and ${recordingAsset.knownObjectsAbsentAt} >= ${new Date(clock.now().getTime() - 26 * 3600000)}
+        and (${recordingAsset.leaseExpiresAt} is null or ${recordingAsset.leaseExpiresAt} <= ${clock.now()})
+      ), false)`;
+      const expired = lte(recordingAsset.expiresAt, clock.now());
       const [pending] = await db
+        .select({ count: count() })
+        .from(recordingAsset)
+        .where(expired);
+      const [actionable] = await db
         .select({ oldest: min(recordingAsset.expiresAt), count: count() })
         .from(recordingAsset)
-        .where(lte(recordingAsset.expiresAt, clock.now()));
+        .where(and(expired, not(accepted)));
+      const [actionableBacklog] = await db
+        .select({ count: count() })
+        .from(recordingAsset)
+        .where(
+          and(lte(recordingAsset.cleanupAfter, clock.now()), not(accepted)),
+        );
       return {
         lastRunAt: state?.lastRunAt.toISOString() ?? null,
         lastCompletedScanAt: state?.lastCompletedScanAt?.toISOString() ?? null,
         due: backlog?.count ?? 0,
         pending: pending?.count ?? 0,
+        actionablePending: actionable?.count ?? 0,
+        actionableDue: actionableBacklog?.count ?? 0,
+        providerUnverified: (pending?.count ?? 0) - (actionable?.count ?? 0),
         scanOverdue:
           !state?.lastCompletedScanAt ||
           state.lastCompletedScanAt.getTime() + 26 * 3600000 <
             clock.now().getTime(),
         cleanupOverdue:
-          !!pending?.oldest &&
-          new Date(pending.oldest).getTime() + 48 * 3600000 <
+          !!actionable?.oldest &&
+          new Date(actionable.oldest).getTime() + 48 * 3600000 <
             clock.now().getTime(),
       };
     },
-  } satisfies RecordingFiles;
+  } satisfies RecordingFiles & {
+    recoveryInventory(): Promise<UploadInventory[]>;
+    replayInventory(
+      entries: UploadInventory[],
+      deletions: DeletionMarker[],
+    ): Promise<void>;
+  };
   return adapter;
 }

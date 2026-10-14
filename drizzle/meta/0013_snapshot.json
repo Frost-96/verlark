@@ -1,6 +1,6 @@
 {
-  "id": "82c1487f-5bb2-4d40-b3b2-b6b2add35e6f",
-  "prevId": "2045a3d3-e5ca-45a2-a3b5-6f0a7b6c0125",
+  "id": "8850c616-51d1-4e73-81a3-46348fb7039a",
+  "prevId": "9c6c7684-fcdd-48f5-93d0-9f8c2a0a2c88",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1071,6 +1071,122 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.recognition_call": {
+      "name": "recognition_call",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "budget_key": {
+          "name": "budget_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt_id": {
+          "name": "attempt_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fingerprint": {
+          "name": "fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved_seconds": {
+          "name": "reserved_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_request_id": {
+          "name": "provider_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deadline": {
+          "name": "deadline",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reconciled_at": {
+          "name": "reconciled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reconciliation_evidence": {
+          "name": "reconciliation_evidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "recognition_budget_idx": {
+          "name": "recognition_budget_idx",
+          "columns": [
+            {
+              "expression": "budget_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "recognition_call_attempt_id_attempt_id_fk": {
+          "name": "recognition_call_attempt_id_attempt_id_fk",
+          "tableFrom": "recognition_call",
+          "tableTo": "attempt",
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "recognition_reservation_nonnegative": {
+          "name": "recognition_reservation_nonnegative",
+          "value": "\"recognition_call\".\"reserved_seconds\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.recording_asset": {
       "name": "recording_asset",
       "schema": "",
@@ -1175,6 +1291,12 @@
         "cleanup_failure": {
           "name": "cleanup_failure",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "known_objects_absent_at": {
+          "name": "known_objects_absent_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -1291,130 +1413,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.feedback_provider_request": {
-      "name": "feedback_provider_request",
-      "schema": "",
-      "columns": {
-        "request_id": {
-          "name": "request_id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "confirmation_id": {
-          "name": "confirmation_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fingerprint": {
-          "name": "fingerprint",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "model": {
-          "name": "model",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "rules_version": {
-          "name": "rules_version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "reserved_tokens": {
-          "name": "reserved_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "observed_tokens": {
-          "name": "observed_tokens",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "provider_id": {
-          "name": "provider_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'unknown'"
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "deadline": {
-          "name": "deadline",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "feedback_provider_request_reserved_tokens_check": {
-          "name": "feedback_provider_request_reserved_tokens_check",
-          "value": "\"feedback_provider_request\".\"reserved_tokens\" > 0"
-        },
-        "feedback_provider_request_observed_tokens_check": {
-          "name": "feedback_provider_request_observed_tokens_check",
-          "value": "\"feedback_provider_request\".\"observed_tokens\" >= 0"
-        },
-        "feedback_provider_request_state_check": {
-          "name": "feedback_provider_request_state_check",
-          "value": "\"feedback_provider_request\".\"state\" in ('unknown','responded')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.mail_send_budget": {
-      "name": "mail_send_budget",
-      "schema": "",
-      "columns": {
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "used": {
-          "name": "used",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "mail_send_budget_positive": {
-          "name": "mail_send_budget_positive",
-          "value": "\"mail_send_budget\".\"used\" > 0"
-        }
-      },
       "isRLSEnabled": false
     }
   },

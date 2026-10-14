@@ -52,7 +52,7 @@ export type PracticeDetail = PracticeSummary & {
   content: ContentVersion;
   attempts: Attempt[];
   feedbackMode?: "development" | "unavailable" | "bailian";
-  transcriptionMode?: "development" | "unavailable";
+  transcriptionMode?: "development" | "unavailable" | "bailian";
   recordingMode: "development" | "unavailable" | "private";
 };
 export class PracticeError extends Error {
@@ -71,6 +71,8 @@ export class PracticeError extends Error {
       | "recording-unavailable"
       | "processing"
       | "stale"
+      | "recognition-budget"
+      | "recognition-retry-consent"
       | "transcription-unavailable"
       | "feedback-unavailable",
   ) {
@@ -86,6 +88,10 @@ export class PracticeError extends Error {
         processing: "请求仍在处理中，请稍后查询；超时后可恢复处理状态。",
         stale: "作答状态或确认文本已改变，请重新加载后核对。",
         "feedback-unavailable": "反馈服务尚未配置，暂时不能生成反馈。",
+        "recognition-budget":
+          "识别免费预算不足、已到期或未核实，已暂停新请求。请联系维护者核对额度。",
+        "recognition-retry-consent":
+          "此前请求可能已消耗额度。请明确同意另占额度后重试原录音。",
         "transcription-unavailable": "识别服务尚未配置，暂时不能识别。",
         "recording-invalid": "录音无效、已不可用或不属于本次练习，请重新录音。",
         "recording-expired":
@@ -114,6 +120,8 @@ export function isPracticeErrorCode(
     code === "processing" ||
     code === "stale" ||
     code === "feedback-unavailable" ||
+    code === "recognition-budget" ||
+    code === "recognition-retry-consent" ||
     code === "transcription-unavailable"
   );
 }

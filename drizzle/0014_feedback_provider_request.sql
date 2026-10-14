@@ -1,4 +1,5 @@
-CREATE TABLE feedback_provider_request (
+-- Earlier PR Preview databases already contain this exact table; retain rows and budget.
+CREATE TABLE IF NOT EXISTS feedback_provider_request (
   request_id uuid PRIMARY KEY,
   confirmation_id uuid NOT NULL,
   fingerprint text NOT NULL,

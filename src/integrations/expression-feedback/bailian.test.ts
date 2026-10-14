@@ -28,7 +28,7 @@ beforeAll(async () => {
   // Only this provider ledger is required. Full application migrations include
   // explicit public-schema foreign keys and must not cross this test boundary.
   await pool.query(
-    await readFile("drizzle/0012_feedback_provider_request.sql", "utf8"),
+    await readFile("drizzle/0014_feedback_provider_request.sql", "utf8"),
   );
 });
 afterAll(async () => {

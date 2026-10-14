@@ -33,6 +33,9 @@ export const recordingAsset = pgTable(
     sealed: boolean("sealed").notNull().default(false),
     cleanupAfter: timestamp("cleanup_after", { withTimezone: true }).notNull(),
     cleanupFailure: text("cleanup_failure"),
+    knownObjectsAbsentAt: timestamp("known_objects_absent_at", {
+      withTimezone: true,
+    }),
     leaseToken: uuid("lease_token"),
     leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
   },

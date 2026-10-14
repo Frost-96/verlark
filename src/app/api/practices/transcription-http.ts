@@ -7,7 +7,12 @@ import {
   PracticeError,
 } from "../../../modules/practice/contracts";
 const command = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("recognize") }).strict(),
+  z
+    .object({
+      action: z.literal("recognize"),
+      acceptDuplicateCost: z.boolean().optional(),
+    })
+    .strict(),
   z.object({ action: z.literal("recover") }).strict(),
   z
     .object({
@@ -41,7 +46,11 @@ export async function handleTranscriptionRequest(
     if (!parsed.success) throw new PracticeError("invalid");
     const input = parsed.data;
     if (input.action === "recognize")
-      return json(await services.practice.recognize(learner, id, attemptId));
+      return json(
+        await services.practice.recognize(learner, id, attemptId, {
+          acceptDuplicateCost: input.acceptDuplicateCost,
+        }),
+      );
     if (input.action === "recover")
       return json(
         await services.practice.recoverRecognition(learner, id, attemptId),
@@ -69,7 +78,9 @@ export async function handleTranscriptionRequest(
             ? 404
             : ["processing", "stale", "ended"].includes(error.code)
               ? 409
-              : error.code === "transcription-unavailable"
+              : ["transcription-unavailable", "recognition-budget"].includes(
+                    error.code,
+                  )
                 ? 503
                 : 400,
       );

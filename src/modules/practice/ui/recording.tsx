@@ -493,8 +493,10 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
           )}
           <p>
             {practice.transcriptionMode === "development"
-              ? "开发识别仅用于流程验证。"
-              : "识别服务尚未配置。"}
+              ? "开发识别用于流程验证，输出为固定样例。"
+              : practice.transcriptionMode === "bailian"
+                ? "提交后可使用百炼北京语音识别，请核对识别结果。"
+                : "识别服务尚未配置。"}
             单次录音最多 120 秒、8 MiB，以先达到者为准。
           </p>
           {message && (
@@ -575,6 +577,8 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
         <p className="message">
           开发识别替身：下方转写为固定测试文本，不代表真实录音识别结果。
         </p>
+      ) : practice.transcriptionMode === "bailian" ? (
+        <p>真实语音识别 · 仅在已核实的免费预算内运行，转写可能有误，请核对。</p>
       ) : (
         <p>识别服务尚未配置，已接收作答会保留。</p>
       )}
@@ -606,7 +610,8 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
                   practiceId={practice.id}
                   ended={practice.status === "ended"}
                   enabled={
-                    practice.transcriptionMode === "development" &&
+                    (practice.transcriptionMode === "development" ||
+                      practice.transcriptionMode === "bailian") &&
                     item.recordingStatus !== "expired"
                   }
                   feedbackEnabled={
@@ -614,6 +619,9 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
                     practice.feedbackMode === "bailian"
                   }
                   realFeedback={practice.feedbackMode === "bailian"}
+                  duplicateCostConsentRequired={
+                    practice.transcriptionMode === "bailian"
+                  }
                 />
               </section>
             </li>

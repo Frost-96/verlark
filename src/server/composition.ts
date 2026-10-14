@@ -3,6 +3,7 @@ import { readMailConfig } from "../integrations/mail/config";
 import { createQQMail } from "../integrations/mail/qq-smtp";
 import { createResendMail } from "../integrations/mail/resend";
 import { limitMail } from "../integrations/mail/limited";
+import { createBailianTranscription } from "../integrations/transcription/bailian";
 import "server-only";
 import { createMaterialAudioStore } from "../integrations/material-audio/blob";
 import { connectDatabase } from "../db/client";
@@ -17,10 +18,14 @@ import { createPractice } from "../modules/practice/server";
 import { createPrivateRecordingFiles } from "../integrations/files/private";
 import { createBlobObjectStore } from "../integrations/files/blob";
 import { validateRecordingAudio } from "../integrations/files/media";
+import { createBlobRecoveryJournal } from "../integrations/recovery/blob";
 
 function compose() {
   const config = readConfig();
   const connection = connectDatabase(config.databaseURL);
+  const journal = config.privateRecordings
+    ? createBlobRecoveryJournal(config.blobToken!, "verlark-media-v1")
+    : undefined;
   const content = createLearningContent(connection.db, {
     files: config.blobToken
       ? createMaterialAudioStore(config.blobToken)
@@ -36,6 +41,7 @@ function compose() {
           uploadsEnabled: config.recordingUploadsEnabled,
           requireMaintenance: true,
         },
+        journal,
       )
     : createRecordingFiles({ development: config.developmentRecordings });
   const mailConfig = readMailConfig(
@@ -50,11 +56,18 @@ function compose() {
       connection.db,
       content,
       files,
-      createTranscription({ development: config.developmentTranscription }),
+      config.bailianTranscription
+        ? createBailianTranscription({
+            apiKey: config.dashscopeApiKey!,
+            host: config.dashscopeApiHost,
+          })
+        : createTranscription({ development: config.developmentTranscription }),
       undefined,
       config.realFeedback
         ? createBailianFeedback(connection.db, config.realFeedback)
         : createExpressionFeedback({ development: config.developmentFeedback }),
+      journal,
+      config.recognitionPolicy,
     ),
     identity: createIdentity(
       connection.db,

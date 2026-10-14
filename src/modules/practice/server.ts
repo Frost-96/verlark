@@ -1,4 +1,18 @@
-import { and, desc, eq, isNull, gt, lte, inArray } from "drizzle-orm";
+import {
+  createRecognitionBudget,
+  type RecognitionBudget,
+} from "./recognition-budget";
+import {
+  and,
+  desc,
+  eq,
+  isNull,
+  isNotNull,
+  gt,
+  lte,
+  inArray,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../../db/client";
 import type { Learner } from "../identity/contracts";
@@ -13,6 +27,7 @@ import {
 } from "./contracts";
 import {
   practiceDeletion,
+  recognitionCall,
   expressionFeedback,
   attemptRecord,
   practiceRecord,
@@ -20,6 +35,11 @@ import {
 } from "./schema";
 import type { ExpressionFeedback } from "../../integrations/expression-feedback/contracts";
 import type { RecordingFiles } from "../../integrations/files/contracts";
+import {
+  deletionMarkerSchema,
+  type DeletionMarker,
+  type RecoveryJournal,
+} from "../../integrations/recovery/contracts";
 
 import type {
   Transcription,
@@ -61,7 +81,68 @@ export function createPractice(
   transcription?: Transcription,
   clock: { now: () => Date } = { now: () => new Date() },
   feedback?: ExpressionFeedback,
+  journal?: RecoveryJournal,
+  recognitionPolicy?: RecognitionBudget,
 ) {
+  const recognitionBudget = createRecognitionBudget(
+    db,
+    recognitionPolicy,
+    clock.now,
+  );
+  async function applyDeletion(input: DeletionMarker, replay = false) {
+    const marker = deletionMarkerSchema.parse(input);
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select()
+        .from(practiceRecord)
+        .where(eq(practiceRecord.id, marker.practiceId))
+        .for("update");
+      // A restore missing the original practice cannot safely reconstruct its request identity.
+      if (!row || row.learnerId !== marker.learnerId)
+        throw new Error("恢复删除标记与练习不匹配，必须保持隔离。");
+      const deletedAt = new Date(
+        Math.min(
+          new Date(marker.deletedAt).getTime(),
+          row.deletedAt?.getTime() ?? Infinity,
+        ),
+      );
+      if (!row.deletedAt || row.deletedAt > deletedAt)
+        await tx
+          .update(practiceRecord)
+          .set({ deletedAt })
+          .where(eq(practiceRecord.id, row.id));
+      if (deletedAt.getTime() + 30 * 86400000 <= clock.now().getTime()) {
+        await tx
+          .delete(practiceDeletion)
+          .where(eq(practiceDeletion.practiceId, row.id));
+      } else if (replay) {
+        // A backup's old cleanup receipt cannot certify the current storage state.
+        const reset = {
+          deletedAt,
+          status: "pending" as const,
+          leaseToken: null,
+          leaseExpiresAt: null,
+          failure: null,
+        };
+        await tx
+          .insert(practiceDeletion)
+          .values({ practiceId: row.id, ...reset })
+          .onConflictDoUpdate({
+            target: practiceDeletion.practiceId,
+            set: reset,
+          });
+      } else {
+        await tx
+          .insert(practiceDeletion)
+          .values({ practiceId: row.id, deletedAt })
+          .onConflictDoNothing();
+      }
+      await content.releasePracticeReference(row.contentVersionId, row.id, tx);
+      await tx
+        .delete(attemptRecord)
+        .where(eq(attemptRecord.practiceId, row.id));
+    });
+  }
   function expired(row: typeof attemptRecord.$inferSelect) {
     return row.acceptedAt.getTime() + 30 * 86400000 <= clock.now().getTime();
   }
@@ -329,6 +410,20 @@ export function createPractice(
     return readDeletion(owner, id);
   }
   return {
+    /** Offline recovery interface; never exposed as a learner HTTP operation. */
+    replayDeletion: (marker: DeletionMarker) => applyDeletion(marker, true),
+    async recoveryMarkers(): Promise<DeletionMarker[]> {
+      const rows = await db
+        .select()
+        .from(practiceRecord)
+        .where(isNotNull(practiceRecord.deletedAt));
+      return rows.map((row) => ({
+        kind: "deletion",
+        learnerId: row.learnerId,
+        practiceId: row.id,
+        deletedAt: row.deletedAt!.toISOString(),
+      }));
+    },
     async pruneDeletionReceipts() {
       const receipts = await db
         .select({ id: practiceDeletion.practiceId })
@@ -485,33 +580,27 @@ export function createPractice(
     ): Promise<PracticeDeletion> {
       const owner = requireLearner(learner);
       if (!z.uuid().safeParse(id).success) throw new PracticeError("not-found");
-      await db.transaction(async (tx) => {
-        const [row] = await tx
-          .select()
-          .from(practiceRecord)
-          .where(
-            and(
-              eq(practiceRecord.id, id),
-              eq(practiceRecord.learnerId, owner.id),
-            ),
-          )
-          .for("update");
-        if (!row) throw new PracticeError("not-found");
-        if (row.deletedAt) return;
-        const deletedAt = clock.now();
-        await tx
-          .update(practiceRecord)
-          .set({ deletedAt })
-          .where(eq(practiceRecord.id, id));
-        await tx.insert(practiceDeletion).values({ practiceId: id, deletedAt });
-        await content.releasePracticeReference(
-          row.contentVersionId,
-          row.id,
-          tx,
+      const [row] = await db
+        .select()
+        .from(practiceRecord)
+        .where(
+          and(
+            eq(practiceRecord.id, id),
+            eq(practiceRecord.learnerId, owner.id),
+          ),
         );
-        // Cascades remove raw/confirmed transcripts and feedback, invalidating all processing claims.
-        await tx.delete(attemptRecord).where(eq(attemptRecord.practiceId, id));
-      });
+      if (!row) throw new PracticeError("not-found");
+      const proposed: DeletionMarker = {
+        kind: "deletion",
+        practiceId: id,
+        learnerId: owner.id,
+        deletedAt: (row.deletedAt ?? clock.now()).toISOString(),
+      };
+      // Persist outside the database transaction. A failed journal must not erase the only copy.
+      const marker = journal
+        ? await journal.recordDeletion(proposed)
+        : proposed;
+      await applyDeletion(marker);
       const result = await readDeletion(owner, id);
       return result.status === "succeeded" ? result : retryDeletion(owner, id);
     },
@@ -705,10 +794,100 @@ export function createPractice(
       );
       return attempt(saved);
     },
+    recognitionBudgetStatus: recognitionBudget.status,
+    recognitionReceipts: recognitionBudget.receipts,
+    reconcileRecognitionUsage: recognitionBudget.reconcile,
+    async recognitionRecoveryStatus() {
+      const [row] = await db
+        .select({ expired: sql<number>`count(*)::integer` })
+        .from(attemptRecord)
+        .where(
+          and(
+            eq(attemptRecord.identificationStatus, "processing"),
+            lte(attemptRecord.leaseExpiresAt, clock.now()),
+          ),
+        );
+      return { expired: row!.expired };
+    },
+    /** Maintenance-only: bounded recovery never dispatches a new external request. */
+    async recoverExpiredRecognitions(limit = 50) {
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+        throw new PracticeError("invalid");
+      const rows = await db
+        .select({
+          id: attemptRecord.id,
+          practiceId: attemptRecord.practiceId,
+          learnerId: practiceRecord.learnerId,
+        })
+        .from(attemptRecord)
+        .innerJoin(
+          practiceRecord,
+          eq(attemptRecord.practiceId, practiceRecord.id),
+        )
+        .where(
+          and(
+            eq(attemptRecord.identificationStatus, "processing"),
+            lte(attemptRecord.leaseExpiresAt, clock.now()),
+            isNull(practiceRecord.deletedAt),
+            isNull(practiceRecord.endedAt),
+          ),
+        )
+        .orderBy(attemptRecord.leaseExpiresAt, attemptRecord.id)
+        .limit(limit);
+      // Independent receipts survive practice deletion; bound and recover those as well.
+      const calls = await db
+        .select({ id: recognitionCall.id })
+        .from(recognitionCall)
+        .where(
+          and(
+            eq(recognitionCall.status, "reserved"),
+            lte(recognitionCall.deadline, clock.now()),
+          ),
+        )
+        .orderBy(recognitionCall.deadline, recognitionCall.id)
+        .limit(limit);
+      if (calls.length)
+        await db
+          .update(recognitionCall)
+          .set({ status: "unknown" })
+          .where(
+            and(
+              inArray(
+                recognitionCall.id,
+                calls.map((call) => call.id),
+              ),
+              eq(recognitionCall.status, "reserved"),
+              lte(recognitionCall.deadline, clock.now()),
+            ),
+          );
+      let recovered = 0;
+      for (const row of rows) {
+        try {
+          await this.recoverRecognition(
+            { id: row.learnerId, email: "", name: "" },
+            row.practiceId,
+            row.id,
+          );
+          recovered++;
+        } catch (error) {
+          if (
+            !(error instanceof PracticeError) ||
+            !["not-found", "ended", "processing"].includes(error.code)
+          )
+            throw error;
+        }
+      }
+      return {
+        recovered,
+        recoveredCalls: calls.length,
+        hasMore: rows.length === limit || calls.length === limit,
+      };
+    },
     async recognize(
       learner: Learner | null,
       id: string,
       attemptId: string,
+      options: { acceptDuplicateCost?: boolean } = {},
     ): Promise<Attempt> {
       const claim = await mutateAttempt(
         learner,
@@ -721,8 +900,24 @@ export function createPractice(
           if (row.identificationStatus === "processing")
             throw new PracticeError("processing");
           if (row.rawTranscriptId) throw new PracticeError("stale");
+          if (
+            transcription.mode === "bailian" &&
+            row.identificationStatus !== "pending-identification" &&
+            !options.acceptDuplicateCost
+          )
+            throw new PracticeError("recognition-retry-consent");
           const token = crypto.randomUUID();
-          const expires = new Date(clock.now().getTime() + 60_000);
+          const expires = new Date(
+            clock.now().getTime() +
+              (transcription.mode === "bailian" ? 90_000 : 60_000),
+          );
+          if (transcription.mode === "bailian")
+            await recognitionBudget.reserve(tx, {
+              id: token,
+              attemptId: row.id,
+              fingerprint: row.recordingDigest,
+              deadline: expires,
+            });
           await tx
             .update(attemptRecord)
             .set({
@@ -754,19 +949,45 @@ export function createPractice(
         recording.practiceId !== id ||
         recording.digest !== claim.digest
       ) {
-        result = { kind: "failed" };
+        result = { kind: "failed", dispatched: false };
         failure =
           "原录音暂不可用，未发起识别。可稍后重试原录音；如仍不可用，请再次作答。";
       } else {
         try {
+          // Revalidate after storage I/O; an expired/deleted operation must not start a paid request.
+          await mutateAttempt(learner, id, attemptId, async (_tx, row) => {
+            if (
+              row.leaseToken !== claim.token ||
+              !row.leaseExpiresAt ||
+              row.leaseExpiresAt <= clock.now()
+            )
+              throw new PracticeError("stale");
+          });
+          if (transcription?.mode === "bailian")
+            recognitionBudget.assertAvailable();
           result = await transcription!.recognize({
             recording,
             requestId: claim.token,
           });
-        } catch {
-          result = { kind: "unknown" };
+        } catch (error) {
+          if (
+            error instanceof PracticeError &&
+            error.code === "recognition-budget"
+          )
+            failure =
+              "免费识别预算已到期或不可用，尚未发送录音。请联系维护者核对额度。";
+          result =
+            error instanceof PracticeError
+              ? { kind: "failed", dispatched: false }
+              : { kind: "unknown" };
         }
       }
+      if (result.reason === "format")
+        failure =
+          "此录音格式或编码后大小不受识别服务支持，尚未发送。请换浏览器或录制更短的作答。";
+      if (result.reason === "quota")
+        failure =
+          "识别服务拒绝请求，可能是免费额度或权限不足。请联系维护者核对，不会自动重发。";
       const parsed = z
         .discriminatedUnion("kind", [
           z.object({
@@ -778,6 +999,11 @@ export function createPractice(
           z.object({ kind: z.literal("no-content") }),
         ])
         .safeParse(result);
+      if (transcription?.mode === "bailian")
+        await recognitionBudget.settle(
+          claim.token,
+          parsed.success ? result : { kind: "unknown" },
+        );
       result = parsed.success ? parsed.data : { kind: "failed" };
       if (!parsed.success)
         failure = "识别服务返回了无效结果，没有保存转写。可重试原录音。";
@@ -810,7 +1036,7 @@ export function createPractice(
                 status === "failed"
                   ? (failure ?? "识别服务明确失败，可重试原录音。")
                   : status === "unknown"
-                    ? "识别结果未知；本地请求异常不表示远端已取消。可重试原录音。"
+                    ? "识别结果未知；本地请求异常不表示远端已取消。重试会另占额度，且不保证供应商不重复计费。"
                     : status === "no-content"
                       ? "未识别到可用内容，可重试原录音或再次作答。"
                       : null,
@@ -843,12 +1069,22 @@ export function createPractice(
           if (row.identificationStatus !== "processing") return row;
           if (row.leaseExpiresAt && row.leaseExpiresAt > clock.now())
             throw new PracticeError("processing");
+          if (row.leaseToken)
+            await tx
+              .update(recognitionCall)
+              .set({ status: "unknown" })
+              .where(
+                and(
+                  eq(recognitionCall.id, row.leaseToken),
+                  eq(recognitionCall.status, "reserved"),
+                ),
+              );
           const [updated] = await tx
             .update(attemptRecord)
             .set({
               identificationStatus: "unknown",
               identificationFailure:
-                "本地处理权已过期，识别结果未知，不表示远端已取消。可重试原录音。",
+                "本地处理权已过期，识别结果未知，不表示远端已取消。重试会另占额度，且不保证供应商不重复计费。",
               leaseToken: null,
               leaseExpiresAt: null,
             })

@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-13",
+  "scope": "真实供应商协议探针，合成语音/静音；未经过网站上传、作答或业务写回，不是真人麦克风/手机验收",
+  "authorization": "用户允许正常、不过量测试；本轮总边界最多10次/120秒，协议探针子上限4次/20秒；未知即停",
+  "requestCount": 4,
+  "reservedSeconds": 9,
+  "successfulObservedSeconds": 6,
+  "stopped": true,
+  "stopReason": "静音HTTP400，脱敏回执不足以判定错误原因与用量；保留2秒预留，不重发。响应明确拒绝，但是否计费用量未知。",
+  "cases": [
+    {
+      "sample": "wav",
+      "request": {
+        "model": "qwen-audio-3.0-asr-flash",
+        "format": "wav",
+        "bytes": 84558,
+        "sha256": "f03af3061501ef0c2a3960b9ee2179c65c4de63ec3cca5154a394f9066bd8a9e",
+        "reservedSeconds": 2,
+        "startedAt": "2026-10-13T06:12:28.771Z",
+        "source": "synthetic speech or synthetic silence; no learner audio"
+      },
+      "response": {
+        "status": 200,
+        "elapsedMs": 902,
+        "requestId": "18255cc0-c1ad-9305-98d4-1d31ed95c04e",
+        "usage": {
+          "duration": 2
+        },
+        "text": "I will read a book this weekend. ",
+        "outputKeys": [
+          "sentence",
+          "text",
+          "request_id"
+        ],
+        "unknown": false
+      }
+    },
+    {
+      "sample": "browser-webm",
+      "request": {
+        "model": "qwen-audio-3.0-asr-flash",
+        "format": "webm",
+        "bytes": 28700,
+        "sha256": "30bb9b80b80203a7587dfffb3cfbac7b1100cffda55a8ff95c2ed56a16197221",
+        "reservedSeconds": 3,
+        "startedAt": "2026-10-13T06:12:43.040Z",
+        "source": "synthetic speech or synthetic silence; no learner audio"
+      },
+      "response": {
+        "status": 200,
+        "elapsedMs": 587,
+        "requestId": "93331e4f-6e42-97d3-8709-bea96b3e1f23",
+        "usage": {
+          "duration": 2
+        },
+        "text": "I will read a book this weekend. ",
+        "outputKeys": [
+          "sentence",
+          "text",
+          "request_id"
+        ],
+        "unknown": false
+      }
+    },
+    {
+      "sample": "browser-mp4",
+      "request": {
+        "model": "qwen-audio-3.0-asr-flash",
+        "format": "mp4",
+        "bytes": 29183,
+        "sha256": "f05411957153f75a426b7a47080381fe5157b7253b5dbd748280b51129f5fa71",
+        "reservedSeconds": 2,
+        "startedAt": "2026-10-13T06:12:55.684Z",
+        "source": "synthetic speech or synthetic silence; no learner audio"
+      },
+      "response": {
+        "status": 200,
+        "elapsedMs": 578,
+        "requestId": "a67b88bf-a876-9f0b-b67a-ee4e5e0312a7",
+        "usage": {
+          "duration": 2
+        },
+        "text": "I will read a book this weekend. ",
+        "outputKeys": [
+          "sentence",
+          "text",
+          "request_id"
+        ],
+        "unknown": false
+      }
+    },
+    {
+      "sample": "silence",
+      "request": {
+        "model": "qwen-audio-3.0-asr-flash",
+        "format": "wav",
+        "bytes": 64044,
+        "sha256": "20eaebffe1816e0ffa6f7f854f5ef4ea80d5349faaf0ce1fec1b713e7fde58fa",
+        "reservedSeconds": 2,
+        "startedAt": "2026-10-13T06:13:05.317Z",
+        "source": "synthetic speech or synthetic silence; no learner audio"
+      },
+      "response": {
+        "status": 400,
+        "elapsedMs": 629,
+        "outputKeys": [],
+        "unknown": true
+      }
+    }
+  ]
+}

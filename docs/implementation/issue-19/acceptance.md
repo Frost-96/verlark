@@ -1,0 +1,148 @@
+# Issue #19 实施与验收
+
+首次验收：2026-10-13；运行配置更新：2026-10-14（Asia/Shanghai）。**PR #41 已合并至 master（`aa041c6`），#19 已按维护者要求关闭；用户已确认实际测试成功，未验证项继续如实保留。** 基线为 #18 已合并的 `9d0746f`，分支 `implement/issue-19-transcription`，未合入 #20/#21 的独立实施。
+
+## 当前生产识别配置（2026-10-14 核对）
+
+**后续运行与维护以本节为准。原 360 秒测试上限和 2026-10-14 14:00 提前截止已被替换，不得继续用作当前配置。** 下文保留的旧值仅为带时间戳的验收历史。
+
+| 配置或状态 | 当前值／核对依据 |
+| --- | --- |
+| 模型与地域 | `qwen-audio-3.0-asr-flash`，百炼北京 |
+| 累计预算上限 | `BAILIAN_ASR_ALLOWANCE_SECONDS=35992` 秒，不是每次部署重新领取的余额 |
+| 应用截止时间 | `BAILIAN_ASR_FREE_EXPIRES_AT=2027-01-09T16:00:00Z`，即北京时间 **2027-01-10 00:00** |
+| 到期时间精度 | 供应商控制台仅显示 `2027/01/10`，无时分秒；应用按该日北京时间零点保守设置，不宣称已知供应商精确失效时刻 |
+| 免费优先保护 | `BAILIAN_ASR_FREE_ONLY_VERIFIED=true`；2026-10-13 控制台核实「免费额度用完即停」为 ON，配置调整未关闭它 |
+| 持久化账本 | 2026-10-14 12:19:16 北京时间，生产 status 返回累计已用／预留 `committedSeconds=4` 秒，可用 `remainingSeconds=35988` 秒；账本未清零或重建 |
+| 生产状态 | 同次鉴权只读检查返回上述截止时间、`expired=false`、`recognitionRecovery.expired=0`、`attentionRequired=false` |
+
+上限计算依据：2026-10-13 刷新控制台后，精确模型剩余免费额度为 **35,988 秒**，应用当时账本已登记 **4 秒**，故累计上限设为 **4 + 35,988 = 35,992 秒**。2026-10-14 核对的是生产应用状态，并未重新查询供应商余额；35,988 秒不是保证不变或自动实时同步的供应商余量。
+
+两次配置调整均只修改生产环境变量并重新部署：先替换提前截止，再替换测试预算。最新预算配置部署记录为 `dpl_14atZUytCaKAKPZpzsiumRkv6367`（代码 `aa041c6`，正式域名 `articu-lab.vercel.app`）。未发起新识别请求，未重置已用量、未知预留或调用回执。仍保留每次最坏 120 秒预留、额度不足／到期拒绝请求、未知费用不自动释放和不自动重试；供应商用完即停作为独立保护继续保留。后续调整需重新核对供应商实际余量及共享消耗，不能照抄历史余额或清空账本补额度。
+
+## 实现
+
+- 北京百炼 `qwen-audio-3.0-asr-flash` 同步 HTTP Adapter：明确固定模型，验证北京 workspace 主机（兼容北京旧主机），请求真实录音 base64，英文 language_hints，读取 `output.text`、顶层/嵌套 request ID、`usage.duration`。单次请求、45 秒截止；不传虚假的幂等键，不自动重发，不返回固定识别结果。正式环境仍禁止开发替身。
+- #18 已有不可变私有录音、真实字节解码校验及 120 秒/8 MiB 限制，继续复用，不新增音频转码。识别检查 WebM/MP4/Ogg/WAV 和 **base64 自身 10 MB** 上限（源文件最多 7,500,000 字节）；超出时在发送前返回中文失败，保留作答。存储允许的 8 MiB 不代表全都可交给同步 ASR。
+- 实际服务 90 秒处理权，读取录音后再次检查处理权；请求路由最大执行时间配置 120 秒，已在下述生产部署的 Vercel Resources 核对；这不等于已运行 120 秒或已完成线上过期恢复演练。过期、删除、旧请求不得写回或复活作答。应用的接收幂等不保证供应商不会重复计费。
+- `recognition_call` 独立持久化调用 id、作答关联（删除后置空）、录音摘要指纹、模型、开始/截止时间、请求 ID、状态和用量预留；不存储音频或转写正文。预算按固定模型键使用 PostgreSQL 事务锁跨进程串行预留，每次预留最坏 120 秒。成功且有效用量回执按秒向上取整结算；未发送释放，其他失败/未知保留 120 秒。未知不会被迟到结果或删除释放。
+- 用户明确重试会再次占用额度但保留同一作答；服务端对真实服务重试要求 `acceptDuplicateCost`，页面有明确的复选框。预算到期、不足或未核实均拒绝新请求，缺配置不回退开发识别。
+- 已有每日 `/api/maintenance/recordings` 执行有界识别恢复（包括删除后独立用量回执），不自动重发供应商请求；只读维护状态报告过期处理积压。学习者仍可主动恢复；维护者可通过 `scripts/recognition-maintenance.ts` 查看/恢复/对账。每日运行不是 90 秒内自动恢复的承诺，部署调度尚未实测。
+
+## 运行配置与恢复
+
+`.env.example` 说明新增配置。`BAILIAN_ASR_ALLOWANCE_SECONDS` 是这个应用持久化账本的累计可支出上限，不是每次重启重新领取的余额。运营者需先核实精确模型、地域、到期时间、用完即停开关和实际余量；扣除其他工具/应用占用后设置上限。调整额度需以供应商实际权益为依据，不能随意重置账本。应用控制不代替供应商账户硬停止，也不是零账单证明。
+
+`DASHSCOPE_API_HOST` 可为账户北京 workspace 主机 `ws-….cn-beijing.maas.aliyuncs.com`，默认旧北京主机 `dashscope.aliyuncs.com`；其他主机拒绝。API key 只在服务端，禁止放入浏览器配置。
+
+```sh
+# 读取配置中的业务数据库；仅由有权限的维护者执行，勿当作自动测试命令。
+pnpm exec tsx scripts/recognition-maintenance.ts status
+pnpm exec tsx scripts/recognition-maintenance.ts recover
+# 先恢复已过期状态，并独立核对供应商账单；EVIDENCE_REF 只写不含个人信息的审计引用。
+pnpm exec tsx scripts/recognition-maintenance.ts reconcile CALL_ID SECONDS EVIDENCE_REF --billing-verified
+```
+
+对账仅允许已过截止时间的 unknown 调用，秒数 0–120；运行中及已结算的不同结果拒绝。命令无识别发送功能。保留未知预留至对账，不将 4xx、无声、网络异常推断为免费。
+
+## 已执行证据
+
+测试 seam 使用既有规格批准的 practice 公开 Interface、隔离真实 PostgreSQL、外部 HTTP/文件 Adapter 边界。实施过程中先看到 provider 协议、持久化预算、维护恢复、配置、对账、删除在途恢复测试失败，再实现并通过。
+
+- 隔离本地 PostgreSQL：新建 `verlark_issue19_test`、`verlark_issue19_e2e_test`，从迁移运行；未使用或清空业务 `DATABASE_URL`。
+- 自动化覆盖真实协议形状、空内容、明确失败、HTTP 5xx、请求异常、无效输出、超大/不支持格式预发送拒绝、未知保留预算、显式重试、跨实例预算竞争、过期额度、实际子进程终止恢复、迟到结果、删除在途用量回执及账单对账。
+- 使用下述脱敏真实成功回执重建 HTTP envelope，经生产 Adapter、practice Interface 完成转写、核对、确认和重读；此测试的 HTTP 和存储是外部替身，**不是第二次真实调用，也不是网站真实上传全链路验收**。
+- 初始 build/e2e 被工作树外 `node_modules` 符号链接触发的 Turbopack root 限制阻断；随后用 `pnpm install --offline --frozen-lockfile`（561 缓存包，零下载）安装本地依赖后重跑。最终检查结果见下方。
+
+### 真实供应商协议探针（父任务执行）
+
+见 [protocol-results.json](protocol-results.json)。用户授权正常不过量测试后执行四次请求：合成英文 WAV、实际 Chromium MediaRecorder 输出 WebM/Opus、MP4/Opus 均 HTTP 200，英文文本与原样本一致，成功回执各报告 2 秒。静音 HTTP 400，脱敏回执不足以判定错误原因与是否计费；保留预留并停止后续调用，没有自动重发。共预留 9 秒，成功响应观测用量 6 秒；这不是账单扣款/免费扣减的证明。探针发生在业务账本之外，其预留记录见证据文件，不混称为应用账本操作。
+
+官方协议依据（2026-10-13 核查）：[同步 HTTP](https://help.aliyun.com/zh/model-studio/fun-asr-flash-recorded-speech-recognition-http-api)、[格式说明](https://help.aliyun.com/zh/model-studio/asr-model)。当前页面示例可能是新版模型，代码仍采用已确认的精确 3.0 模型，不随别名迁移。同步接口未取得幂等键或结果查询保证。
+
+### 浏览器媒体证据
+
+见 [browser-results.json](browser-results.json)、[browser-speech-results.json](browser-speech-results.json)。macOS Darwin 27 arm64 上 Headless Chromium 156 的真实 MediaRecorder 对 WebAudio 合成输入生成 WebM/Opus、MP4/Opus；现有解码器验证成功，无新增转换。该浏览器不支持 Ogg 录制。不是真人麦克风、手机、Safari 或网络区域体验测试。音频字节未提交仓库。
+
+## 历史生产部署与控制台核对快照（非当前配置）
+
+本节依据本轮父任务实际部署、控制台与鉴权状态读取记录，新增静音探针由实施子任务执行。时间点必须与版本一起理解，**不代表之后仍是最新生产版本**。
+
+| 已核实事项 | 本轮观测 |
+| --- | --- |
+| 生产部署 | 2026-10-13 14:59:24（Asia/Shanghai），提交 `b0bc38a`，部署 `dpl_6Fc9DUxaAUjoxvenvsgbBEwXWYkb` 为 Ready，站点 `articu-lab.vercel.app` |
+| 数据迁移 | 生产迁移 `0013` 执行成功 |
+| 运行配置 | Vercel Resources 显示 transcription 使用 Node.js 24、IAD1，函数执行时间上限 120 秒；维护入口上限 60 秒 |
+| 在线只读状态 | 2026-10-13 07:03:29Z（北京时间 15:03:29），鉴权 status 返回 `recognitionRecovery.expired = 0`，应用预算 `committedSeconds = 0`、`remainingSeconds = 360`，截止 `2026-10-14T06:00:00Z`，当时尚未到期 |
+| 供应商权益 | 百炼控制台显示精确 ASR 模型免费余额 35,992 / 36,000 秒，到期日期 2027/01/10，「免费额度用完即停」为 ON |
+
+**历史测试配置，已被上方当前配置替换。** 当时 360 秒是应用持久化账本的累计可支出上限，`2026-10-14T06:00:00Z`（北京时间 10 月 14 日 14:00）是人为设置的提前停止时间，不是供应商赠额到期时间；不能把 360 秒说成账户只剩 360 秒。应用账本中的 0 仅说明当时本账本没有已登记调用，不能证明此前协议探针或其他工具没有消耗供应商用量。控制台余额和停止开关观测不能替代逐次账单对账。
+
+已验证资源配置与在线状态说明代码、迁移和配置能在所选运行环境装配运行。空积压 `expired = 0` 不会执行非空作答恢复，因此不能单独证明线上中断请求的接管、状态恢复和迟到写回拒绝已演练；本地真实 PostgreSQL/进程终止测试仍是独立一层证据。该次只读检查没有触发会同时修改全局媒体清理的维护操作；后续另行授权的实际维护调用见下节。
+
+### 后续生产更新与非空独立回执恢复
+
+2026-10-13 15:15:41（Asia/Shanghai），提交 `b13b9c5` 的生产部署 `dpl_HwjMKs1gyTTS6wbrB31KXAJb26pP` 为 Ready。固定部署地址为 `verlark-k9dztqu9q-p396500554-3359s-projects.vercel.app`，正式域名仍为 `articu-lab.vercel.app`。这是本节最后核对的部署快照，后续部署需另核对。生产只读查询确认迁移记录数为 14，`recognition_call` 表存在；未把迁移数当作恢复执行结果。
+
+在明确授权下使用一条独立合成回执验证真实生产维护路径，不调用语音供应商、不关联学习者作答：
+
+- UUID `51564eef-e2a5-49af-a23a-66b4ee38be58`，隔离键 `issue19-deploy-probe:51564eef-e2a5-49af-a23a-66b4ee38be58`，模型标记 `synthetic-no-provider-call`；`attempt_id = NULL`、`provider_request_id = NULL`、`reserved_seconds = 0`。
+- 初始 `reserved`，开始时间 `2026-10-13T07:13:14.963Z`，截止 `2026-10-13T07:14:44.963Z`，实际等待超过 90 秒，没有仅推进测试时钟。
+- 2026-10-13 07:15:43Z（北京时间 15:15:43），经正式域名人工触发正常生产 maintenance 入口返回 HTTP 200。随后按该 UUID 限定的只读查询确认 `reserved → unknown`，原开始/截止时间、零预留、无作答关联、合成模型与无供应商请求标识均保持，manifest 完整性断言通过；回执保留作审计证据。
+- 维护状态 `lastRunAt = 2026-10-13T07:15:41.195Z`，`due = 0`、`actionablePending = 0`、`pending = 1`、`providerUnverified = 1`。最后两项属于 #18 已接受的供应商核验限制，没有据此标成物理清理全部完成。
+
+证据保存在 `/tmp/verlark-issue19-deploy/independent-receipt-result.md`、同目录 `independent-receipt-manifest.json.inspection.json` 与 `migration-readonly.json`；现场截图保留在本地 `/tmp`，未提交仓库。该演练证明**所选生产环境的有界维护入口实际恢复了非空、过期的独立识别回执**，比空队列状态检查多了一层执行证据；它不是真实供应商超时、worker 崩溃、非空 Attempt 处理权恢复，也不是自然 cron 按时执行证据。作答恢复和迟到转写拒绝仍只有此前隔离 PostgreSQL 的独立证据。
+
+访问范围已通过发布后的 UI 核对：Publish 后 Review Changes 消失，重新打开已发布且启用的规则，明确列出正式域名、#20/#21 邮件 preview 和上述 `k9dzt` 固定地址三个 host，旧 `g7v` 已替换，Deny 动作保留。这证明发布配置的 UI 核对完成；匿名访问新旧固定链接均跳转 Vercel 登录，未观察到防火墙 403，因此不能把匿名 HTTP 结果作为该规则拦截生效的证明。
+
+### 继续验收后的唯一新增供应商请求
+
+用户明确继续部署与剩余验收后，于 2026-10-13 07:00:32Z 仅新增一次 2 秒合成 PCM 静音请求，使用生产 Adapter 协议和同一精确模型。HTTP 400 的原始响应确为 **2 字节 `{}`**；没有 provider code、request ID、usage 或错误消息。Adapter 返回 `failed`、`dispatched: true`、`reason: provider`，这是明确请求失败，费用仍未知；继续保留本次 2 秒探针预留，没有自动重试。不能从 HTTP 400 推断静音的 `no-content` 语义或零收费。
+
+本地受限证据在 `/tmp/verlark-issue19-deploy/silence-round2.request.json`、`silence-round2.raw.json`、`silence-round2.sanitized.json`；前置预留先于请求落盘。该探针仍在应用业务账本之外，不是网站真实上传→接收→核对链路，也不是真人录音。
+
+## 用户实际测试与服务端核验
+
+2026-10-13，用户报告「测试完成」，并明确表示不再收集设备型号、系统/浏览器版本和网络信息，确认测试成功。该确认是用户验收结论，不推断手机、电脑各自的版本或完整设备覆盖。
+
+16:12:35（Asia/Shanghai）按本次测试练习所属账户及部署后时间范围只读查询，查到一条正式作答：16:07:06 接收，WebM，60,245 字节，实际解码时长 3,720 ms；状态 `recognized`，转写非空，已保存两次文本确认，最后确认于 16:08:37。识别回执的模型为 `qwen-audio-3.0-asr-flash`，供应商 request ID 已持久化，状态 `settled`，结算 4 秒，作答无处理租约。查询未读取或发布用户录音与文本正文。两次文本确认不等于两台设备，也不等于两次 ASR 请求。
+
+2026-10-13 16:12:59 的历史测试配置检查（非当前预算）：预算累计 4 秒、剩余 356 秒，过期识别积压 0，`attentionRequired=false`。真实服务上传/接收、识别和文本确认已有数据库证据；刷新与回听体验依据用户的成功报告，未额外冒充代理现场观察。私有元数据证据保存在 `/tmp/verlark-issue19-deploy/user-test-results.json`。
+
+## 证据限制与后续验证
+
+### 未独立实测的范围
+
+- 用户要求不再采集实际设备型号、OS/浏览器版本与 VPN 信息；不再据此阻塞提交评审。只有一条服务器作答，不能宣称手机和电脑分别实测通过，也不扩展为全平台兼容性结论。
+- 生产非空独立回执恢复已验证；非空 Attempt 处理权恢复、真实进程终止及迟到转写拒绝由本地真实隔离 PostgreSQL 测试验证，未在生产故意中断真实识别。新识别代码的自然 cron 尚未观察；人工调用生产维护入口不等于自然调度证据。
+- 未单独观察真实设备的麦克风拒绝、锁屏/来电恢复与广泛口语质量；不将成功小样外推为全部场景通过。
+
+原票允许在指定外部 Adapter seam 替换能力，并要求真实隔离 PostgreSQL 验证数据库与并发；已有无内容、超时/中断、明确失败、unknown、重试及迟到写回测试可作为相应故障行为证据。并不要求为撞出每种罕见错误持续发起真实计费请求。真实静音目前只能记为上述 HTTP 400 失败；它没有提供可识别的供应商 `no-content` 语义。供应商同步接口未取得幂等保证，重试另占额度、unknown 留预留与不自动重发的限制继续明确保留。
+
+### 建议扩展与仍未知信息
+
+- 更广泛的 iPhone/iPad、Android、Safari、Windows、Firefox 完整设备矩阵、锁屏/来电、跨区域时延/质量和告警演练属于扩展验证建议，不把每个组合另加为原票硬门槛。本次按用户确认的成功结果验收，不虚构未采集的设备信息。
+- 研究报告的「最初建议至少 20 段语音」是质量评估建议，不是 #19 原 issue 的硬性数字门槛；仍需要有意义的真实口语质量观察，不能以固定文本或结构测试替代。
+- 逐次控制台扣减/账单对账尚未完成，尤其不能因 4xx 就释放费用未知预留；已核实免费余额、到期日期与用完即停开关，不再将这些写成尚未查看。未承诺供应商零保留或全账户零账单。
+
+#19 已通过 PR #41 合并并关闭；本记录区分用户确认、生产实际执行与隔离故障测试，不把未独立实测项标为通过。关闭不消除上述证据限制；父 Issue #1 未作完成声明。
+
+## 最终本地检查
+
+- `TEST_DATABASE_URL=…/verlark_issue19_test pnpm test`：25 个测试文件、156 项通过（包含新的迁移、真实 PostgreSQL 与进程恢复）。
+- `pnpm typecheck`、`pnpm lint`、`pnpm build`：通过。构建使用本地正常依赖安装，无 production 配置或真实调用。
+- `E2E_DATABASE_URL=…/verlark_issue19_e2e_test pnpm exec playwright test tests/e2e/transcription.spec.ts tests/e2e/recording.spec.ts`：8 项通过，40.8 秒；桌面及移动 viewport，开发录音/识别替身，不能作为实机或生产语音验收。
+- `pnpm format:check` 初次报告新增 migration metadata 及基线已有 `drizzle/meta/0012_snapshot.json` 格式问题；本票改动的 metadata 已格式化，未修改既有 0012 快照。全库格式命令仍受该基线文件影响，不声明通过；本票改动文件格式与 `git diff --check` 通过。
+- e2e 自动写回的旧票截图已还原，不把它纳入 #19 证据。
+
+## 代码审查修复
+
+2026-10-13，按独立 Standards/Spec 审查在同一 implementer 分支完成：
+
+- 将北京主机白名单收敛为共享纯校验函数，应用配置与 Adapter 两个边界仍各自验证，避免未来不一致。
+- 免费额度有效期在取得预算锁并读完累计用量后再次核对；读录音与处理权检查完成后、调用供应商前再检查。模拟读取期间跨过免费到期时间，原测试确实错误地识别成功；修复后不发送、作答失败且预留释放。即使读取也超过 lease，确定未发送仍可释放预留，但过期作答不能写回；这与“远端是否已执行未知”的保留规则区分。
+- 非 2xx 响应与成功响应共用有界 256 KB 读取，仅提取格式受限的顶层/`output`/`error` 内 request ID。HTTP 400/403/502 保留未知用量预留，不保存或显示原始错误正文，不推断免费；超大、无效正文及恶意日志字符不进入用量回执。
+- 供应商回执晚于 lease 或恢复时，只补充缺失的 request ID 供对账；不会释放 unknown 预留、覆盖已完成的账单对账或接纳迟到转写。公开 Interface 回归测试覆盖尚未对账和已对账两个分支。
+- 所有修复均未增加真实供应商调用；实机、正式部署和真实网站全链路门槛保持开放。
+
+审查修复后的最终重跑：隔离 PostgreSQL 上 `pnpm test` 为 25 文件、163 项通过（13.65 秒）；`pnpm typecheck`、`pnpm lint`、`pnpm build`、本票修改文件 Prettier 与 `git diff --check` 均通过。此次变动未改 UI，未重复此前已通过的 8 项浏览器回归；全库格式检查的既有 0012 快照限制仍按上文报告。

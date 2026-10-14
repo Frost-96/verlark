@@ -8,9 +8,24 @@ const statusSchema = z.object({
   lastCompletedScanAt: z.string().nullable(),
   due: z.number().int().nonnegative(),
   pending: z.number().int().nonnegative(),
+  actionablePending: z.number().int().nonnegative(),
+  actionableDue: z.number().int().nonnegative(),
+  providerUnverified: z.number().int().nonnegative(),
   scanOverdue: z.boolean(),
   cleanupOverdue: z.boolean(),
   materials: z.object({ pending: z.number().int().nonnegative() }),
+  recognitionRecovery: z
+    .object({ expired: z.number().int().nonnegative() })
+    .optional(),
+  recognitionBudget: z
+    .object({
+      committedSeconds: z.number(),
+      remainingSeconds: z.number(),
+      expiresAt: z.string(),
+      expired: z.boolean(),
+    })
+    .nullable()
+    .optional(),
   attentionRequired: z.boolean(),
 });
 try {

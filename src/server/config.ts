@@ -1,7 +1,10 @@
 import { readFeedbackConfig } from "../integrations/expression-feedback/config";
+import { isBeijingAsrHost } from "../integrations/transcription/beijing";
 export class ConfigurationError extends Error {}
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env) {
+  if (env.MEDIA_RECOVERY_OFFLINE === "true")
+    throw new ConfigurationError("数据库恢复隔离中，业务访问尚未开放。");
   const developmentFeedback = env.DEVELOPMENT_FEEDBACK === "true";
   if (
     developmentFeedback &&
@@ -42,6 +45,33 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   if (developmentMail && production) {
     throw new ConfigurationError("正式环境不能启用开发邮件替身。");
   }
+  const bailianTranscription = env.BAILIAN_TRANSCRIPTION_ENABLED === "true";
+  const dashscopeApiKey = env.DASHSCOPE_API_KEY;
+  const dashscopeApiHost = env.DASHSCOPE_API_HOST ?? "dashscope.aliyuncs.com";
+  if (bailianTranscription && !isBeijingAsrHost(dashscopeApiHost))
+    throw new ConfigurationError("真实识别只允许百炼北京主机。");
+  const allowanceSeconds = Number(env.BAILIAN_ASR_ALLOWANCE_SECONDS);
+  const expiresAt = new Date(env.BAILIAN_ASR_FREE_EXPIRES_AT ?? "");
+  if (
+    bailianTranscription &&
+    (!dashscopeApiKey ||
+      !privateRecordings ||
+      developmentTranscription ||
+      env.BAILIAN_ASR_FREE_ONLY_VERIFIED !== "true" ||
+      !Number.isSafeInteger(allowanceSeconds) ||
+      allowanceSeconds < 120 ||
+      !Number.isFinite(expiresAt.getTime()))
+  )
+    throw new ConfigurationError(
+      "真实识别需要私有录音、北京百炼凭据、已核实用完即停、免费预算及到期时间，且不能启用识别替身。",
+    );
+  const recognitionPolicy = bailianTranscription
+    ? {
+        budgetKey: "bailian-beijing-qwen-audio-3.0-asr-flash",
+        allowanceSeconds,
+        expiresAt,
+      }
+    : undefined;
   const databaseURL = env.DATABASE_URL;
   if (!databaseURL)
     throw new ConfigurationError("请配置 DATABASE_URL，使用新的应用数据库。");
@@ -78,6 +108,10 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
   if (!allowedEmails.size)
     throw new ConfigurationError("请配置测试名单 TESTER_EMAILS。");
   return {
+    bailianTranscription,
+    dashscopeApiKey,
+    dashscopeApiHost,
+    recognitionPolicy,
     databaseURL,
     secret,
     baseURL: baseURL!,

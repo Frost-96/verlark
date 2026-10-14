@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-10-14T10:16:36.385Z",
+  "mode": "real-isolated-local-PostgreSQL",
+  "master": "7a6aef8e5be6da3e1596ab4fa256fd002d7abe28",
+  "priorPreview": "771e001ed65824e59b6967ec51ea1076b633febd",
+  "externalRequests": 0,
+  "productionDatabaseTouched": false,
+  "passed": true,
+  "results": [
+    {
+      "path": "empty",
+      "historyRows": 16,
+      "tables": 17,
+      "sentinelPreserved": true,
+      "quotaPreserved": "not applicable",
+      "repeatMigrationPassed": true,
+      "schemasMatchEmpty": true,
+      "checkConstraintsEnforced": true
+    },
+    {
+      "path": "master",
+      "historyRows": 16,
+      "tables": 17,
+      "sentinelPreserved": true,
+      "quotaPreserved": "ASR 120 seconds",
+      "repeatMigrationPassed": true,
+      "schemasMatchEmpty": true,
+      "checkConstraintsEnforced": true
+    },
+    {
+      "path": "preview",
+      "historyRows": 18,
+      "tables": 17,
+      "sentinelPreserved": true,
+      "quotaPreserved": "feedback 789 tokens / mail 17",
+      "repeatMigrationPassed": true,
+      "schemasMatchEmpty": true,
+      "checkConstraintsEnforced": true
+    }
+  ]
+}
