@@ -1,0 +1,20 @@
+{
+  "createdAt": "2026-10-14T10:23:07.402Z",
+  "environment": "existing verified Neon production database",
+  "beforeMigrationCount": 14,
+  "afterMigrationCount": 16,
+  "applied": ["0014_feedback_provider_request", "0015_mail_send_budget"],
+  "priorHistoryHashesPreserved": true,
+  "existingAsrReceiptsUnchanged": true,
+  "existingAsrReceiptCount": 2,
+  "newTableRowCounts": {
+    "feedback_rows": 0,
+    "mail_rows": 0
+  },
+  "repeatMigrationPassed": true,
+  "applicationEnvironmentChanged": false,
+  "feedbackEnabled": false,
+  "mailEnabled": false,
+  "externalProviderRequests": 0,
+  "passed": true
+}
