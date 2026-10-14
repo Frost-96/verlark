@@ -42,3 +42,7 @@
 执行前核实Max免费1,000,000 token、至2027-01-10，并按用户授权开启免费用完即停。没有授权或执行付费请求。已执行的新保留集只有6例，原14新输入另8例未执行，不标记通过；无限追加验收不在授权内。以有限代表性样例满足本票门槛，仍需实际使用中监测误解。
 
 真实反馈在默认/Production/Preview保持禁用，免费试验窗口也已用尽22次上限。代码部署检查与实际本机供应商/业务验收分别报告；不宣称Vercel→Max真实生成或手机语音全链路通过。PR #37未合并；关闭本票表示实现与代表性验收交付，不表示首版/Production可用，后续端到端发布范围由#22承载。
+
+## 部署检查回执
+
+最终代码提交 `e23886eb2d8d24a27a4514353ab01dc21697eb15` 的 Vercel Preview状态success，描述Deployment has completed。Chrome经过既有Vercel会话访问该Preview `/materials`，应用正常装配并将匿名访问转到中文登录页，更新后的文本依据页脚可见。Production项目与共享变量均搜索不到REAL_FEEDBACK_ENABLED；Preview有原分支写入的禁用secret，控制台值为write-only，不能称本轮重新读出false。本轮未写云端环境、未创建自动化绕过凭据、未做云端模型调用、未合并/提升Production。[部署回执](quality-v8-max-deployment.json)
