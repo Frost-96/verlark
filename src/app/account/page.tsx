@@ -21,7 +21,9 @@ export default async function AccountPage() {
       <p>已验证邮箱：{learner.email}</p>
       <aside className="notice">
         <h2>开始聆听</h2>
-        <p>选择已发布的材料，或继续先前的练习。录音提交与反馈仍在准备中。</p>
+        <p>
+          选择已发布的材料，或继续先前的练习。录音、识别与反馈的可用状态请查看练习页提示。
+        </p>
         <div className="links">
           <Link href="/materials">选择听力材料</Link>
           <Link href="/practices">练习记录</Link>
