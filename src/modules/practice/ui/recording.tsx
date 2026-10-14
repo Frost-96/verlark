@@ -493,8 +493,8 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
           )}
           <p>
             {practice.transcriptionMode === "development"
-              ? "开发识别用于流程验证；真实识别与表达反馈尚未接入。"
-              : "识别服务与表达反馈尚未接入。"}
+              ? "开发识别仅用于流程验证。"
+              : "识别服务尚未配置。"}
             单次录音最多 120 秒、8 MiB，以先达到者为准。
           </p>
           {message && (

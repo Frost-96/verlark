@@ -28,7 +28,7 @@ export default function RootLayout({
         <main>{children}</main>
         <footer>
           Verlark · 内部测试阶段 ·
-          支持聆听、录音与转写核对；真实识别和表达反馈尚未接入
+          支持聆听、录音与转写核对；表达反馈仅依据确认文本
         </footer>
       </body>
     </html>

@@ -7,10 +7,7 @@ export function readFeedbackConfig(
   const model = supportedFeedbackModels.find(
     (candidate) => candidate === (env.FEEDBACK_MODEL ?? feedbackModel),
   );
-  if (
-    !model ||
-    (model !== feedbackModel && env.FEEDBACK_FREE_MODEL_VERIFIED !== model)
-  )
+  if (!model || env.FEEDBACK_FREE_MODEL_VERIFIED !== model)
     throw new Error(
       "反馈型号必须明确允许，切换型号前须分别核实其免费额度及用完即停。",
     );

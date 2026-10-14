@@ -160,7 +160,7 @@ test("真实协议携带文本依据与规则，合法响应无强制纠错，�
     ...output,
     provenance: {
       provider: "bailian-beijing",
-      model: "qwen3.7-flash-2026-07-15",
+      model: "qwen3.8-max-0902",
     },
   });
   for (const response of [

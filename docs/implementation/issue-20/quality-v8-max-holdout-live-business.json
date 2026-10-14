@@ -1,0 +1,76 @@
+{
+  "createdAt": "2026-10-14T09:21:53.626Z",
+  "mode": "live-provider-public-practice-API-real-isolated-PG",
+  "syntheticRecordingAndRecognition": true,
+  "providerCalls": 6,
+  "semanticQualityAssessed": false,
+  "passed": true,
+  "results": [
+    {
+      "label": "clear-negative-number-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "generated",
+      "businessStatus": "succeeded",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    },
+    {
+      "label": "clear-unless-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "generated",
+      "businessStatus": "succeeded",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    },
+    {
+      "label": "unclear-collector-owner-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "generated",
+      "businessStatus": "succeeded",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    },
+    {
+      "label": "conflict-total-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "generated",
+      "businessStatus": "succeeded",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    },
+    {
+      "label": "clear-transfer-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "generated",
+      "businessStatus": "succeeded",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    },
+    {
+      "label": "unrelated-new",
+      "mode": "live-provider-via-public-practice-API",
+      "providerKind": "no-content",
+      "businessStatus": "no-content",
+      "inputBound": true,
+      "readbackMatches": true,
+      "persistenceMatches": true,
+      "correctionPreservesHistory": true,
+      "passed": true
+    }
+  ]
+}

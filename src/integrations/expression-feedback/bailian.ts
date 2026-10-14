@@ -7,10 +7,10 @@ import { feedbackMessages } from "./prompt";
 export { feedbackPromptVersion } from "./prompt";
 import { feedbackPromptVersion } from "./prompt";
 
-export const feedbackModel = "qwen3.7-flash-2026-07-15";
+export const feedbackModel = "qwen3.8-max-0902";
 export const supportedFeedbackModels = [
   feedbackModel,
-  "qwen3.8-max-0902",
+  "qwen3.7-flash-2026-07-15",
 ] as const;
 export type FeedbackModel = (typeof supportedFeedbackModels)[number];
 const maxCompletionTokens = 3072;
