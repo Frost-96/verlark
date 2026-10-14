@@ -46,6 +46,29 @@ export function createBailianTranscription(options: {
       )
         return { kind: "failed", dispatched: false, reason: "format" };
       const signal = AbortSignal.timeout(options.timeoutMs ?? 45_000);
+      const startedAt = performance.now();
+      let stage: "fetch" | "headers" | "body" | "parse" = "fetch";
+      let httpStatus: number | undefined;
+      const diagnoseUnknown = (
+        reason:
+          | "timeout"
+          | "network"
+          | "empty-body"
+          | "body-read"
+          | "body-limit"
+          | "schema"
+          | "http",
+      ) => {
+        // Allowlisted metadata only: never log provider data, errors or request details.
+        console.warn({
+          event: "transcription-unknown",
+          model: ASR_MODEL,
+          stage,
+          reason,
+          elapsedMs: Math.round(performance.now() - startedAt),
+          ...(httpStatus === undefined ? {} : { httpStatus }),
+        });
+      };
       try {
         const response = await send(
           `https://${host}/api/v1/services/aigc/multimodal-generation/generation`,
@@ -79,12 +102,18 @@ export function createBailianTranscription(options: {
             }),
           },
         );
+        stage = "headers";
+        httpStatus = response.status;
         const reader = response.body?.getReader();
-        if (!reader)
+        if (!reader) {
+          if (response.ok || response.status >= 500)
+            diagnoseUnknown("empty-body");
           return {
             kind: response.ok || response.status >= 500 ? "unknown" : "failed",
             dispatched: true,
           };
+        }
+        stage = "body";
         const chunks: Uint8Array[] = [];
         let size = 0;
         try {
@@ -94,6 +123,7 @@ export function createBailianTranscription(options: {
             size += next.value.length;
             if (size > 256_000) {
               await reader.cancel();
+              diagnoseUnknown("body-limit");
               return { kind: "unknown", dispatched: true };
             }
             chunks.push(next.value);
@@ -101,6 +131,7 @@ export function createBailianTranscription(options: {
         } finally {
           reader.releaseLock();
         }
+        stage = "parse";
         let envelope: unknown;
         try {
           envelope = JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -108,6 +139,7 @@ export function createBailianTranscription(options: {
           envelope = null;
         }
         if (!response.ok) {
+          if (response.status >= 500) diagnoseUnknown("http");
           const receipt = errorReceiptSchema.safeParse(envelope);
           return {
             kind: response.status >= 500 ? "unknown" : "failed",
@@ -121,7 +153,10 @@ export function createBailianTranscription(options: {
           };
         }
         const parsed = responseSchema.safeParse(envelope);
-        if (!parsed.success) return { kind: "unknown", dispatched: true };
+        if (!parsed.success) {
+          diagnoseUnknown("schema");
+          return { kind: "unknown", dispatched: true };
+        }
         const { output, usage, request_id } = parsed.data;
         const accounting = {
           dispatched: true,
@@ -132,6 +167,13 @@ export function createBailianTranscription(options: {
           ? { kind: "recognized", text: output.text.trim(), ...accounting }
           : { kind: "no-content", ...accounting };
       } catch {
+        diagnoseUnknown(
+          signal.aborted
+            ? "timeout"
+            : stage === "fetch"
+              ? "network"
+              : "body-read",
+        );
         return { kind: "unknown", dispatched: true };
       }
     },
