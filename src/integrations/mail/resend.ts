@@ -1,3 +1,4 @@
+import { prepareMail } from "./message";
 import { createHash } from "node:crypto";
 import type { MailAdapter } from "./contracts";
 export type ResendSettings = {
@@ -12,17 +13,7 @@ export function createResendMail(
 ): MailAdapter {
   return {
     async send(message) {
-      const link = new URL(message.url);
-      if (
-        !settings.recipients.has(message.to.toLowerCase()) ||
-        link.origin !== settings.baseURL ||
-        link.pathname !==
-          (message.kind === "verification"
-            ? "/verify-email"
-            : "/reset-password") ||
-        !link.searchParams.get("token")
-      )
-        throw new Error("邮件收件人或回调地址不符合配置。");
+      const content = prepareMail(settings, message);
       const response = await transport("https://api.resend.com/emails", {
         method: "POST",
         redirect: "error",
@@ -45,11 +36,7 @@ export function createResendMail(
         body: JSON.stringify({
           from: settings.from,
           to: [message.to],
-          subject:
-            message.kind === "verification"
-              ? "验证你的 Verlark 邮箱"
-              : "重置你的 Verlark 密码",
-          text: `请打开以下链接${message.kind === "verification" ? "验证邮箱（1 小时内有效）" : "重置密码（30 分钟内有效）"}：\n${message.url}\n\n若非本人申请，请忽略。链接仅可使用一次。`,
+          ...content,
         }),
       });
       const result: unknown = await response.json();

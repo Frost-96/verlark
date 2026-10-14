@@ -1,0 +1,117 @@
+{
+  "checkedAt": "2026-10-14T06:11:08.520Z",
+  "totals": {
+    "rows": 94,
+    "reserved": 351018,
+    "observed": 56120,
+    "charged": 351018
+  },
+  "newReserved": 53607,
+  "newObserved": 15786,
+  "receipts": [
+    {
+      "request_id": "bb0f7ffb-4da8-43e5-98ac-1d3553c8568f",
+      "confirmation_id": "3f9cd28d-d83a-4d3c-ab8b-cbbcebf80c87",
+      "fingerprint": "994f74847bbe37edb8791f318e6ad9789527ee81e6056b96bce070559afa0551",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v6",
+      "reserved_tokens": 6270,
+      "observed_tokens": 1899,
+      "provider_id": "chatcmpl-11043733-0135-9e61-8c80-d7bff2a7511b",
+      "state": "responded",
+      "started_at": "2026-10-14T06:04:10.302Z",
+      "deadline": "2026-10-14T06:04:55.302Z"
+    },
+    {
+      "request_id": "e4beaa00-83a7-46b6-925c-914141c76888",
+      "confirmation_id": "fb2299f9-c898-418c-a39b-c707ace768ef",
+      "fingerprint": "9bd4ac15db505c91a5c5209df0985c96d8a6825400c65bff564b5b009891966d",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v6",
+      "reserved_tokens": 6319,
+      "observed_tokens": 763,
+      "provider_id": "chatcmpl-7274e0e5-cfa8-9402-878c-1944837437eb",
+      "state": "responded",
+      "started_at": "2026-10-14T06:04:32.263Z",
+      "deadline": "2026-10-14T06:05:17.263Z"
+    },
+    {
+      "request_id": "cebae844-624c-45c2-b27a-cdff00e53e08",
+      "confirmation_id": "b5a8f305-eb1c-4721-964c-cc8294aebc64",
+      "fingerprint": "31382b252ffecd9a1f36656380152e134bd589c7091636b14e0b031c404e2298",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6830,
+      "observed_tokens": 2189,
+      "provider_id": "chatcmpl-aacca5c4-f0ac-9bc2-9c6f-ecec38b45be8",
+      "state": "responded",
+      "started_at": "2026-10-14T06:08:02.513Z",
+      "deadline": "2026-10-14T06:08:47.513Z"
+    },
+    {
+      "request_id": "5ec56175-fa9a-405a-be7e-d0fb74c1f9c0",
+      "confirmation_id": "6de6ad1d-ab3a-46da-b15c-8adc2dd2ad3c",
+      "fingerprint": "afcb3847501ad5c6b23e78d82dce7a9fa63e4d9d2373dc457d08ffcad306c49a",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6836,
+      "observed_tokens": 2109,
+      "provider_id": "chatcmpl-0495d9f8-9ab9-9109-a8f8-4c1265f199b5",
+      "state": "responded",
+      "started_at": "2026-10-14T06:08:27.933Z",
+      "deadline": "2026-10-14T06:09:12.933Z"
+    },
+    {
+      "request_id": "c01d8e17-7e0c-4b27-b3b8-1fe8a9140ee1",
+      "confirmation_id": "582b4a2a-30d6-44a8-8ca1-d10ef2802285",
+      "fingerprint": "9ebd50c3d0638c3e436432390dd82894cee9221f4e95d2e084a59ca97682591a",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6822,
+      "observed_tokens": 2217,
+      "provider_id": "chatcmpl-6a0cfecc-6a38-97bf-b295-d8bd5d21d7bf",
+      "state": "responded",
+      "started_at": "2026-10-14T06:08:51.340Z",
+      "deadline": "2026-10-14T06:09:36.340Z"
+    },
+    {
+      "request_id": "c8845014-7738-4907-b3a0-6386766cfa65",
+      "confirmation_id": "3eab0200-fd72-409c-ab8d-c21595e8227e",
+      "fingerprint": "66cad0e05cb1ec2517f5785aee65a1a7369015b1acb8ffa2f3f0b0f13ecfa579",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6850,
+      "observed_tokens": 2267,
+      "provider_id": "chatcmpl-25006513-487d-9588-ac70-b40171eff1aa",
+      "state": "responded",
+      "started_at": "2026-10-14T06:09:21.396Z",
+      "deadline": "2026-10-14T06:10:06.396Z"
+    },
+    {
+      "request_id": "2c815800-b978-403f-a3f9-5e4abfab92fe",
+      "confirmation_id": "d11589aa-3d4a-4939-a45b-da1626173c69",
+      "fingerprint": "627661a5eb655ac649523b5166480eb33d00b27af6610dfbbb219282f1c5f898",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6842,
+      "observed_tokens": 2111,
+      "provider_id": "chatcmpl-8c661e90-fbc9-9c16-bdc2-c1339948e437",
+      "state": "responded",
+      "started_at": "2026-10-14T06:09:46.486Z",
+      "deadline": "2026-10-14T06:10:31.486Z"
+    },
+    {
+      "request_id": "55380a4a-d812-431e-8522-57a031f8f62a",
+      "confirmation_id": "e27e9ca8-d621-4950-85da-5c38c2b54ee7",
+      "fingerprint": "dd848058160fe394e28440429a0d604efb25d9eb1b01a6c822261f7ef9a1a019",
+      "model": "qwen3.7-flash-2026-07-15",
+      "rules_version": "expression-v1/bailian-prompt-v7",
+      "reserved_tokens": 6838,
+      "observed_tokens": 2231,
+      "provider_id": "chatcmpl-6c0c911b-4947-9a48-b9e3-611870971ea2",
+      "state": "responded",
+      "started_at": "2026-10-14T06:10:08.708Z",
+      "deadline": "2026-10-14T06:10:53.708Z"
+    }
+  ]
+}

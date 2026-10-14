@@ -1,5 +1,7 @@
 # Verlark 首版架构设计
 
+> 2026-10-14 邮件方案更新：用户明确选择先改用 QQ SMTP，通过 QQ 邮箱授权码发送，仅限测试名单。此前 Resend Free 选择保留为历史决策及显式可选实现，不作为当前试验前提；QQ 方案不要求自有 DNS 域名。零新增付费、失败不自动重试、实际收信与云端边界验收要求不变。实现及待配置事项见 [QQ SMTP 操作记录](implementation/issue-21/qq-smtp.md)。
+
 更新日期：2026-10-11。状态：用户已确认采用本设计，作为后续实现基线；本轮仅更新文档，未查看或修改现有业务代码。产品和技术栈依据 [访谈记录](refactoring-design.md) 与 [ADR](adr/0004-next-drizzle-neon-better-auth.md)，业务规则依据 [领域模型](domain-model.md)。设计获确认不代表已经实现、通过部署验证或证明学习效果；具体字段、依赖版本及延后事项仍在实施时落实。
 
 具体阶段与验收条件见 [重建执行计划](implementation-plan.md)。
