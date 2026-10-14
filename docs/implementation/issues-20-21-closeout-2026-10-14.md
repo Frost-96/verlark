@@ -39,3 +39,6 @@ v6将清楚的普通请求误判为no-content。v7仅调整输入分类提示词
 已核实 QQ 邮箱可通过 SMTP 和授权码发送邮件，但普通 QQ 邮箱不赋予用户对 qq.com 的 DNS 管理权，不能作为 Resend 自有验证域名。QQ SMTP 是替代发送供应商的可行候选，尚未配置或验收。用户正在比较继续 Resend 与改接 QQ SMTP 的后续操作，尚未确定供应商变更；现有 #17 的 Resend 决策仍保留。官方依据：[腾讯邮件连接器](https://cloud.tencent.com/document/product/1270/55456)、[Resend 域名要求](https://resend.com/docs/dashboard/domains/introduction)。
 
 后续决定：用户已明确批准改用 QQ SMTP，并要求先完成可独立实施的工作。当前邮件选择由上述比较阶段推进到 QQ SMTP 实施，见 `issue-21/qq-smtp.md`；真实 SMTP 授权及收信尚待完成。
+
+
+最终复核：QQ SMTP本机及隔离Preview的4封邮件实际收取、验证、恢复、新登录、旧密码/会话失效及退出/撤销完成；部署来源及外部回调有应用层拒绝证据，临时访问凭据已撤销。#21验收条件已满足，详见 `issue-21/qq-smtp.md`。#20仍有真实语义质量失败，默认关闭，不关闭#20。

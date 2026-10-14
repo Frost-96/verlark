@@ -54,3 +54,19 @@ MAIL_ENABLED=false
 - 14:40:34 恢复请求HTTP 200；用户确认 Gmail收到恢复邮件、重置成功并能登录。
 - 14:48:50 重置前密码登录401 INVALID_EMAIL_OR_PASSWORD，重置前cookie访问受保护接口401。旧会话失效。
 - 原 Neon Preview 分支已不存在于分支列表，旧凭据连接返回28P01。新建 `issue21-qq-preview`（br-super-hall-azr9zede）仅复制结构，一天自动删除，控制台到期2026-10-15 14:43:31（Asia/Shanghai）。新分支所有表0行后重建结构并执行完整迁移；未触及dev/生产数据。云端收信与来源验收仍待部署。
+
+
+## 最终云端验收
+
+提交 `6b678c0` 的 Vercel Preview `dpl_4BNFMcvz5GU4JffH5nHiQYtNJUkS` Ready；采用默认云端构建。集成分支的 Preview 配置独立数据库、重新生成的认证密钥和 QQ SMTP 授权码；Production 未改。
+
+- 15:01:51 注册HTTP200。用户最初没有找到邮件，随后在 Gmail 找到实际云端邮件；QQ 官方查询显示15:01验证邮件Delivered。15:09:09首次有效验证HTTP200，随后两次重复消费HTTP400。用户看到重复使用提示时，后端账号已验证；15:11:58登录复核200、emailVerified=true。
+- 15:12:54恢复请求HTTP200，QQ官方15:12恢复邮件Delivered；用户确认收到并完成重置。15:14:08重置HTTP200。重置前cookie受保护访问200→401，旧密码401 INVALID_EMAIL_OR_PASSWORD。
+- 用户最初简短回复“能登录”时数据库会话仍0，未直接接受为登录证据。随后用户在“我的账号”核对邮箱，15:17:14复核新会话为1。
+- “退出当前登录”15:18:53 HTTP200。用户之后再次登录，因此会话回到1；最终“退出所有设备”15:21:57 HTTP200，15:24:30复核会话0。未将重新登录后的1误判为撤销失败。
+- 部署边界6例取得应用JSON响应：同源无效凭据401，外部来源/缺来源403 INVALID_ORIGIN，外部回调403 INVALID_CALLBACK_URL，验证外部回调403 INVALID_ORIGIN，匿名撤销401。探针最初将登录外部回调的错误码预期为INVALID_ORIGIN；Better Auth更早返回INVALID_CALLBACK_URL，已据捕获响应纠正探针预期，没有修改应用或重复邮件发送。
+- 未验证账号登录403、无效验证/恢复令牌400、名单外注册403。过期、账号之间令牌隔离及并发沿用相同身份代码的真实隔离PG回归，不冒充本轮云端过期测试。
+- 临时保护访问凭据最初被自动审批拒绝；说明项目范围后用户明确批准创建并在结束后撤销。控制台已移除，Require Log In仍开启；15:29:48旧凭据仅返回302到Vercel /sso-api，不能访问应用。本机临时凭据文件已删除。平台可能在已有部署环境中保留旧变量值直到重新部署，但该值不再有访问权限。
+- 本轮共4封实际QQ邮件（本机2、Preview2），均有QQ Delivered与用户真实收件证据；无自动重发。未启用付费、域名购买或生产邮件。
+
+详细脱敏记录：`qq-smtp-live-results.json`、`qq-smtp-deployed-boundary.json`、`qq-smtp-deployed-token-probes.json`。当前测试账号无活动会话；Neon临时分支仍按上述时间自动删除。#21验收条件已满足，代码仍在现有PR #37；#20语义质量未通过，继续保持真实反馈禁用。
