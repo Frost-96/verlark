@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-14T11:17:17.214Z",
+  "action": "status",
+  "lastRunAt": "2026-10-14T03:45:18.984Z",
+  "lastCompletedScanAt": "2026-10-14T03:45:18.984Z",
+  "due": 1,
+  "pending": 1,
+  "actionablePending": 0,
+  "actionableDue": 0,
+  "providerUnverified": 1,
+  "scanOverdue": false,
+  "cleanupOverdue": false,
+  "materials": {
+    "pending": 0
+  },
+  "recognitionRecovery": {
+    "expired": 0
+  },
+  "recognitionBudget": {
+    "committedSeconds": 4,
+    "remainingSeconds": 35988,
+    "expiresAt": "2027-01-09T16:00:00.000Z",
+    "expired": false
+  },
+  "attentionRequired": false
+}
+✓ Lockfile passes supply-chain policies (verified 4h ago)
+Lockfile is up to date, resolution step is skipped
+Already up to date
+.../node_modules/unrs-resolver postinstall$ node postinstall.js
+.../node_modules/unrs-resolver postinstall: Done
+Done in 258ms using pnpm v12.4.2
