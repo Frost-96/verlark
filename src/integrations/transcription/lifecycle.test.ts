@@ -19,6 +19,7 @@ test("concurrent async fetch wrappers produce isolated safe summaries and unsubs
     "undici:request:create",
     "undici:request:bodySent",
     "undici:request:headers",
+    "undici:client:sendHeaders",
   ];
   const before = events.map((n) => channel(n).hasSubscribers);
   const adapter = createBailianTranscription({
@@ -32,7 +33,17 @@ test("concurrent async fetch wrappers produce isolated safe summaries and unsubs
         body: "secret-body",
       };
       channel(events[0]!).publish({ request });
+      // Even in this async context, a same-host pooled request object is unrelated.
+      channel(events[3]!).publish({
+        request: { origin, path },
+        socket: { encrypted: true },
+      });
       await new Promise((r) => setTimeout(r, 1));
+      channel(events[3]!).publish({
+        request,
+        socket: { encrypted: true },
+        headers: "secret",
+      });
       channel(events[1]!).publish({ request });
       channel(events[2]!).publish({
         request,
@@ -49,6 +60,10 @@ test("concurrent async fetch wrappers produce isolated safe summaries and unsubs
   const unrelated = { origin, path };
   channel(events[0]!).publish({ request: unrelated });
   channel(events[1]!).publish({ request: unrelated });
+  channel(events[3]!).publish({
+    request: unrelated,
+    socket: { encrypted: true },
+  });
   expect((await Promise.all(pending)).map((x) => x.kind)).toEqual([
     "recognized",
     "recognized",
@@ -58,6 +73,7 @@ test("concurrent async fetch wrappers produce isolated safe summaries and unsubs
     expect(entry.event).toBe("transcription-lifecycle");
     expect(entry.timeline.map((v: { stage: string }) => v.stage)).toEqual([
       "request-created",
+      "request-headers-sent",
       "body-sent",
       "headers",
     ]);
@@ -67,7 +83,7 @@ test("concurrent async fetch wrappers produce isolated safe summaries and unsubs
       "model",
       "timeline",
     ]);
-    expect(entry.timeline[2].httpStatus).toBe(200);
+    expect(entry.timeline[3].httpStatus).toBe(200);
     expect(JSON.stringify(entry)).not.toMatch(
       /secret|https|aliyuncs|generation/,
     );

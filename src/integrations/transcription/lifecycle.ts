@@ -6,14 +6,11 @@ const endpoint = "/api/v1/services/aigc/multimodal-generation/generation";
 type Message = {
   request?: { origin?: string; path?: string };
   response?: { statusCode?: number };
-  connectParams?: { hostname?: string; host?: string };
   socket?: { encrypted?: boolean };
 };
 type Stage =
   | "request-created"
-  | "connect-start"
-  | "connection-ready"
-  | "connect-error"
+  | "request-headers-sent"
   | "body-sent"
   | "headers"
   | "request-error";
@@ -67,21 +64,10 @@ export async function observeTranscription<T>(
       note("request-created");
     }
   });
-  for (const [name, stage] of [
-    ["beforeConnect", "connect-start"],
-    ["connected", "connection-ready"],
-    ["connectError", "connect-error"],
-  ] as const)
-    subscribe(`undici:client:${name}`, ({ connectParams, socket }) => {
-      if (
-        scope.getStore() === token &&
-        (connectParams?.hostname === host || connectParams?.host === host)
-      )
-        note(
-          stage,
-          name === "connected" ? { tls: socket?.encrypted === true } : {},
-        );
-    });
+  subscribe("undici:client:sendHeaders", ({ request, socket }) => {
+    if (request && requests.has(request))
+      note("request-headers-sent", { tls: socket?.encrypted === true });
+  });
   for (const [name, stage] of [
     ["bodySent", "body-sent"],
     ["headers", "headers"],
