@@ -63,3 +63,10 @@ Vercel Production与Preview当前的`DASHSCOPE_API_HOST`均为`ws-n0xtc9d3g23a02
 源码`99c1dd7`的Production部署`vpiDwDPQTy5vVBfxc9QX8R5Jp12U`于2026-10-14 22:26:53北京时间Ready。22:27:35.131发起原录音重试，函数55.01秒结束；安全分类为fetch／timeout／45,003毫秒，生命周期摘要45,004毫秒。阶段为request-created 11毫秒、request-headers-sent 862毫秒（TLS true）、request-error 45,001毫秒，未观察到body-sent或headers。
 
 该次函数运行区域iad1，边缘接收区域sin1。现有证据提示请求发送阶段值得继续对照，但不能据此断言上传、网络或供应商根因；事件缺失亦不证明供应商未收到或未计费。22:30:34只读数据库确认本轮仅新增22:27:38.741的一笔识别账本，22:28:08.797的HTTP 409 POST没有新增供应商调用账本。当前生产三笔unknown共360秒预留，另外两笔本地120秒预留独立保留，反馈0。本轮已用本机与生产各1次ASR，尚余至多1次有界区域对照；区域补丁及新加坡调用均未完成，反馈仍为0。
+
+
+## 新加坡生产对照成功
+
+源码`3082056`的Production部署`4WX7AKJpoWbKKaM6ui2No6nAYqeG`于22:34:37北京时间Ready，实际transcription函数SIN1／Node.js 24／120秒。22:36:22.884请求总耗时28.13秒；生命周期26,964毫秒，依次为created 17、request-headers-sent 753（TLS true）、body-sent 17,526、headers 26,956（HTTP 200），单位均为毫秒。
+
+22:37:43数据库确认recognized、113字符转写，新调用账本22:36:23.853开始并settled 42秒。用户确认转写与原话一致；不输出正文或请求ID。原三笔unknown的360秒预留保持，不因本次成功而回收。此次单样本支持SIN1组合能够成功，不足以认定地区是唯一根因；后续固定Max反馈已由只读数据库确认成功，详见[真实验收记录](live-acceptance.md#真实固定max反馈结果与剩余缺项)；不由此推断旧unknown已结算或全部验收完成。
