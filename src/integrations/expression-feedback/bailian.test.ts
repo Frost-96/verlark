@@ -131,7 +131,7 @@ test("真实协议携带文本依据与规则，合法响应无强制纠错，�
   const adapter = createBailianFeedback(db.db, config, async (url, init) => {
     expect(String(url)).toContain("/compatible-mode/v1/chat/completions");
     const body = JSON.parse(String(init?.body));
-    expect(body.messages[1].content).toBe(input.text);
+    expect(body.messages.at(-1)).toEqual({ role: "user", content: input.text });
     expect(body.enable_thinking).toBe(true);
     expect(body.thinking_budget).toBe(1536);
     expect(body.max_completion_tokens).toBe(3072);
