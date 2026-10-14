@@ -53,6 +53,7 @@ function request(
       body: body ? JSON.stringify(body) : undefined,
     }),
     instance,
+    config.baseURL,
   );
 }
 function cookieFrom(response: Response) {
@@ -297,7 +298,8 @@ test("邮件投递失败时注册和密码恢复不返回假成功", async () =>
   );
   expect(reset.status).toBe(503);
   expect(await reset.json()).toMatchObject({
-    message: "身份服务暂时不可用，请稍后重试或联系维护者检查配置。",
+    message:
+      "邮件发送未确认，可能暂不可用或已达发送限制。请先检查收件箱，稍后重新申请；仍失败请联系维护者。",
   });
 });
 
@@ -333,4 +335,67 @@ test("同一实例中一次投递失败不影响并发的其他注册", async ()
       )
     ).status,
   ).toBe(200);
+});
+
+test("重发投递失败不返回成功；重试后有效链接仍可完成验证", async () => {
+  const email = await register();
+  const failing = createIdentity(connection.db, config, {
+    async send() {
+      throw new Error("provider rejected");
+    },
+  });
+  expect(
+    (await request("send-verification-email", { email }, undefined, failing))
+      .status,
+  ).toBe(503);
+  expect((await request("send-verification-email", { email })).status).toBe(
+    200,
+  );
+  expect(
+    (await request(`verify-email?token=${mailToken(email, "verification")}`))
+      .status,
+  ).toBe(200);
+});
+test("账号 A 的重置令牌不能通过请求中的邮箱改动账号 B", async () => {
+  const a = await verifiedAccount();
+  const b = await verifiedAccount();
+  await request("request-password-reset", { email: a });
+  expect(
+    (
+      await request("reset-password", {
+        token: mailToken(a, "password-reset"),
+        email: b,
+        newPassword: "isolated-new-password",
+      })
+    ).status,
+  ).toBe(200);
+  await login(a, "isolated-new-password");
+  await login(b);
+});
+test("外部 Origin 和外部回调 URL 被拒绝，邮件链接固定在应用来源", async () => {
+  const email = await register();
+  const foreign = await handleIdentityRequest(
+    new Request("http://localhost:3000/api/auth/request-password-reset", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://attacker.example",
+      },
+      body: JSON.stringify({ email }),
+    }),
+    identity,
+    config.baseURL,
+  );
+  expect(foreign.status).toBe(403);
+  expect(
+    (
+      await request("request-password-reset", {
+        email,
+        redirectTo: "https://attacker.example/reset",
+      })
+    ).status,
+  ).toBe(403);
+  expect(new URL(messages.findLast((m) => m.to === email)!.url).origin).toBe(
+    config.baseURL,
+  );
 });

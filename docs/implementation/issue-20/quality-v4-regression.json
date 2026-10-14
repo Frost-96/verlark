@@ -1,0 +1,139 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "holdout-minor",
+    "text": "Last week she buy a new phone.",
+    "requestId": "6aa5cad9-0bf2-4e04-85e7-393c8df113be",
+    "confirmationId": "5d3462a0-315d-429a-b4d1-88e56a93faef",
+    "elapsedMs": 1127,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者想表达上周她买了一部新手机。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "holdout-reference",
+    "text": "John told Mark that he should bring his laptop.",
+    "requestId": "f2fbcf36-3fa8-4502-bab2-9f00814ef473",
+    "confirmationId": "3655ef8f-b719-4aa9-9753-73a143fbf357",
+    "elapsedMs": 2615,
+    "result": {
+      "kind": "generated",
+      "summary": "John告诉Mark，某人应该带上笔记本电脑。但无法确定“he”是指John自己还是Mark，“his”是指John的还是Mark的。",
+      "issues": [
+        {
+          "original": "he should bring his laptop",
+          "improved": "Mark should bring Mark's laptop",
+          "explanation": "听者无法确定代词 he 和 his 具体指代 John 还是 Mark。如果意图是 Mark 带 Mark 自己的电脑，需明确主语和所有格。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "he should bring his laptop",
+          "improved": "John should bring John's laptop",
+          "explanation": "原话不是错误，但如果你的意思是 John 需要带 John 自己的电脑，请明确说明。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "clear-plan",
+    "text": "I will read a book this weekend.",
+    "requestId": "b65c4377-8094-4d55-b257-11c22543dc85",
+    "confirmationId": "723668d3-25d5-41e2-baae-dc5c296f57e5",
+    "elapsedMs": 634,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者计划在周末读一本书。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "two-ambiguities",
+    "text": "I went tomorrow. I borrow you my book.",
+    "requestId": "816c269e-ae7f-4286-9c65-0ff050b43696",
+    "confirmationId": "1999a690-c6ee-4441-89f5-6bde8ef32917",
+    "elapsedMs": 2617,
+    "result": {
+      "kind": "generated",
+      "summary": "第一句存在时间冲突，不确定是想表达过去发生的动作还是将来的计划。第二句中 borrow 通常指‘借入’，但语境似乎是想表达‘把书借给你’（借出），需要确认意图。",
+      "issues": [
+        {
+          "original": "I went tomorrow.",
+          "improved": "I will go tomorrow.",
+          "explanation": "went 是过去式，与 tomorrow（将来时间）冲突。如果意指将来，需改为将来时。"
+        },
+        {
+          "original": "I borrow you my book.",
+          "improved": "I lend you my book.",
+          "explanation": "borrow 意为‘向……借入’，此处若想把书给对方，应使用表示‘借出’的 lend。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "unclear-reference",
+    "text": "She told her that she lost her bag.",
+    "requestId": "3efe3e27-3788-40c5-bf0b-eb1e970e3343",
+    "confirmationId": "c974b19f-efbc-4e74-952b-72456c67fbf1",
+    "elapsedMs": 2590,
+    "result": {
+      "kind": "generated",
+      "summary": "句子提到有人告诉另一个人关于包丢失的事情，但无法确定 'She'（说话者）、'her'（听话者）以及第二个 'she'（丢包的人）具体指代谁。",
+      "issues": [
+        {
+          "original": "She told her that she lost her bag.",
+          "improved": "[Speaker] told [Listener] that [Person who lost the bag] lost her bag.",
+          "explanation": "原文中出现了三个女性代词（She, her, she），听者无法确定它们分别指代的具体人物。例如，不清楚是“她”告诉“另一个她”，还是“她”告诉“她自己”。需要明确各个角色具体是谁。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v4",
+    "label": "minor-grammar",
+    "text": "Yesterday I go to the park with my friend.",
+    "requestId": "58a8f10e-1f28-494f-aacc-9cde4241b51f",
+    "confirmationId": "dde2721a-3387-44bd-8373-bc6c43e0182d",
+    "elapsedMs": 882,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者昨天和朋友去了公园。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

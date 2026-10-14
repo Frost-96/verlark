@@ -1,3 +1,4 @@
+import { readFeedbackConfig } from "../integrations/expression-feedback/config";
 import { isBeijingAsrHost } from "../integrations/transcription/beijing";
 export class ConfigurationError extends Error {}
 
@@ -123,6 +124,7 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env) {
     cronSecret,
     developmentTranscription,
     developmentFeedback,
+    realFeedback: readFeedbackConfig(env),
     production,
   };
 }

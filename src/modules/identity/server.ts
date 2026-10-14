@@ -7,7 +7,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import type { Database } from "../../db/client";
 import type { AppConfig } from "../../server/config";
 import type { MailAdapter } from "../../integrations/mail/contracts";
-import type { Learner } from "./contracts";
+import { MailDeliveryUnconfirmedError, type Learner } from "./contracts";
 import * as schema from "./schema";
 
 export function createIdentity(
@@ -84,6 +84,25 @@ export function createIdentity(
     logger: { disabled: true },
     hooks: {
       before: createAuthMiddleware(async (context) => {
+        for (const value of [
+          context.body?.callbackURL,
+          context.body?.redirectTo,
+          context.query?.callbackURL,
+        ]) {
+          if (value === undefined) continue;
+          try {
+            if (
+              typeof value !== "string" ||
+              new URL(value, config.baseURL).origin !== config.baseURL
+            )
+              throw new Error();
+          } catch {
+            throw new APIError("FORBIDDEN", {
+              code: "INVALID_ORIGIN",
+              message: "跳转地址不属于当前应用。",
+            });
+          }
+        }
         if (context.path === "/verify-email") {
           const token: unknown = context.query?.token;
           if (typeof token !== "string")
@@ -145,7 +164,7 @@ export function createIdentity(
       return delivery.run({ failed: false }, async () => {
         const response = await auth.handler(request);
         if (delivery.getStore()?.failed)
-          throw new Error("邮件未能发送，请重新申请。");
+          throw new MailDeliveryUnconfirmedError();
         return response;
       });
     },

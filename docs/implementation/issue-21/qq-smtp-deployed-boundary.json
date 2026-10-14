@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-14T07:02:58.759Z",
+  "target": "https://verlark-git-integrate-issues-20-21-p396500554-3359s-projects.vercel.app",
+  "sentMail": false,
+  "changedIdentity": false,
+  "results": [
+    {
+      "name": "same-origin-control",
+      "status": 401,
+      "code": "INVALID_EMAIL_OR_PASSWORD",
+      "message": "邮箱或密码不正确。",
+      "contentType": "application/json",
+      "pass": true
+    },
+    {
+      "name": "foreign-origin",
+      "status": 403,
+      "code": "INVALID_ORIGIN",
+      "message": "操作未完成，请检查输入后重试；若仍失败，请联系维护者。",
+      "contentType": "application/json",
+      "pass": true
+    },
+    {
+      "name": "missing-origin",
+      "status": 403,
+      "code": "INVALID_ORIGIN",
+      "message": "操作未完成，请检查输入后重试；若仍失败，请联系维护者。",
+      "contentType": "application/json",
+      "pass": true
+    },
+    {
+      "name": "foreign-callback",
+      "status": 403,
+      "code": "INVALID_CALLBACK_URL",
+      "message": "操作未完成，请检查输入后重试；若仍失败，请联系维护者。",
+      "contentType": "application/json",
+      "pass": true,
+      "originalExpectedCode": "INVALID_ORIGIN",
+      "expectedCode": "INVALID_CALLBACK_URL"
+    },
+    {
+      "name": "verify-foreign-callback",
+      "status": 403,
+      "code": "INVALID_ORIGIN",
+      "message": "操作未完成，请检查输入后重试；若仍失败，请联系维护者。",
+      "contentType": "application/json",
+      "pass": true
+    },
+    {
+      "name": "anonymous-revoke",
+      "status": 401,
+      "code": null,
+      "message": "请先验证邮箱并登录。",
+      "contentType": "application/json",
+      "pass": true
+    }
+  ],
+  "passed": true,
+  "probeExpectationCorrection": "foreign-callback originally expected INVALID_ORIGIN; Better Auth rejects callback with INVALID_CALLBACK_URL before the application hook. Both denote forbidden foreign redirect; captured HTTP403/application JSON is the required evidence. No application code changed."
+}

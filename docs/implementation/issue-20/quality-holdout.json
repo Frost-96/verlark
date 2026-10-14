@@ -1,0 +1,50 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "holdout-minor",
+    "text": "Last week she buy a new phone.",
+    "requestId": "b5c07744-7296-46e4-842b-913ce0b130e3",
+    "confirmationId": "836ec49b-5f7e-49a0-b582-2f2f59bb3fc4",
+    "elapsedMs": 2165,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者陈述某位女性在上周购买了一部新手机。",
+      "issues": [
+        {
+          "original": "Last week she buy a new phone.",
+          "improved": "Last week she bought a new phone.",
+          "explanation": "句首的时间状语 'Last week'（上周）明确指向过去，因此动词必须使用过去式 'bought'，而原句中的 'buy' 是原形。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v3",
+    "label": "holdout-reference",
+    "text": "John told Mark that he should bring his laptop.",
+    "requestId": "f2c164d7-2fd9-4a80-8e92-5371d06b1137",
+    "confirmationId": "4070e7a4-fba3-4a58-9d30-ca83b47349c9",
+    "elapsedMs": 2262,
+    "result": {
+      "kind": "generated",
+      "summary": "John告诉Mark，他应该带上他的笔记本电脑。原文中代词 he 和 his 的指代对象不明确，无法确定是 John 还是 Mark 需要带电脑。",
+      "issues": [
+        {
+          "original": "he should bring his laptop",
+          "improved": "[person A] should bring [his/her] laptop",
+          "explanation": "代词 'he' 和 'his' 指代不明。如果不补充具体人物姓名或使用占位符，读者无法判断是 John 还是 Mark 应该带笔记本电脑。请明确具体是哪一位。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

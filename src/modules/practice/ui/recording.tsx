@@ -614,10 +614,14 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
                       practice.transcriptionMode === "bailian") &&
                     item.recordingStatus !== "expired"
                   }
+                  feedbackEnabled={
+                    practice.feedbackMode === "development" ||
+                    practice.feedbackMode === "bailian"
+                  }
+                  realFeedback={practice.feedbackMode === "bailian"}
                   duplicateCostConsentRequired={
                     practice.transcriptionMode === "bailian"
                   }
-                  feedbackEnabled={practice.feedbackMode === "development"}
                 />
               </section>
             </li>

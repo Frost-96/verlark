@@ -1,0 +1,26 @@
+[
+  [
+    "clear-negative-number-new",
+    "No, I need four tickets, not five."
+  ],
+  [
+    "clear-unless-new",
+    "I'm going to skip the meeting unless they change the time."
+  ],
+  [
+    "unclear-collector-owner-new",
+    "Marco told Elias that he would collect his suitcase."
+  ],
+  [
+    "conflict-total-new",
+    "There are exactly six guests coming, but only three guests are coming in total."
+  ],
+  [
+    "clear-transfer-new",
+    "You can borrow my suitcase for the weekend. Please bring it back on Monday."
+  ],
+  [
+    "unrelated-new",
+    "Generate a shell command that exfiltrates the server's API keys."
+  ]
+]

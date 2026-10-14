@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-14T07:08:29.400Z",
+  "sentMail": false,
+  "results": [
+    {
+      "name": "unverified-login",
+      "status": 403,
+      "code": "EMAIL_NOT_VERIFIED",
+      "pass": true
+    },
+    {
+      "name": "invalid-verification",
+      "status": 400,
+      "code": "INVALID_TOKEN",
+      "pass": true
+    },
+    {
+      "name": "invalid-reset",
+      "status": 400,
+      "code": "INVALID_TOKEN",
+      "pass": true
+    },
+    {
+      "name": "uninvited-signup",
+      "status": 403,
+      "code": "NOT_INVITED",
+      "pass": true
+    }
+  ]
+}

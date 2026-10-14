@@ -1,4 +1,5 @@
 import {
+  MailDeliveryUnconfirmedError,
   authErrorMessage,
   identityMessages,
 } from "../../../modules/identity/contracts";
@@ -18,12 +19,21 @@ const methods: Record<string, string> = {
 export async function handleIdentityRequest(
   request: Request,
   identity: ReturnType<typeof createIdentity>,
+  trustedOrigin: string,
 ) {
   const path = new URL(request.url).pathname.replace("/api/auth/", "");
   if (!methods[path])
     return Response.json({ message: "该操作未开放。" }, { status: 404 });
   if (request.method !== methods[path])
     return Response.json({ message: "请求方式不正确。" }, { status: 405 });
+  if (
+    request.method !== "GET" &&
+    request.headers.get("origin") !== trustedOrigin
+  )
+    return Response.json(
+      { code: "INVALID_ORIGIN", message: authErrorMessage("INVALID_ORIGIN") },
+      { status: 403 },
+    );
   try {
     if (
       path === "revoke-sessions" &&
@@ -47,7 +57,15 @@ export async function handleIdentityRequest(
       },
       { status: response.status, headers: response.headers },
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof MailDeliveryUnconfirmedError)
+      return Response.json(
+        {
+          code: "MAIL_DELIVERY_UNCONFIRMED",
+          message: authErrorMessage("MAIL_DELIVERY_UNCONFIRMED"),
+        },
+        { status: 503 },
+      );
     return Response.json(
       { message: identityMessages.unavailable },
       { status: 503 },

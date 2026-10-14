@@ -51,7 +51,7 @@ export type Attempt = {
 export type PracticeDetail = PracticeSummary & {
   content: ContentVersion;
   attempts: Attempt[];
-  feedbackMode?: "development" | "unavailable";
+  feedbackMode?: "development" | "unavailable" | "bailian";
   transcriptionMode?: "development" | "unavailable" | "bailian";
   recordingMode: "development" | "unavailable" | "private";
 };

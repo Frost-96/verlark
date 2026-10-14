@@ -1,0 +1,34 @@
+{
+  "checkedAt": "2026-10-14T09:50:44.871Z",
+  "environment": "localhost:3104 / isolated local PostgreSQL",
+  "syntheticPreverifiedLearner": true,
+  "storedRealModel": "qwen3.8-max-0902",
+  "browserChecks": {
+    "textBasisVisible": true,
+    "noAudioEvaluationVisible": true,
+    "previousVersionMarkedHistorical": true,
+    "conditionalDisambiguationVisible": true,
+    "correctedVersionHasNoValidFeedback": true,
+    "expiredRequestShowsFailure": true,
+    "historyPreserved": true
+  },
+  "newProviderRequests": 0,
+  "expiredRequestCreatedProviderReservations": 0,
+  "totalAuthorizedTransportSends": 22,
+  "credential": "dummy disabled key",
+  "freeUntil": "2000-01-01T00:00:00Z",
+  "freeTokenBudget": 1,
+  "feedbackStates": [
+    {
+      "revision": 1,
+      "status": "succeeded",
+      "hasResult": true
+    },
+    {
+      "revision": 2,
+      "status": "failed",
+      "hasResult": false
+    }
+  ],
+  "passed": true
+}

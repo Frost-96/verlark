@@ -1,0 +1,23 @@
+{
+  "checkedDate": "2026-10-14 Asia/Shanghai",
+  "codeCommit": "e23886eb2d8d24a27a4514353ab01dc21697eb15",
+  "environment": "Vercel protected Preview / integrate/issues-20-21",
+  "status": "success",
+  "statusDescription": "Deployment has completed",
+  "deploymentURL": "https://vercel.com/p396500554-3359s-projects/verlark/4NhFhC4prNRyTCfrKXPAwqdvBeDq",
+  "browserSmoke": {
+    "requestedPath": "/materials",
+    "anonymousRedirectToLogin": true,
+    "chineseLoginRendered": true,
+    "updatedTextBasisFooterVisible": true,
+    "applicationServicesCompose": true
+  },
+  "productionRealFeedbackEnableVariable": "absent in project and shared environment searches",
+  "previewRealFeedbackEnableVariable": "existing branch-specific write-only secret; value cannot be reread in console; prior disabled configuration unchanged",
+  "environmentWritesThisRound": 0,
+  "newAutomationBypassCredentials": 0,
+  "realProviderRequestsFromDeployment": 0,
+  "cloudProviderGenerationEvaluated": false,
+  "productionPromoted": false,
+  "pullRequestMerged": false
+}

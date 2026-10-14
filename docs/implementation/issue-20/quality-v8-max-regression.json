@@ -1,0 +1,134 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "clear-article",
+    "text": "Could you pass me pencil on the table?",
+    "requestId": "18c0ca40-60a0-4b30-8f49-63091b1a3fb2",
+    "confirmationId": "683c5b2f-38bc-4635-8d43-e2384e472236",
+    "elapsedMs": 6186,
+    "result": {
+      "kind": "generated",
+      "summary": "请求对方把桌上的铅笔递给自己。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "unclear-people",
+    "text": "Rosa called Emma after she had sold her car.",
+    "requestId": "4de29892-4529-40aa-89a2-eba27a5e401c",
+    "confirmationId": "0ad5d5eb-09ab-4d4d-a40e-88e054c908de",
+    "elapsedMs": 12116,
+    "result": {
+      "kind": "generated",
+      "summary": "Rosa在卖掉车之后给Emma打了电话，但不清楚是谁卖的车。",
+      "issues": [
+        {
+          "original": "after she had sold her car",
+          "improved": "after Rosa had sold her car",
+          "explanation": "she和her可能指Rosa或Emma，无法确定是谁卖了车。如果你想表达Rosa卖了自己的车，可明确用Rosa；若指Emma，应使用Emma。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "conflict-return",
+    "text": "I will come back two days ago.",
+    "requestId": "0e3a22df-b7b4-4f2a-a32a-57f6f3195807",
+    "confirmationId": "68b1d4a3-2112-414d-a7d5-c64172578ee9",
+    "elapsedMs": 7151,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者提到回来，但将来表达与两天前的时间冲突，不能确定何时回来。",
+      "issues": [
+        {
+          "original": "I will come back two days ago.",
+          "improved": "I came back two days ago.",
+          "explanation": "will指向将来，two days ago指向过去，回来的时间无法确定。如果你想表达两天前已经回来了，可用此句；若想表达将来，应改时间而非假定过去。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "contextual-transfer",
+    "text": "Can you borrow me your umbrella? I will return it tonight.",
+    "requestId": "4bd439cc-904c-40da-ae73-8122cdd59f2c",
+    "confirmationId": "e9be2cd4-3dd1-46a2-ba1e-7b66ef6ca719",
+    "elapsedMs": 14448,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者请求借用对方的雨伞，并承诺今晚归还。",
+      "issues": [],
+      "alternatives": [
+        {
+          "original": "borrow me your umbrella",
+          "improved": "lend me your umbrella",
+          "explanation": "原话意思已清楚；lend是标准用法，表示对方把东西借给你。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "clear-minor-past",
+    "text": "Yesterday I walk to work because the bus was late.",
+    "requestId": "be75c7db-e267-4793-8395-59e42ad9183d",
+    "confirmationId": "78f56c32-0ab2-43a9-b2c3-29ed9bbebd5e",
+    "elapsedMs": 8591,
+    "result": {
+      "kind": "generated",
+      "summary": "昨天因为公交车晚点，说话者步行去上班。",
+      "issues": [],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v8",
+    "label": "two-problems",
+    "text": "I arrived next month. I borrow you my bicycle.",
+    "requestId": "c4d4108c-2452-4e4a-b32e-a173fa69b099",
+    "confirmationId": "d10486e8-0195-4076-8aee-1dbb63411c18",
+    "elapsedMs": 12246,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者提到到达，但过去时态与下个月的时间冲突，不能确定何时到达。说话者把自己的自行车借给对方。",
+      "issues": [
+        {
+          "original": "I arrived next month.",
+          "improved": "I will arrive next month.",
+          "explanation": "arrived指向过去，next month指向将来，到达的时间无法确定。如果你想表达下个月到达，可用此句；若想表达过去，应改时间而非假定将来。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.8-max-0902"
+      }
+    }
+  }
+]

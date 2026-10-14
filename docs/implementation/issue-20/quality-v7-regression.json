@@ -1,0 +1,169 @@
+[
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "clear-article",
+    "text": "Could you pass me pencil on the table?",
+    "requestId": "cebae844-624c-45c2-b27a-cdff00e53e08",
+    "confirmationId": "b5a8f305-eb1c-4721-964c-cc8294aebc64",
+    "elapsedMs": 25420,
+    "result": {
+      "kind": "generated",
+      "summary": "请求对方递过来桌上的铅笔。",
+      "issues": [
+        {
+          "original": "pencil on the table",
+          "improved": "the pencil on the table",
+          "explanation": "无法确定是指哪一支铅笔，或者是泛指任何铅笔。如果你想表达的是桌上那支特定的铅笔，建议加上定冠词 'the'。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "Could you pass me pencil on the table?",
+          "improved": "Can you pass me the pencil on the table?",
+          "explanation": "原话语法结构并非错误，只是缺少冠词。这里提供去掉 Could 的更直接说法作为风格替换，意思完全一致。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "unclear-people",
+    "text": "Rosa called Emma after she had sold her car.",
+    "requestId": "5ec56175-fa9a-405a-be7e-d0fb74c1f9c0",
+    "confirmationId": "6de6ad1d-ab3a-46da-b15c-8adc2dd2ad3c",
+    "elapsedMs": 23407,
+    "result": {
+      "kind": "generated",
+      "summary": "Rosa在Emma卖了车之后给Emma打了电话。",
+      "issues": [],
+      "alternatives": [
+        {
+          "original": "after she had sold her car",
+          "improved": "following the sale of her car",
+          "explanation": "原句语法正确且意思清晰，此处仅提供一种更简洁的表达方式，非纠错。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "conflict-return",
+    "text": "I will come back two days ago.",
+    "requestId": "c01d8e17-7e0c-4b27-b3b8-1fe8a9140ee1",
+    "confirmationId": "582b4a2a-30d6-44a8-8ca1-d10ef2802285",
+    "elapsedMs": 30054,
+    "result": {
+      "kind": "generated",
+      "summary": "说话人表示将回到过去（或之前）的两天前。",
+      "issues": [
+        {
+          "original": "I will come back two days ago.",
+          "improved": "I came back two days ago.",
+          "explanation": "ago 用于指代从当前时刻往过去的时间，与表示过去的动作连用。will (将来时) 不能与 ago 连用。如果你想表达“我两天前回来了”，请改为一般过去时。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "I will come back two days ago.",
+          "improved": "I returned two days ago.",
+          "explanation": "原句主要问题是时态冲突而非用词错误。return 是 come back 的同义词，替换后语意依然清晰，但时态必须修正为过去时。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "contextual-transfer",
+    "text": "Can you borrow me your umbrella? I will return it tonight.",
+    "requestId": "c8845014-7738-4907-b3a0-6386766cfa65",
+    "confirmationId": "3eab0200-fd72-409c-ab8d-c21595e8227e",
+    "elapsedMs": 25088,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者请求借用听者的雨伞，并承诺今晚归还。",
+      "issues": [
+        {
+          "original": "borrow me your umbrella",
+          "improved": "lend me your umbrella",
+          "explanation": "\"Borrow\"意为“借入”（从别人那里拿来），主语是接受方，不能接人作间接宾语（即不能说 borrow sb sth）。如果你是想向对方“借出”伞给你，应使用 \"lend\"。如果你想表达“帮我拿一下/借给我”，也可以说 \"Can I borrow your umbrella?\"。"
+        }
+      ],
+      "alternatives": [
+        {
+          "original": "Can you borrow me your umbrella?",
+          "improved": "Could you lend me your umbrella?",
+          "explanation": "原话中的动词使用有误，但这并非风格问题而是词义混淆。以下替换更地道且符合逻辑，但鉴于原话存在核心词义错误，通常不将其视为纯风格替代，此处仅作为正确用法的参考。若仅考虑语气的礼貌程度微调，可将 Can 改为 Could。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "clear-minor-past",
+    "text": "Yesterday I walk to work because the bus was late.",
+    "requestId": "2c815800-b978-403f-a3f9-5e4abfab92fe",
+    "confirmationId": "d11589aa-3d4a-4939-a45b-da1626173c69",
+    "elapsedMs": 22221,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者描述昨天因为公交车晚点而步行去上班。",
+      "issues": [],
+      "alternatives": [
+        {
+          "original": "Yesterday I walk to work because the bus was late.",
+          "improved": "Yesterday I walked to work because the bus was late.",
+          "explanation": "原话中动词形式有误，但不影响对过去动作的理解。"
+        }
+      ],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  },
+  {
+    "promptVersion": "bailian-prompt-v7",
+    "label": "two-problems",
+    "text": "I arrived next month. I borrow you my bicycle.",
+    "requestId": "55380a4a-d812-431e-8522-57a031f8f62a",
+    "confirmationId": "e27e9ca8-d621-4950-85da-5c38c2b54ee7",
+    "elapsedMs": 26118,
+    "result": {
+      "kind": "generated",
+      "summary": "说话者声称下个月到达，并提到把自行车借给你。",
+      "issues": [
+        {
+          "original": "I arrived next month.",
+          "improved": "I am arriving next month.",
+          "explanation": "\"Arrived\"是过去时，与\"next month\"（将来时间）矛盾。如果你想表达未来的计划，应使用现在进行时表将来或一般将来时。"
+        },
+        {
+          "original": "I borrow you my bicycle.",
+          "improved": "I will borrow your bicycle from you.",
+          "explanation": "\"Borrow you\"语法不通，且逻辑上通常是\"向某人借某物\"（borrow something from someone）。如果你想说你要用我的自行车，应该是\"I want to borrow your bicycle\"。原话直译像是“我借你我的自行车”（即你把车给我），这与动词borrow（借入）的方向相反。"
+        }
+      ],
+      "alternatives": [],
+      "provenance": {
+        "provider": "bailian-beijing",
+        "model": "qwen3.7-flash-2026-07-15"
+      }
+    }
+  }
+]

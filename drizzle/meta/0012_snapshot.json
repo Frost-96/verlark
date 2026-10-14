@@ -111,12 +111,8 @@
           "name": "identity_account_user_id_identity_user_id_fk",
           "tableFrom": "identity_account",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -235,12 +231,8 @@
           "name": "identity_session_user_id_identity_user_id_fk",
           "tableFrom": "identity_session",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -250,9 +242,7 @@
         "identity_session_token_unique": {
           "name": "identity_session_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -316,9 +306,7 @@
         "identity_user_email_unique": {
           "name": "identity_user_email_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -431,12 +419,8 @@
           "name": "learning_content_practice_reference_content_version_id_learning_content_version_id_fk",
           "tableFrom": "learning_content_practice_reference",
           "tableTo": "learning_content_version",
-          "columnsFrom": [
-            "content_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["content_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -668,12 +652,8 @@
           "name": "attempt_practice_id_practice_id_fk",
           "tableFrom": "attempt",
           "tableTo": "practice",
-          "columnsFrom": [
-            "practice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["practice_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -683,9 +663,7 @@
         "attempt_raw_transcript_id_unique": {
           "name": "attempt_raw_transcript_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "raw_transcript_id"
-          ]
+          "columns": ["raw_transcript_id"]
         }
       },
       "policies": {},
@@ -784,12 +762,8 @@
           "name": "confirmed_transcript_attempt_id_attempt_id_fk",
           "tableFrom": "confirmed_transcript",
           "tableTo": "attempt",
-          "columnsFrom": [
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["attempt_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -797,12 +771,8 @@
           "name": "confirmed_transcript_raw_transcript_id_attempt_raw_transcript_id_fk",
           "tableFrom": "confirmed_transcript",
           "tableTo": "attempt",
-          "columnsFrom": [
-            "raw_transcript_id"
-          ],
-          "columnsTo": [
-            "raw_transcript_id"
-          ],
+          "columnsFrom": ["raw_transcript_id"],
+          "columnsTo": ["raw_transcript_id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -890,14 +860,8 @@
           "name": "expression_feedback_confirmation_id_attempt_id_confirmed_transcript_id_attempt_id_fk",
           "tableFrom": "expression_feedback",
           "tableTo": "confirmed_transcript",
-          "columnsFrom": [
-            "confirmation_id",
-            "attempt_id"
-          ],
-          "columnsTo": [
-            "id",
-            "attempt_id"
-          ],
+          "columnsFrom": ["confirmation_id", "attempt_id"],
+          "columnsTo": ["id", "attempt_id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -969,12 +933,8 @@
           "name": "practice_deletion_practice_id_practice_id_fk",
           "tableFrom": "practice_deletion",
           "tableTo": "practice",
-          "columnsFrom": [
-            "practice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["practice_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1090,12 +1050,8 @@
           "name": "practice_learner_id_identity_user_id_fk",
           "tableFrom": "practice",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "learner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["learner_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1103,12 +1059,8 @@
           "name": "practice_content_version_id_learning_content_version_id_fk",
           "tableFrom": "practice",
           "tableTo": "learning_content_version",
-          "columnsFrom": [
-            "content_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["content_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1295,16 +1247,12 @@
         "recording_asset_temporary_path_unique": {
           "name": "recording_asset_temporary_path_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "temporary_path"
-          ]
+          "columns": ["temporary_path"]
         },
         "recording_asset_final_path_unique": {
           "name": "recording_asset_final_path_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "final_path"
-          ]
+          "columns": ["final_path"]
         }
       },
       "policies": {},

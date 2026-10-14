@@ -79,3 +79,41 @@ test("真实识别须显式开启、配置北京凭据和已核实免费停止�
     readConfig({ ...enabled, DEVELOPMENT_TRANSCRIPTION: "true" }),
   ).toThrow("真实识别");
 });
+
+test("真实识别与反馈分别显式开启，合并配置保留各自额度策略", () => {
+  const configured = {
+    ...valid,
+    PRIVATE_RECORDINGS_ENABLED: "true",
+    BLOB_READ_WRITE_TOKEN: "test",
+    CRON_SECRET: "x".repeat(32),
+    DASHSCOPE_API_KEY: "test",
+    DASHSCOPE_API_HOST: "ws-test.cn-beijing.maas.aliyuncs.com",
+    BAILIAN_ASR_FREE_ONLY_VERIFIED: "true",
+    BAILIAN_ASR_ALLOWANCE_SECONDS: "240",
+    BAILIAN_ASR_FREE_EXPIRES_AT: "2099-01-01T00:00:00Z",
+    FEEDBACK_FREE_ONLY_VERIFIED: "true",
+    FEEDBACK_FREE_MODEL_VERIFIED: "qwen3.8-max-0902",
+    FEEDBACK_FREE_TOKEN_BUDGET: "10000",
+    FEEDBACK_FREE_UNTIL: "2099-01-01T00:00:00Z",
+  };
+  const asrOnly = readConfig({
+    ...configured,
+    BAILIAN_TRANSCRIPTION_ENABLED: "true",
+  });
+  expect(asrOnly.realFeedback).toBeUndefined();
+  expect(asrOnly.recognitionPolicy?.allowanceSeconds).toBe(240);
+  const feedbackOnly = readConfig({
+    ...configured,
+    REAL_FEEDBACK_ENABLED: "true",
+  });
+  expect(feedbackOnly.bailianTranscription).toBe(false);
+  expect(feedbackOnly.recognitionPolicy).toBeUndefined();
+  expect(feedbackOnly.realFeedback?.model).toBe("qwen3.8-max-0902");
+  const both = readConfig({
+    ...configured,
+    BAILIAN_TRANSCRIPTION_ENABLED: "true",
+    REAL_FEEDBACK_ENABLED: "true",
+  });
+  expect(both.recognitionPolicy?.allowanceSeconds).toBe(240);
+  expect(both.realFeedback?.freeTokenBudget).toBe(10000);
+});

@@ -1,3 +1,8 @@
+import { createBailianFeedback } from "../integrations/expression-feedback/bailian";
+import { readMailConfig } from "../integrations/mail/config";
+import { createQQMail } from "../integrations/mail/qq-smtp";
+import { createResendMail } from "../integrations/mail/resend";
+import { limitMail } from "../integrations/mail/limited";
 import { createBailianTranscription } from "../integrations/transcription/bailian";
 import "server-only";
 import { createMaterialAudioStore } from "../integrations/material-audio/blob";
@@ -39,6 +44,11 @@ function compose() {
         journal,
       )
     : createRecordingFiles({ development: config.developmentRecordings });
+  const mailConfig = readMailConfig(
+    process.env,
+    config.baseURL,
+    config.allowedEmails,
+  );
   return {
     content,
     files,
@@ -53,14 +63,24 @@ function compose() {
           })
         : createTranscription({ development: config.developmentTranscription }),
       undefined,
-      createExpressionFeedback({ development: config.developmentFeedback }),
+      config.realFeedback
+        ? createBailianFeedback(connection.db, config.realFeedback)
+        : createExpressionFeedback({ development: config.developmentFeedback }),
       journal,
       config.recognitionPolicy,
     ),
     identity: createIdentity(
       connection.db,
       config,
-      createMailAdapter(config.developmentMail),
+      mailConfig
+        ? limitMail(
+            connection.db,
+            mailConfig.provider === "qq-smtp"
+              ? createQQMail(mailConfig)
+              : createResendMail(mailConfig),
+            mailConfig.provider,
+          )
+        : createMailAdapter(config.developmentMail),
     ),
   };
 }
