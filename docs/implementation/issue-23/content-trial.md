@@ -62,3 +62,5 @@ R04 结项需六类可播放且整套内容检查完成、上述真实试用与�
 - 首次使用旧隔离本地 PostgreSQL `verlark_issue18_material_test` 时迁移失败：已有迁移账本与表状态不一致，后续迁移找不到 `recording_asset`，当次 15 项未运行。没有改动业务库或为此修改迁移。
 - 随后新建空的隔离 PostgreSQL 库 `verlark_issue23_content_test`，通过 `TEST_DATABASE_URL` 执行 `vitest run src/modules/learning-content src/modules/practice/repeat.test.ts`，迁移与三个文件 **15 项测试通过**。材料发布、不可变版本、历史读取／重练及音频保留的自动回归通过；音频存储为测试替身，不代表 C01–C04 的真实部署播放与人工检查已完成。
 - 没有业务代码改动，不新增常量断言测试；未运行构建、浏览器或真实供应商验收。
+- 双轴审查：以 `39fca6509daafd25ccb43a2674f52f55de5a7387` 为基线，规范轴 0 项问题，规格轴 0 项需修复的草案问题；规格轴明确确认真实音频、发布与试用仍未完成，不将草案审查当作 R04 通过。
+- 交付位于集成分支 `integrate/issue-23`、[草稿 PR #43](https://github.com/Frost-96/verlark/pull/43)。#23 保持开放，待真实验收完成后再转为可合并。
