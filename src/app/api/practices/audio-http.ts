@@ -17,25 +17,31 @@ const privateHeaders = {
   "X-Content-Type-Options": "nosniff",
 };
 function failure(error: unknown, head = false) {
-  const status = isPracticeError(error)
-    ? error.code === "unauthorized"
-      ? 401
-      : error.code === "not-found"
-        ? 404
-        : error.code === "recording-expired" ||
-            error.code === "recording-missing"
-          ? 410
-          : error.code === "ended" || error.code === "conflict"
-            ? 409
-            : 400
-    : 503;
+  const paused =
+    isPracticeError(error) &&
+    (error.code === "recording-maintenance-paused" ||
+      error.code === "recording-quota-paused");
+  const status = paused
+    ? 503
+    : isPracticeError(error)
+      ? error.code === "unauthorized"
+        ? 401
+        : error.code === "not-found"
+          ? 404
+          : error.code === "recording-expired" ||
+              error.code === "recording-missing"
+            ? 410
+            : error.code === "ended" || error.code === "conflict"
+              ? 409
+              : 400
+      : 503;
   return new Response(
     head
       ? null
       : JSON.stringify({
           code: isPracticeError(error) ? error.code : "unavailable",
           message: isPracticeError(error)
-            ? error.message
+            ? new PracticeError(error.code).message
             : "录音暂不可用，请稍后核对上传或回放结果。",
         }),
     {

@@ -3,7 +3,7 @@ import { TranscriptionReview } from "./transcription";
 import { put as uploadPrivateBlob } from "@vercel/blob/client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Attempt, PracticeDetail } from "../contracts";
+import { PracticeError, type Attempt, type PracticeDetail } from "../contracts";
 
 type Pending = { submissionId: string; reference: string };
 type Draft = { blob: Blob; url: string; submissionId: string };
@@ -377,7 +377,22 @@ export function Recording({ practice }: { practice: PracticeDetail }) {
               }),
               signal: AbortSignal.timeout(15000),
             });
-            if (!permission.ok) throw new Error("upload");
+            if (!permission.ok) {
+              const result = await permission.json().catch(() => null);
+              if (
+                result?.code === "recording-maintenance-paused" ||
+                result?.code === "recording-quota-paused"
+              ) {
+                if (alive.current) {
+                  setPhase("draft");
+                  setMessage(
+                    `${new PracticeError(result.code).message}草稿仍可试听，请勿关闭或刷新页面。`,
+                  );
+                }
+                return;
+              }
+              throw new Error("upload");
+            }
             const permit = await permission.json();
             try {
               await uploadPrivateBlob(permit.pathname, draft.blob, {
