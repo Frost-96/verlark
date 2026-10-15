@@ -12,7 +12,11 @@ import {
   not,
 } from "drizzle-orm";
 import type { Database } from "../../db/client";
-import type { Recording, RecordingFiles } from "./contracts";
+import {
+  RecordingUploadPaused,
+  type Recording,
+  type RecordingFiles,
+} from "./contracts";
 import { recordingAsset, recordingMaintenance } from "./schema";
 import {
   uploadInventorySchema,
@@ -176,8 +180,7 @@ export function createPrivateRecordingFiles(
       }
     },
     async issueUpload(input: Scope & { uploadId: string; mediaType: string }) {
-      if (!options.uploadsEnabled)
-        throw new Error("新增上传已暂停，等待维护者核实服务额度。");
+      if (!options.uploadsEnabled) throw new RecordingUploadPaused("quota");
       if (options.requireMaintenance) {
         const status = await adapter.maintenanceStatus();
         if (
@@ -185,7 +188,7 @@ export function createPrivateRecordingFiles(
           status.cleanupOverdue ||
           status.actionableDue > 20
         )
-          throw new Error("清理扫描逾期或积压，已暂停新增上传。");
+          throw new RecordingUploadPaused("maintenance");
       }
       const now = clock.now();
       const expires = new Date(now.getTime() + 86400000);
