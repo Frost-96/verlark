@@ -14,7 +14,9 @@
 
 - 真实会话 → 上传 handler → practice → 私有录音 Adapter：维护/额度两例先 RED（收到 unavailable）后 GREEN；暂停时对象存储 authorize 调用为零，未形成作答。另验证 authorize 原始异常不泄露，最终 practice 文件 15 项通过。
 - 原相关 practice/audio/private/UI 四文件 27 项通过（追加未知异常对照前）。TypeScript、定向 ESLint、格式化与 `next build --webpack` 通过。
-- 浏览器实际 Recording 组件：两类暂停先 RED（错误地提示检查网络）后 GREEN；桌面与移动模拟视口共 4 项通过。响应故意含敏感文本标记，UI 不显示；草稿 URL 不变，恢复后同 reference 只接收一次。
+- 浏览器实际 Recording 组件：两类暂停先 RED（错误地提示检查网络）后 GREEN；桌面与移动模拟视口共 4 项通过。响应故意含敏感文本标记，UI 不显示；草稿 URL 不变。Spec复审指出原测试没有真正覆盖恢复后的许可发放与字节上传，P2修订`afba38d`补充真实Blob SDK、仅HTTP存储边界替身；修订验证按红绿回路完成，4项通过。断言恢复后以原uploadId重新issue、PUT一次非空且与草稿逐字节一致的数据、使用许可pathname与private权限，再complete及submit一次；暂停期间无PUT和提交，不靠complete替身绕过实际上传。
 - 浏览器测试使用既有 Vite 组件夹具，在 HTTP 边界替身化服务响应；默认 Next dev 因工作树 node_modules 跨根 symlink 受 Turbopack 限制，使用临时独立 Playwright 配置运行组件测试。真实 route 链路由隔离本机 PostgreSQL 测试另行覆盖。移动视口不是实机证据。
 
 本次修复未部署、未调用模型，未额外执行生产维护。
+
+复审结论：Spec原P2已解决、无新增问题；Standards无阻断问题，重复测试helper为非阻断建议。修复已合入集成分支但未部署，当前生产仍为`3082056`；ASR网络unknown与当前新练习删除清理不在本修复已验证范围。
