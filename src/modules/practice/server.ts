@@ -710,11 +710,13 @@ export function createPractice(
         .safeParse(result).success;
       const failureMessage = restricted
         ? "本次反馈试用未开放、已达限额或已暂停。请联系维护者核对，不要重复请求。"
-        : failureStatus === "unknown"
-          ? "反馈结果未知；本地异常不表示远端已取消。可重试同一确认文本。"
-          : failureStatus === "no-content"
-            ? "确认文本没有可用的英语内容，未生成有效反馈。可核对文本后重新确认，或重试同一确认文本。"
-            : "反馈服务失败或返回无效结果，未生成有效反馈。请重试同一确认文本。";
+        : feedback?.mode === "bailian"
+          ? "本次未取得有效反馈，作答与确认文本会保留。请联系维护者核对试用状态与额度，不要重复请求。"
+          : failureStatus === "unknown"
+            ? "反馈结果未知；本地异常不表示远端已取消。可重试同一确认文本。"
+            : failureStatus === "no-content"
+              ? "确认文本没有可用的英语内容，未生成有效反馈。可核对文本后重新确认，或重试同一确认文本。"
+              : "反馈服务失败或返回无效结果，未生成有效反馈。请重试同一确认文本。";
       const saved = await mutateAttempt(
         learner,
         id,
@@ -796,7 +798,9 @@ export function createPractice(
             .set({
               status: "unknown",
               failure:
-                "本地处理权已过期，反馈结果未知，不表示远端已取消。可重试同一确认文本。",
+                feedback?.mode === "bailian"
+                  ? "本地处理权已过期，反馈结果未知，不表示远端已取消。请联系维护者核对试用状态与额度，不要重复请求。"
+                  : "本地处理权已过期，反馈结果未知，不表示远端已取消。可重试同一确认文本。",
               leaseToken: null,
               leaseExpiresAt: null,
             })
