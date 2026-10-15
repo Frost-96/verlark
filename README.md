@@ -1,100 +1,77 @@
 # Verlark · 先听后用
 
-中文英语交流应用。目前实现基础页面、测试名单注册、邮箱验证、登录退出、密码恢复与会话撤销；支持材料选择、聆听、继续练习、开发录音提交及替身转写核对；真实邮件、录音存储、识别和反馈尚未接入。
+面向测试名单的中文英语交流应用：选择英语听力材料、聆听和查看帮助、录音并提交作答、核对转写、取得基于确认文本的表达反馈，再次作答、结束、历史重练及整次删除。界面与操作说明使用中文，材料、示例和英语作答保持英文；没有语言偏好或切换入口。
 
-## 安装与启动
+当前采用 Next.js 16、Drizzle、PostgreSQL（部署目标 Neon）及 Better Auth。真实邮件、私有录音、识别与反馈 Adapter 已实现，须显式配置并符合各自的额度与运行门槛；开发替身通过不代表真实服务或设备通过。首版整体交付仍以 [总规格 #1](https://github.com/Frost-96/verlark/issues/1) 与各验收票为准，清理 #24 不能代替内容试用 #23。
 
-使用 Node.js 24、pnpm 12.4.2。依赖版本与锁文件一同提交。
+## 安装与本机启动
+
+使用 Node.js 24、pnpm 12.4.2，按锁文件安装：
 
 ```sh
 pnpm install --frozen-lockfile
 cp .env.example .env.local
-# 编辑 .env.local，使用全新的应用数据库与随机认证密钥
+# 编辑连接串、随机认证密钥、站点 origin 与测试邮箱名单
 pnpm db:migrate
+pnpm content:publish
 pnpm dev
 ```
 
-迁移脚本读取 `.env.local` 与 `.env`，显式传入的环境变量优先。应用与迁移统一读取 **`DATABASE_URL`**。测试使用独立数据库，不要将应用数据库用作测试库。数据库使用 PostgreSQL（开发可用本机 PostgreSQL 17；部署目标为 Neon，填写其带 TLS 的连接串）。迁移只新增版本，不会清空数据库。生产使用 Node runtime；正式部署与 Neon 网络尚待后续实测。
+仅在首次配置时复制示例，不覆盖已有环境文件。`DATABASE_URL` 必须指向新应用 PostgreSQL 数据库；不要使用旧业务库。迁移脚本优先使用显式环境变量，再读取 `.env.local`、`.env`，只应用版本化迁移，不执行 seed 或清空。`content:publish` 发布随项目提供的开发材料，重复发布相同版本幂等；真实材料另见下文。
 
-无需数据库可执行安装、类型检查、构建，并打开基础首页；认证入口在配置缺失或连接失败时明确失败，不生成虚假会话。启动生产构建使用 `pnpm build && pnpm start`。
+`BETTER_AUTH_URL` 是站点 origin（本机 `http://localhost:3000`，生产须 HTTPS）；`BETTER_AUTH_SECRET` 至少 32 字符，可用 `openssl rand -base64 32` 生成。`TESTER_EMAILS` 为逗号分隔邮箱名单。生产构建与启动分别为 `pnpm build`、`pnpm start`；基础构建无需配置数据库，但实际认证与业务访问需要数据库及正确配置。
 
-## 环境与邮件
+## 开发替身与真实服务
 
-- `DATABASE_URL`：新应用数据库连接串。
-- `BETTER_AUTH_URL`：应用 origin，例如 `http://localhost:3000`；正式环境须 HTTPS。
-- `BETTER_AUTH_SECRET`：至少 32 字符的随机密钥，可用 `openssl rand -base64 32` 生成。
-- `TESTER_EMAILS`：逗号分隔的允许邮箱，大小写不敏感；移出名单的账号不能继续取得应用身份。
-- `DEVELOPMENT_MAIL=true`：只允许开发/测试；将邮件写入 `.dev-mail/*.json`，文件权限 0600。不发送到真实邮箱，不提供公开收件箱路由；由本机开发者打开文件中的链接。
+`.env.example` 是配置字段入口，所有真实服务默认关闭。开发邮件写入私有 `.dev-mail/`，开发录音写入 `.dev-recordings/`；不要提交或公开这些目录。麦克风需要 HTTPS 或 localhost。未提交的音频草稿留在页面内存中，离开可能丢失；已接收作答从数据库恢复。
 
-开发邮件包含登录相关令牌，不提交、不公开分享。在生产中启用替身会被拒绝。替身关闭而真实邮件尚未接入时，投递明确失败，不回退为假成功。
+- `DEVELOPMENT_MAIL=true`：本机文件收件箱，包含验证／恢复令牌；不发送真实邮件。
+- `DEVELOPMENT_RECORDINGS=true`：本机私有录音文件，仅用于开发。
+- `DEVELOPMENT_TRANSCRIPTION=true`：明确标注的固定测试转写。
+- `DEVELOPMENT_FEEDBACK=true`：仅支持界面列出的固定样例，不评价任意文本。
 
-邮箱验证有效期 **60 分钟**：Better Auth 签名 JWT，加 SHA-256 摘要的数据库原子消费记录；并发或重复点击只接受一次。若消费后服务中断，重新发送验证邮件恢复。密码重置有效期 **30 分钟**，由 Better Auth 的数据库单次消费机制处理；重置成功撤销该账号全部旧会话。会话最长 7 天，Cookie 会话缓存关闭，受保护入口每次从数据库校验。当前退出和退出所有设备都在服务端撤销会话，不只删除浏览器 Cookie。
+这些替身均禁止在生产环境开启。生产使用 Node runtime、真实 PostgreSQL 和显式配置的服务；缺失配置或服务失败会明确失败，不回退为替身成功。
 
-## 数据与检查
+| 能力           | 当前实现与维护依据                                                                                                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 邮件           | QQ SMTP 为当前试验选择，Resend 保留为显式可选 Adapter；见 [邮件配置和已执行验收](docs/implementation/issue-21/qq-smtp.md)                                               |
+| 录音与材料文件 | Vercel Blob private，上传许可、清理回执与恢复保护；见 [运行维护](docs/implementation/issue-18/operations.md)、[恢复方案](docs/implementation/issue-18/recovery-plan.md) |
+| 识别           | 百炼北京，持久化免费额度与 unknown 预留；见 [识别验收](docs/implementation/issue-19/acceptance.md)                                                                      |
+| 表达反馈       | 百炼北京固定模型及规则版本，仅基于确认文本；见 [质量边界](docs/implementation/issue-20/quality-v8-max-review.md)                                                        |
+| 真实材料       | 离线制作、人工试听审校、不可变版本发布；见 [制作指南](docs/material-audio-preparation.md)、[内容试用记录](docs/implementation/issue-23/content-trial.md)                |
+
+密钥只放在本机私有环境文件或部署平台的服务端环境变量中，不使用 `NEXT_PUBLIC_`。API key 存在不表示获得启用授权、免费权益有效或试用额度充足。不要通过修改 trial ID、重建账本或自动重试绕过额度保护。
+
+## 数据、验证与维护
 
 ```sh
-pnpm db:generate      # schema 变更时生成可审查 SQL；不是运行迁移
-pnpm db:migrate       # 应用版本化迁移，不执行 seed 或清空
+pnpm db:generate      # schema 变更时生成可审查 SQL
+pnpm db:migrate       # 应用迁移，不清空数据库
 pnpm typecheck
-pnpm lint
 pnpm format:check
+pnpm lint
 pnpm build
 ```
 
-表定义归各业务模块的 `schema.ts`，`src/db/schema.ts` 仅汇总迁移。Better Auth 管理密码和会话，不存在旧 JWT/onboarding 认证入口。`learning-content` 持久化发布版本，`practice` 持久化练习及已接收作答。
+模块各自维护 `schema.ts`，`src/db/schema.ts` 汇总迁移；身份由 Better Auth 的 Drizzle Adapter 管理。活动代码和脚本没有 Prisma Client、Supabase 或旧自建认证。Better Auth 自带的 Prisma Adapter 仍可能出现在锁文件中，那是上游传递依赖；本项目不导入或配置它，也不安装 Prisma 引擎来维持旧测试。
 
-业务测试沿已确认的身份、学习内容与练习公开接口进行，必须显式提供独立 PostgreSQL 测试库，库名以 `_test` 结尾，不能与开发库相同：
+测试使用独立数据库，库名必须以 `_test` 结尾，不能与应用库相同：
 
 ```sh
 TEST_DATABASE_URL='postgresql://…/verlark_test' pnpm test
 TEST_DATABASE_URL='postgresql://…/verlark_test' pnpm db:verify
+pnpm exec playwright install chromium
 E2E_DATABASE_URL='postgresql://…/verlark_browser_test' pnpm test:e2e
 ```
 
-`db:verify` 要求 CREATE DATABASE 权限：创建两个随机命名的空测试库，验证迁移、重复迁移、读写与重建，仅清理本次新建的两个库，不清空传入的测试库。`pnpm test` 在指定库迁移并保留随机测试用户；不执行 TRUNCATE 或 DROP。
+`db:verify` 需要 CREATE DATABASE 权限，创建两个随机空库，验证迁移、重复迁移、读写与重建，然后仅删除本次创建的库。业务测试在指定测试库迁移并保留随机测试用户，不执行 TRUNCATE 或 DROP。浏览器测试启动独立 3100 端口开发服务器，迁移并发布开发材料，使用文件邮件、模拟麦克风和明确的服务替身；不复用来源不明的服务器。桌面／手机视口不能代替真实设备或地区验收。
 
-浏览器验证需要 `pnpm exec playwright install chromium`，自动启动 3100 端口的开发服务器，使用单独 E2E 测试库、开发邮箱与每次新名单；不能复用不明来源的运行中服务器。桌面和移动视口不等同于真实手机设备验收。测试未使用真实邮件服务。
+历史练习固定到内容版本；新版发布不覆盖旧版，撤下不抹掉历史。开发材料命令见 [内容说明](content/README.md)，真实材料必须走审校发布流程。音频清理、维护告警和恢复后删除回放按运行手册执行；只读状态检查不会执行清理或刷新扫描成功时间。
 
-## 恢复与实施记录
+## 证据与恢复
 
-实施前快照位于本机 `.local-snapshots/before-issues-2-6/`（未提交），包含 `workspace.tar.gz`、带文件摘要和删除状态的 `manifest.json` 以及独立恢复验证结果。包含实施前未提交文件与未跟踪文档，排除环境密钥、机器认证配置、依赖缓存和构建产物。
+[QA 索引](qa/README.md) 区分当前测试与冻结的旧行为证据。旧写作、Coach、自由对话、onboarding、订阅及双语入口不属于当前应用；旧 QA 执行器已退役，不恢复旧模型或依赖来运行它们。
 
-恢复时在新的空目录解压档案，对照 manifest 验证 SHA-256 和删除路径缺失，不在当前工作区直接覆盖。旧 Prisma schema 的删除状态保留，不从 HEAD 恢复，不销毁远端数据库或云端文件。将快照长期保存时需单独备份整个 `.local-snapshots/before-issues-2-6` 目录。
+实施前快照位于原工作区本机 `.local-snapshots/before-issues-2-6/`（未提交，也不自动复制到 Git worktree），包含 `workspace.tar.gz`、摘要 manifest 和恢复验证。长期保存需单独备份该目录。恢复应在新的空目录解压并验证摘要与删除路径，不能直接覆盖当前工作区。详见 [基础恢复记录](docs/implementation/2026-10-08-foundation.md)。
 
-详细证据、已验证范围与限制见 [实施记录](docs/implementation/2026-10-08-foundation.md)。领域与后续阶段见 [首版规格](https://github.com/Frost-96/verlark/issues/1)。
-
-## 聆听练习（#7）
-
-先执行 `pnpm db:migrate`，再执行 `pnpm content:publish`，最后 `pnpm dev`。可通过 `pnpm content:publish content/某材料.json` 发布其他经过检查的材料版本；规则与首份材料说明见 [content/README.md](content/README.md)。
-
-名单用户完成邮箱验证并登录后，进入 `/materials` 选择材料，进入 `/practice/<id>` 播放、重听及按需查看帮助，在 `/practices` 查看并继续同一次练习。刷新或关闭页面不会结束练习；播放器位置及帮助展开状态不承诺恢复。录音提交及开发转写核对见下节；真实识别与表达反馈由后续票据交付。
-
-材料文本、任务、释义、提示和稳定音频路径发布后保存在数据库，同一版本不可改写。开发音频随 `public/audio` 部署；真实存储和保留策略仍待后续决定。浏览器测试只向独立 E2E_DATABASE_URL 迁移并发布开发材料，不使用应用数据库。
-
-## 录音草稿与正式作答（#8）
-
-本机开发显式设置 `DEVELOPMENT_RECORDINGS=true` 后，浏览器通过麦克风采集录音，可停止、试听、丢弃和重新录音。未提交录音仅留在页面内存中，刷新或离开可能丢失；页面持续提示，并为刷新、关闭及站内链接提供离开提醒。需 HTTPS 或 localhost 的安全上下文；格式由浏览器协商，当前开发上传上限为 12 MB，不代表正式部署限制或最终产品时长。
-
-主动提交时先保存文件，再接收正式作答。开发文件位于私有 `.dev-recordings/`，不能从 `public/` 访问；稳定引用按所属用户、练习、类型和服务端计算的内容摘要确定。文件保存本身不生成作答。重复上传相同内容取得同一引用；正式接收以练习行事务锁及 `(practice_id, submission_id)` 唯一约束保证幂等。相同标识换录音返回冲突，外人、其他练习或不存在的文件引用被拒绝。
-
-浏览器在请求接收前仅将提交标识和文件引用按每次提交的独立键保存到本站 localStorage，音频草稿不写入其中；并行页面不会覆盖彼此的待核对标识，接收成功仅清理对应标识。刷新后核对该练习全部未确认提交，未查到也不创建新标识，可逐一重发原提交。已接收记录从数据库恢复，显示“已接收 · 待识别”，不会生成虚构转写或反馈。
-
-正式环境的配置检查和文件 Adapter 均禁止开发模式。未配置真实文件服务时提交明确不可用，不回退到本机存储。开发文件持久性、清理、保留期限和生产供应商尚未定案；不要将开发路径用于真实上线数据。当前没有公开的已接收录音下载入口，试听使用浏览器草稿。
-
-录音浏览器测试使用真实 Chromium MediaRecorder 和浏览器提供的模拟麦克风，覆盖权限/采集错误、试听、丢弃、重录、离开提示、响应丢失与重新进入恢复；手机视口测试不代表 iOS、Android 或真实麦克风验收。识别、反馈、真实文件服务、真实设备和部署仍待后续验证。
-
-### 识别与核对（开发行为）
-
-显式设置 `DEVELOPMENT_TRANSCRIPTION=true` 后，开发环境可从已接收作答点击“识别本次录音”。页面明确标记固定测试转写；这不验证真实语音识别质量。未设置时服务不可用，不回退到固定结果；正式环境同时由配置和 Adapter 拒绝开启。真实服务、费用与录音保留规则仍待后续票据决定。
-
-原始转写不可覆盖。核对只纠正识别错误，确认会创建独立版本；改善说法应再次录音。跨标签页修改发生冲突时，当前编辑会保留，点击“查询最新状态”核对后可主动“载入最新确认文本”。未确认编辑只保存在当前页面。
-
-识别的本地处理权为 60 秒。超时或进程中断后重新进入同一练习，点击“恢复超时处理”将过期处理转为“结果未知”，再点击“重试原录音识别”。本地恢复不代表远端已经取消，也不承诺供应商不重复收费；旧处理权不能再写回。此恢复由用户在页面实际触发，无需常驻进程或额外队列。真实平台和供应商的恢复可靠性由后续接入验收。
-
-### 表达反馈（#10，开发行为）
-
-显式设置 `DEVELOPMENT_FEEDBACK=true` 后，确认文本下方可请求中文表达反馈。页面标注仅依据确认文本，不评价发音、语调或停顿，不给综合分数。开发 Adapter 只支持页面列出的四个固定样例；其他文本返回失败，不生成虚构评估。配置与 Adapter 均拒绝在正式环境或未指定环境时启用替身。
-
-成功反馈固定到原作答及确切确认文本版本，保存规则版本、请求标识、生成时间和 Adapter 溯源；成功重试返回原结果。更正文本后旧反馈只作为历史，新版本需要另行请求。可选替代表达与纠错项分开展示，清楚表达可以零纠错。
-
-反馈处理权为 60 秒。请求异常先“查询反馈状态”；到期后“恢复超时反馈”，再“重试同一文本反馈”。恢复不表示远端取消，重试不增加作答。实际进程终止、并发重试、迟到结果和跨账号隔离已用真实隔离 PostgreSQL 验证；固定样例与文本守卫不能证明真实模型质量，真实服务仍待接入。证据及限制见 [反馈实施记录](docs/implementation/2026-10-10-expression-feedback.md)。
+本轮没有删除旧远端数据库、存储文件、密钥或本机快照。领域依据保留在 [词汇表](GLOSSARY.md)、[ADR](docs/adr/) 和 [领域模型](docs/domain-model.md)；清理范围与验证结果见 [#24 验收](docs/implementation/issue-24/acceptance.md)。
