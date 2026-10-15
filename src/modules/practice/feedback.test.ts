@@ -50,6 +50,7 @@ async function fixture(
     provenance: { provider: "test", model: "fixture-v1" },
   }),
   now = () => new Date(),
+  acceptResult?: ExpressionFeedback["acceptResult"],
 ) {
   const files = createRecordingFiles({ development: true, directory });
   const service = createPractice(
@@ -64,7 +65,7 @@ async function fixture(
       }),
     },
     { now },
-    { mode: "development", generate },
+    { mode: "development", generate, acceptResult },
   );
   const material = await content.publish({
     materialKey: `transcribe-${crypto.randomUUID()}`,
@@ -108,6 +109,7 @@ async function fixture(
   return {
     service,
     practice,
+    material,
     attempt: confirmed,
     files,
     confirmation: confirmed.confirmations[0]!,
@@ -810,4 +812,88 @@ test("已结束练习拒绝反馈变更；删除练习后迟到反馈不能复�
   await expect(
     deleted.service.read(alice, deleted.practice.id),
   ).rejects.toMatchObject({ code: "not-found" });
+});
+
+test("trial receives server-owned account/version and only acknowledges persisted valid feedback", async () => {
+  let captured: Parameters<ExpressionFeedback["generate"]>[0] | undefined;
+  const accepted: string[] = [];
+  const f = await fixture(
+    async (input) => {
+      captured = input;
+      return {
+        kind: "generated",
+        summary: "表达清楚。",
+        issues: [],
+        alternatives: [],
+        provenance: { provider: "test", model: "test" },
+      };
+    },
+    () => new Date(),
+    async (requestId) => {
+      expect(
+        (await f.service.read(alice, f.practice.id)).attempts[0]!
+          .currentValidFeedback,
+      ).not.toBeNull();
+      accepted.push(requestId);
+    },
+  );
+  await expect(
+    f.service.requestFeedback(
+      bob,
+      f.practice.id,
+      f.attempt.id,
+      f.confirmation.id,
+    ),
+  ).rejects.toThrow();
+  expect(captured).toBeUndefined();
+  await f.service.requestFeedback(
+    alice,
+    f.practice.id,
+    f.attempt.id,
+    f.confirmation.id,
+  );
+  expect(captured!.context).toEqual({
+    learnerId: alice.id,
+    contentVersionId: f.material.id,
+  });
+  expect(accepted).toEqual([captured!.requestId]);
+  await f.service.requestFeedback(
+    alice,
+    f.practice.id,
+    f.attempt.id,
+    f.confirmation.id,
+  );
+  expect(accepted).toHaveLength(1);
+});
+
+test("rejected or restricted feedback does not reopen a trial and restrictions are explained", async () => {
+  for (const result of [
+    {
+      kind: "generated",
+      summary: "发音很好",
+      issues: [],
+      alternatives: [],
+      provenance: { provider: "test", model: "test" },
+    },
+    { kind: "restricted" },
+  ]) {
+    let accepted = 0;
+    const f = await fixture(
+      async () => result,
+      () => new Date(),
+      async () => {
+        accepted++;
+      },
+    );
+    const updated = await f.service.requestFeedback(
+      alice,
+      f.practice.id,
+      f.attempt.id,
+      f.confirmation.id,
+    );
+    expect(updated.currentValidFeedback).toBeNull();
+    expect(accepted).toBe(0);
+    if (result.kind === "restricted")
+      expect(updated.feedback[0]!.failure).toContain("不要重复请求");
+  }
 });

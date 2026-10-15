@@ -30,6 +30,12 @@ beforeAll(async () => {
   await pool.query(
     await readFile("drizzle/0014_feedback_provider_request.sql", "utf8"),
   );
+  await pool.query(
+    (await readFile("drizzle/0016_fresh_veda.sql", "utf8")).replaceAll(
+      '"public".',
+      "",
+    ),
+  );
 });
 afterAll(async () => {
   await pool.end();
@@ -377,4 +383,167 @@ test("selected snapshot is traced and switching models cannot replay the same re
     ).generate(input),
   ).toEqual({ kind: "failed" });
   expect(calls).toBe(1);
+});
+
+function trialFixture() {
+  const startsAt = new Date(Date.now() - 1000);
+  const trial = {
+    id: crypto.randomUUID(),
+    learnerId: "trial-owner",
+    contentVersionIds: Array.from({ length: 6 }, () => crypto.randomUUID()),
+    startsAt,
+  };
+  const config = {
+    enabled: true,
+    apiKey: "test",
+    host: "ws-test.cn-beijing.maas.aliyuncs.com",
+    freeTokenBudget: 10000000,
+    freeUntil: new Date(startsAt.getTime() + 7200000),
+    trial,
+  };
+  const input = (index: number) => ({
+    text: "I will read tomorrow.",
+    confirmationId: crypto.randomUUID(),
+    requestId: crypto.randomUUID(),
+    rulesVersion: "expression-v1",
+    context: {
+      learnerId: trial.learnerId,
+      contentVersionId: trial.contentVersionIds[index]!,
+    },
+  });
+  let calls = 0;
+  const transport: typeof fetch = async () => {
+    calls++;
+    return Response.json({
+      id: crypto.randomUUID(),
+      usage: { total_tokens: 100 },
+      choices: [
+        {
+          finish_reason: "stop",
+          message: {
+            content: JSON.stringify({
+              kind: "generated",
+              summary: "表达清楚。",
+              issues: [],
+              alternatives: [],
+            }),
+          },
+        },
+      ],
+    });
+  };
+  return { config, input, transport, calls: () => calls };
+}
+
+test("trial rejects other accounts, missing context, other versions and expiry without spending", async () => {
+  const f = trialFixture();
+  const adapter = createBailianFeedback(db.db, f.config, f.transport);
+  const valid = f.input(0);
+  for (const context of [
+    undefined,
+    { ...valid.context, learnerId: "other" },
+    { ...valid.context, contentVersionId: crypto.randomUUID() },
+  ]) {
+    expect(await adapter.generate({ ...valid, context })).toEqual({
+      kind: "restricted",
+    });
+  }
+  expect(
+    await createBailianFeedback(
+      db.db,
+      { ...f.config, freeUntil: new Date(0) },
+      f.transport,
+    ).generate(valid),
+  ).toEqual({ kind: "restricted" });
+  expect(
+    await createBailianFeedback(
+      db.db,
+      {
+        ...f.config,
+        trial: { ...f.config.trial, startsAt: new Date(Date.now() + 60000) },
+      },
+      f.transport,
+    ).generate(valid),
+  ).toEqual({ kind: "restricted" });
+  expect(f.calls()).toBe(0);
+});
+
+test("trial serializes concurrent claims, accepts six distinct versions once, and survives new adapters", async () => {
+  const f = trialFixture();
+  const adapter = createBailianFeedback(db.db, f.config, f.transport);
+  for (let i = 0; i < 6; i++) {
+    const first = f.input(i),
+      duplicate = f.input(i);
+    const results = await Promise.all([
+      adapter.generate(first),
+      adapter.generate(duplicate),
+    ]);
+    expect(
+      results.filter((r) => (r as { kind: string }).kind === "generated"),
+    ).toHaveLength(1);
+    expect(results).toContainEqual({ kind: "restricted" });
+    const accepted =
+      (results[0] as { kind: string }).kind === "generated" ? first : duplicate;
+    // A provider response alone does not reopen the window before business acceptance.
+    expect(await adapter.generate(f.input((i + 1) % 6))).toEqual({
+      kind: "restricted",
+    });
+    await adapter.acceptResult!(accepted.requestId);
+  }
+  const restarted = createBailianFeedback(db.db, f.config, f.transport);
+  for (let i = 0; i < 6; i++)
+    expect(await restarted.generate(f.input(i))).toEqual({
+      kind: "restricted",
+    });
+  expect(f.calls()).toBe(6);
+  expect(
+    (
+      await pool.query(
+        "select count(*)::int as count from feedback_trial_request where trial_id=$1",
+        [f.config.trial.id],
+      )
+    ).rows[0].count,
+  ).toBe(6);
+});
+
+test("unknown or rejected feedback pauses all remaining trial requests without releasing quota", async () => {
+  const f = trialFixture();
+  let calls = 0;
+  const adapter = createBailianFeedback(db.db, f.config, async () => {
+    calls++;
+    throw Error("lost");
+  });
+  expect(await adapter.generate(f.input(0))).toEqual({ kind: "unknown" });
+  expect(await adapter.generate(f.input(1))).toEqual({ kind: "restricted" });
+  expect(calls).toBe(1);
+  const g = trialFixture();
+  const rejected = createBailianFeedback(db.db, g.config, async () =>
+    Response.json({
+      id: "invalid-result",
+      usage: { total_tokens: 1 },
+      choices: [
+        {
+          finish_reason: "stop",
+          message: { content: '{"kind":"generated","summary":123}' },
+        },
+      ],
+    }),
+  );
+  await rejected.generate(g.input(0));
+  // Practice never calls acceptResult for structurally/semantically rejected output.
+  expect(await rejected.generate(g.input(1))).toEqual({ kind: "restricted" });
+});
+
+test("trial retains its 100000 token ceiling independently of lifetime cap", async () => {
+  const f = trialFixture();
+  const adapter = createBailianFeedback(db.db, f.config, f.transport);
+  const first = f.input(0);
+  await adapter.generate(first);
+  await adapter.acceptResult!(first.requestId);
+  await pool.query(
+    "update feedback_provider_request set observed_tokens=99999 where request_id=$1",
+    [first.requestId],
+  );
+  expect(await adapter.generate(f.input(1))).toEqual({ kind: "restricted" });
+  expect(f.calls()).toBe(1);
 });

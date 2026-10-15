@@ -1,0 +1,20 @@
+{
+  "materialKey": "introducing-yourself",
+  "revision": 1,
+  "title": "介绍自己",
+  "summary": "听两个人初次见面，再介绍你自己。",
+  "materialText": "A: Hi, I'm Maya. What's your name?\nB: I'm Leo. Nice to meet you.\nA: Nice to meet you, too. What do you do?\nB: I work in a shop. In my free time, I like taking photos.",
+  "translation": "A：你好，我叫 Maya。你叫什么名字？\nB：我叫 Leo。很高兴认识你。\nA：我也很高兴认识你。你是做什么的？\nB：我在一家商店工作。空闲时，我喜欢拍照。",
+  "task": "向一位新认识的人介绍自己：说说你希望对方怎么称呼你，以及你平时做什么或空闲时喜欢做什么。可以使用昵称，不必透露私人信息；请表达自己的情况，不必复述对话。",
+  "keywords": [
+    "work in a shop：在商店工作",
+    "in my free time：在我空闲的时候",
+    "take photos：拍照"
+  ],
+  "sentenceStarters": [
+    "I'm …",
+    "I work in … / I'm a student.",
+    "In my free time, I like …"
+  ],
+  "example": "Hi, I'm Lin. In my free time, I like reading and walking."
+}

@@ -1,0 +1,12 @@
+{
+  "materialKey": "a-typical-day",
+  "revision": 1,
+  "title": "描述一天",
+  "summary": "听两个人聊平常的一天，再说说你的日常。",
+  "materialText": "A: What do you usually do in the morning?\nB: I have breakfast at seven. Then I walk to work.\nA: What about the evening?\nB: I cook dinner and read for a while before bed.",
+  "translation": "A：你早上通常做什么？\nB：我七点吃早饭，然后走路去上班。\nA：那晚上呢？\nB：我做晚饭，睡前读一会儿书。",
+  "task": "说说你平常一天中的两件事，以及它们的时间或先后顺序。可以选早上、下午或晚上，不需要讲完整一天；请表达自己的情况，不必复述对话。",
+  "keywords": ["usually：通常", "then：然后", "before bed：睡前"],
+  "sentenceStarters": ["I usually … at …", "Then I …", "In the evening, I …"],
+  "example": "I usually have breakfast at eight. Then I start work. In the evening, I listen to music."
+}

@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-15T13:08:35.523Z",
+  "commit": "1f97ce29bd11fc5aec60cb20c4e7e6c617efd4bc",
+  "deployment": "https://vercel.com/p396500554-3359s-projects/verlark/8TnGE2wgFTpbPtnUNqzzeRS98U9D",
+  "productionDomain": "https://articu-lab.vercel.app",
+  "trialId": "issue-23-20261015",
+  "startsAt": "2026-10-15T13:00:00Z",
+  "endsAt": "2026-10-15T15:00:00Z",
+  "accountCount": 1,
+  "contentVersions": 6,
+  "maxRequests": 6,
+  "newTokenReservationCap": 100000,
+  "cumulativeTokenCap": 116212,
+  "ledger": {
+    "requests": 2,
+    "used": 16212
+  },
+  "trial": {
+    "requests": 0
+  },
+  "mailEnabled": false,
+  "realFeedbackPageVerified": true,
+  "agentModelCalls": 0,
+  "freeChecks": {
+    "feedbackRemainingDisplayed": 984232,
+    "asrRemainingSecondsDisplayed": 35890,
+    "freeOnlyStopsEnabled": true,
+    "expiresOn": "2027-01-10",
+    "asrLifetimeBudget": 35992,
+    "asrReservedSecondsBefore": 538
+  }
+}

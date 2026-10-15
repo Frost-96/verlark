@@ -1,0 +1,20 @@
+{
+  "materialKey": "inviting-and-declining",
+  "revision": 1,
+  "title": "邀请与拒绝",
+  "summary": "听一次邀请和礼貌拒绝，再按自己的情况发出邀请或作出回应。",
+  "materialText": "A: Would you like to have lunch on Saturday?\nB: Thanks, but I can't. I'm visiting my family.\nA: How about Sunday?\nB: Sunday works for me. Let's meet at twelve.",
+  "translation": "A：你周六想一起吃午饭吗？\nB：谢谢，不过我没空。我要去看望家人。\nA：那周日怎么样？\nB：周日我可以。我们十二点见吧。",
+  "task": "按你的真实安排，邀请一位朋友一起做一件事并说出时间；或者礼貌拒绝一个不合适的邀约，并说明原因或提出另一个时间。任选一种表达自己的情况，不需要扮演两个人或复述对话。",
+  "keywords": [
+    "Would you like to …?：你想一起……吗？",
+    "How about …?：……怎么样？",
+    "works for me：我可以／对我合适"
+  ],
+  "sentenceStarters": [
+    "Would you like to … on …?",
+    "Thanks, but I can't. …",
+    "How about …?"
+  ],
+  "example": "Thanks, but I can't have lunch on Saturday. I have to work. How about Sunday?"
+}

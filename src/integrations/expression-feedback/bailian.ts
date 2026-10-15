@@ -52,6 +52,12 @@ export type FeedbackConfiguration = {
   host: string;
   freeTokenBudget: number;
   freeUntil: Date;
+  trial?: {
+    id: string;
+    learnerId: string;
+    contentVersionIds: string[];
+    startsAt: Date;
+  };
 };
 
 export function createBailianFeedback(
@@ -61,8 +67,31 @@ export function createBailianFeedback(
 ): ExpressionFeedback {
   return {
     mode: "bailian",
+    async acceptResult(requestId) {
+      if (config.trial)
+        await db.execute(
+          sql`update feedback_trial_request set accepted=true where request_id=${requestId}::uuid and trial_id=${config.trial.id}`,
+        );
+    },
     async generate(input) {
       const model = config.model ?? feedbackModel;
+      const trial = config.trial;
+      if (
+        trial &&
+        (!trial.id ||
+          input.context?.learnerId !== trial.learnerId ||
+          trial.contentVersionIds.length !== 6 ||
+          new Set(trial.contentVersionIds).size !== 6 ||
+          !trial.contentVersionIds.includes(
+            input.context?.contentVersionId ?? "",
+          ) ||
+          !(trial.startsAt <= new Date()) ||
+          !(config.freeUntil > new Date()) ||
+          !(config.freeUntil.getTime() - trial.startsAt.getTime() > 0) ||
+          config.freeUntil.getTime() - trial.startsAt.getTime() >
+            2 * 60 * 60 * 1000)
+      )
+        return { kind: "restricted" };
       if (
         !config.enabled ||
         !config.apiKey ||
@@ -102,6 +131,23 @@ export function createBailianFeedback(
         .digest("hex");
       const accepted = await db.transaction(async (tx) => {
         await tx.execute(sql`select pg_advisory_xact_lock(20261012, 20)`);
+        if (trial) {
+          const allowance = await tx.execute(sql`
+            select count(*)::int as requests,
+              coalesce(sum(greatest(p.reserved_tokens,coalesce(p.observed_tokens,0))),0)::bigint as used,
+              coalesce(bool_or(not t.accepted),false) as paused,
+              coalesce(bool_or(t.content_version_id=${input.context!.contentVersionId}::uuid),false) as repeated
+            from feedback_trial_request t join feedback_provider_request p using(request_id)
+            where t.trial_id=${trial.id}`);
+          const current = allowance.rows[0]!;
+          if (
+            Number(current.requests) >= 6 ||
+            Number(current.used) + reservation > 100000 ||
+            current.paused ||
+            current.repeated
+          )
+            return false;
+        }
         const used = await tx.execute(
           sql`select coalesce(sum(greatest(reserved_tokens,coalesce(observed_tokens,0))),0)::bigint as used from feedback_provider_request`,
         );
@@ -113,9 +159,14 @@ export function createBailianFeedback(
         const result = await tx.execute(
           sql`insert into feedback_provider_request(request_id,confirmation_id,fingerprint,model,rules_version,reserved_tokens,deadline) values (${input.requestId}::uuid,${input.confirmationId}::uuid,${fingerprint},${model},${input.rulesVersion + "/" + feedbackPromptVersion},${reservation},now()+interval '45 seconds') on conflict do nothing returning request_id`,
         );
-        return result.rows.length === 1;
+        if (result.rows.length !== 1) return false;
+        if (trial)
+          await tx.execute(
+            sql`insert into feedback_trial_request(request_id,trial_id,content_version_id) values (${input.requestId}::uuid,${trial.id},${input.context!.contentVersionId}::uuid)`,
+          );
+        return true;
       });
-      if (!accepted) return { kind: "failed" };
+      if (!accepted) return { kind: trial ? "restricted" : "failed" };
       // No SDK retries and no invented provider idempotency guarantee. A repeated
       // request ID cannot send again. Explicit learner retries use a new reservation.
       try {
