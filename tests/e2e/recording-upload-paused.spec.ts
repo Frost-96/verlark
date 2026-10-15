@@ -11,7 +11,12 @@ for (const [code, explanation] of [
       configFile: false,
       oxc: { jsx: { runtime: "automatic" } },
       logLevel: "error",
-      define: { "process.env.NODE_ENV": JSON.stringify("development") },
+      define: {
+        "process.env.NODE_ENV": JSON.stringify("development"),
+        "process.env.VERCEL_BLOB_API_URL": JSON.stringify(
+          "http://localhost:3100/__blob-test",
+        ),
+      },
       build: {
         write: false,
         minify: false,
@@ -51,27 +56,75 @@ for (const [code, explanation] of [
     );
     let paused = true;
     let submissionCount = 0;
+    let uploadCount = 0;
+    let storedBytes: Buffer | undefined;
+    let permittedPath: string | undefined;
+    const token = "vercel_blob_client_teststore_fake";
     const references: string[] = [];
+    const uploadIds: string[] = [];
+    const steps: string[] = [];
     await page.route(`**/api/practices/${id}/uploads`, (route) => {
       const body = route.request().postDataJSON();
-      if (body.action === "issue")
+      steps.push(body.action);
+      if (body.action === "issue") {
+        uploadIds.push(body.uploadId);
+        if (paused)
+          return route.fulfill({
+            status: 503,
+            json: { code, message: "secret-raw-provider-body" },
+          });
+        permittedPath = `test/${id}/${body.uploadId}.webm`;
         return route.fulfill({
-          status: 503,
-          json: { code, message: "secret-raw-provider-body" },
+          json: {
+            reference: `recording:${body.uploadId}`,
+            pathname: permittedPath,
+            clientToken: token,
+          },
         });
+      }
       references.push(body.reference);
       return route.fulfill(
-        paused
-          ? { status: 503, json: { code: "unavailable" } }
-          : { json: { reference: body.reference } },
+        storedBytes
+          ? { json: { reference: body.reference } }
+          : { status: 503, json: { code: "unavailable" } },
       );
     });
+    // Exercise the real Blob client; only its HTTP storage boundary is replaced.
+    await page.route("**/__blob-test/**", (route) => {
+      const request = route.request();
+      expect(request.method()).toBe("PUT");
+      expect(new URL(request.url()).searchParams.get("pathname")).toBe(
+        permittedPath,
+      );
+      expect(request.headers().authorization).toBe(`Bearer ${token}`);
+      expect(request.headers()["x-vercel-blob-access"]).toBe("private");
+      expect(paused).toBe(false);
+      expect(uploadIds).toHaveLength(2);
+      storedBytes = request.postDataBuffer() ?? undefined;
+      expect(storedBytes?.length).toBeGreaterThan(0);
+      uploadCount++;
+      steps.push("put");
+      return route.fulfill({
+        json: {
+          url: `http://localhost:3100/${permittedPath}`,
+          pathname: permittedPath,
+          contentType: "audio/webm",
+          contentDisposition: "attachment",
+          etag: "test-etag",
+        },
+      });
+    });
     await page.route(`**/api/practices/${id}/submissions`, (route) => {
+      const input = route.request().postDataJSON();
+      expect(storedBytes?.length).toBeGreaterThan(0);
+      expect(input.reference).toBe(`recording:${uploadIds[0]}`);
+      expect(input.submissionId).toBe(uploadIds[0]);
       submissionCount++;
+      steps.push("submit");
       return route.fulfill({
         json: {
           id: crypto.randomUUID(),
-          submissionId: route.request().postDataJSON().submissionId,
+          submissionId: input.submissionId,
           acceptedAt: new Date().toISOString(),
           status: "pending-identification",
           failure: null,
@@ -91,6 +144,12 @@ for (const [code, explanation] of [
     const draft = page.getByLabel("录音草稿试听");
     await expect(draft).toBeVisible();
     const source = await draft.getAttribute("src");
+    const draftBytes = await draft.evaluate(async (element: HTMLAudioElement) =>
+      Array.from(
+        new Uint8Array(await (await fetch(element.src)).arrayBuffer()),
+      ),
+    );
+
     await page.getByRole("button", { name: "提交本次录音" }).click();
     await expect(page.getByRole("alert")).toContainText(explanation);
     await expect(page.getByRole("alert")).toContainText("草稿仍可试听");
@@ -102,11 +161,24 @@ for (const [code, explanation] of [
       page.getByRole("button", { name: "提交本次录音" }),
     ).toBeEnabled();
     expect(submissionCount).toBe(0);
+    expect(uploadCount).toBe(0);
     paused = false;
     await page.getByRole("button", { name: "提交本次录音" }).click();
     await expect(draft).toHaveCount(0);
     expect(submissionCount).toBe(1);
-    expect(references).toHaveLength(2);
-    expect(references[0]).toBe(references[1]);
+    expect(uploadIds).toHaveLength(2);
+    expect(uploadIds[1]).toBe(uploadIds[0]);
+    expect(uploadCount).toBe(1);
+    expect(Array.from(storedBytes!)).toEqual(draftBytes);
+    expect(references).toEqual(Array(3).fill(`recording:${uploadIds[0]}`));
+    expect(steps).toEqual([
+      "complete",
+      "issue",
+      "complete",
+      "issue",
+      "put",
+      "complete",
+      "submit",
+    ]);
   });
 }
