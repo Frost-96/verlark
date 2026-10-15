@@ -87,8 +87,17 @@
   "userReport": {
     "realFeedbackAndAnotherAttemptTried": true,
     "difficultyDecision": "暂时不需要调整难度",
-    "perTopicScope": "未提供，等待练习链接核对"
+    "perTopicScope": "未提供，等待练习链接核对",
+    "superseded": true,
+    "correction": "维护者随后明确：没有实际点开，本次真实试用未执行。"
   },
   "conclusion": "R04 pending: user report recorded; current production records do not establish the six-topic feedback-then-another-submitted-attempt chain.",
-  "privateEvidence": ".local-snapshots/issue23-trial-audit.json and issue23-existing-feedback-audit.json (not committed)"
+  "privateEvidence": ".local-snapshots/issue23-trial-audit.json and issue23-existing-feedback-audit.json (not committed)",
+  "finalDisposition": {
+    "decision": "maintainer-waiver",
+    "realUserTrialExecuted": false,
+    "originalR04": "unverified; trial not executed",
+    "issueClosureAuthorized": true,
+    "difficulty": "维持现有内容，非实测难度结论"
+  }
 }
