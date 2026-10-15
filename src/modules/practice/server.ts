@@ -258,6 +258,7 @@ export function createPractice(
     action: (
       tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
       row: typeof attemptRecord.$inferSelect,
+      practice: typeof practiceRecord.$inferSelect,
     ) => Promise<T>,
   ) {
     const owner = requireLearner(learner);
@@ -289,7 +290,7 @@ export function createPractice(
           ),
         );
       if (!row) throw new PracticeError("not-found");
-      return action(tx, row);
+      return action(tx, row, practice);
     });
   }
   function deletionResult(
@@ -616,7 +617,7 @@ export function createPractice(
         learner,
         id,
         attemptId,
-        async (tx, row) => {
+        async (tx, row, practice) => {
           const [confirmation] = await tx
             .select()
             .from(confirmedTranscript)
@@ -655,6 +656,10 @@ export function createPractice(
             });
           return {
             token,
+            context: {
+              learnerId: practice.learnerId,
+              contentVersionId: practice.contentVersionId,
+            },
             text: confirmation.text,
             rulesVersion: values.rulesVersion,
           };
@@ -670,6 +675,7 @@ export function createPractice(
           ? { kind: "no-content" }
           : await feedback!.generate({
               text: claim.text,
+              context: claim.context,
               confirmationId,
               requestId: claim.token,
               rulesVersion: claim.rulesVersion,
@@ -698,8 +704,13 @@ export function createPractice(
         .strict()
         .safeParse(result);
       const failureStatus = failed.success ? failed.data.kind : "failed";
-      const failureMessage =
-        failureStatus === "unknown"
+      const restricted = z
+        .object({ kind: z.literal("restricted") })
+        .strict()
+        .safeParse(result).success;
+      const failureMessage = restricted
+        ? "本次反馈试用未开放、已达限额或已暂停。请联系维护者核对，不要重复请求。"
+        : failureStatus === "unknown"
           ? "反馈结果未知；本地异常不表示远端已取消。可重试同一确认文本。"
           : failureStatus === "no-content"
             ? "确认文本没有可用的英语内容，未生成有效反馈。可核对文本后重新确认，或重试同一确认文本。"
@@ -747,6 +758,7 @@ export function createPractice(
           return row;
         },
       );
+      if (parsed.success) await feedback?.acceptResult?.(claim.token);
       return attempt(saved);
     },
     async recoverFeedback(

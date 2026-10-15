@@ -95,6 +95,12 @@ test("真实识别与反馈分别显式开启，合并配置保留各自额度�
     FEEDBACK_FREE_MODEL_VERIFIED: "qwen3.8-max-0902",
     FEEDBACK_FREE_TOKEN_BUDGET: "10000",
     FEEDBACK_FREE_UNTIL: "2099-01-01T00:00:00Z",
+    FEEDBACK_TRIAL_ID: "test-window",
+    FEEDBACK_TRIAL_LEARNER_ID: "owner",
+    FEEDBACK_TRIAL_CONTENT_VERSION_IDS: Array.from({ length: 6 }, () =>
+      crypto.randomUUID(),
+    ).join(","),
+    FEEDBACK_TRIAL_STARTS_AT: "2098-12-31T22:00:00Z",
   };
   const asrOnly = readConfig({
     ...configured,
