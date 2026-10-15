@@ -1,0 +1,94 @@
+{
+  "checkedAt": "2026-10-15T13:50:13.836Z",
+  "mode": "read-only production audit; no transcript or recording content read",
+  "trialId": "issue-23-20261015",
+  "trialTotals": {
+    "requests": 0,
+    "reserved_or_observed": 0,
+    "observed": 0
+  },
+  "lifetimeFeedbackTotals": {
+    "requests": 2,
+    "reserved_or_observed": 16212,
+    "observed": 2107
+  },
+  "versions": [
+    {
+      "materialKey": "a-typical-day",
+      "revision": 1,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    },
+    {
+      "materialKey": "explaining-reasons",
+      "revision": 1,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    },
+    {
+      "materialKey": "introducing-yourself",
+      "revision": 1,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    },
+    {
+      "materialKey": "inviting-and-declining",
+      "revision": 1,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    },
+    {
+      "materialKey": "likes-and-preferences",
+      "revision": 1,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    },
+    {
+      "materialKey": "weekend-plans",
+      "revision": 2,
+      "available": true,
+      "trialRequestPresent": false,
+      "laterSubmittedAttemptCount": 0
+    }
+  ],
+  "priorFeedback": [
+    {
+      "material_key": "weekend-plans",
+      "revision": 2,
+      "started_at": "2026-10-14T14:39:16.535Z",
+      "state": "responded",
+      "model": "qwen3.8-max-0902",
+      "has_receipt": true,
+      "observed_tokens": 1100,
+      "status": "succeeded",
+      "generated_at": "2026-10-14T14:39:27.064Z",
+      "later_attempts": null,
+      "newer_confirmations": 0
+    },
+    {
+      "material_key": "weekend-plans",
+      "revision": 2,
+      "started_at": "2026-10-15T09:30:37.036Z",
+      "state": "responded",
+      "model": "qwen3.8-max-0902",
+      "has_receipt": true,
+      "observed_tokens": 1007,
+      "status": "succeeded",
+      "generated_at": "2026-10-15T09:30:49.825Z",
+      "later_attempts": null,
+      "newer_confirmations": 0
+    }
+  ],
+  "userReport": {
+    "realFeedbackAndAnotherAttemptTried": true,
+    "difficultyDecision": "暂时不需要调整难度",
+    "perTopicScope": "未提供，等待练习链接核对"
+  },
+  "conclusion": "R04 pending: user report recorded; current production records do not establish the six-topic feedback-then-another-submitted-attempt chain.",
+  "privateEvidence": ".local-snapshots/issue23-trial-audit.json and issue23-existing-feedback-audit.json (not committed)"
+}
