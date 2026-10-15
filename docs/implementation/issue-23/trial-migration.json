@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-10-15T12:57:43.310Z",
+  "migration": "0016_fresh_veda",
+  "oldMigrationHashesPreserved": true,
+  "oldFeedbackLedgerUnchanged": true,
+  "trialRequests": 0,
+  "providerCalls": 0
+}
