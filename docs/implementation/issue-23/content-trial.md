@@ -59,5 +59,6 @@ R04 结项需六类可播放且整套内容检查完成、上述真实试用与�
 
 - 六份 JSON 均完成格式检查；周末 v2 与原审校包 source 逐字段完全一致，使用既有 `reviewContentDigest` 核对摘要一致。
 - 运行既有 `learning-content`、`material-audio` 和 `practice/repeat.test.ts` 回归：生成与准备两文件 **8 项通过**，均使用外部测试替身，无真实调用。
-- 旧隔离本地 PostgreSQL `verlark_issue18_material_test` 迁移失败：已有迁移账本与表状态不一致，后续迁移找不到 `recording_asset`。三个数据库测试文件共 15 项未运行，不能标记 C01–C04 回归通过；没有改动业务库或为此修改迁移。
+- 首次使用旧隔离本地 PostgreSQL `verlark_issue18_material_test` 时迁移失败：已有迁移账本与表状态不一致，后续迁移找不到 `recording_asset`，当次 15 项未运行。没有改动业务库或为此修改迁移。
+- 随后新建空的隔离 PostgreSQL 库 `verlark_issue23_content_test`，通过 `TEST_DATABASE_URL` 执行 `vitest run src/modules/learning-content src/modules/practice/repeat.test.ts`，迁移与三个文件 **15 项测试通过**。材料发布、不可变版本、历史读取／重练及音频保留的自动回归通过；音频存储为测试替身，不代表 C01–C04 的真实部署播放与人工检查已完成。
 - 没有业务代码改动，不新增常量断言测试；未运行构建、浏览器或真实供应商验收。
