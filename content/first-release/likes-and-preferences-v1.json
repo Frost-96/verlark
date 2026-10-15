@@ -1,0 +1,16 @@
+{
+  "materialKey": "likes-and-preferences",
+  "revision": 1,
+  "title": "表达喜好",
+  "summary": "听两个人聊休息时喜欢做什么，再说说你的喜好。",
+  "materialText": "A: What do you like doing after work?\nB: I like watching films at home.\nA: Do you like going to the cinema, too?\nB: Not really. I prefer staying home because it's quiet.",
+  "translation": "A：下班后你喜欢做什么？\nB：我喜欢在家看电影。\nA：你也喜欢去电影院吗？\nB：不太喜欢。我更喜欢待在家里，因为家里安静。",
+  "task": "说说你休息时喜欢做什么；可以比较两种活动，说说更喜欢哪一种以及原因。请表达自己的喜好，不必复述对话。",
+  "keywords": [
+    "not really：不太喜欢（本对话中）",
+    "prefer：更喜欢",
+    "quiet：安静的"
+  ],
+  "sentenceStarters": ["I like …", "I prefer … because …"],
+  "example": "I like going for walks. I prefer walking in the park because it's quiet."
+}

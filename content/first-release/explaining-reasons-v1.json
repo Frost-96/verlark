@@ -1,0 +1,12 @@
+{
+  "materialKey": "explaining-reasons",
+  "revision": 1,
+  "title": "解释原因",
+  "summary": "听两个人聊一个选择的原因，再解释你自己的选择。",
+  "materialText": "A: Why are you taking the bus today?\nB: Because it's raining, and I don't want to get wet.\nA: Do you usually walk?\nB: Yes. I live nearby, so I usually walk to work.",
+  "translation": "A：你今天为什么坐公交车？\nB：因为在下雨，我不想淋湿。\nA：你平常走路吗？\nB：是的。我住得近，所以通常走路去上班。",
+  "task": "说说你最近或平常的一项选择，以及为什么这样选。可以谈出行、吃饭或休息安排；请表达自己的情况，不必复述对话。",
+  "keywords": ["because：因为", "nearby：在附近", "so：所以"],
+  "sentenceStarters": ["I … because …", "…, so I …"],
+  "example": "I cook at home because I enjoy cooking. I live near a shop, so I can buy food easily."
+}
