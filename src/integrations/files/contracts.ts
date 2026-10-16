@@ -1,3 +1,15 @@
+/** Expected admission pause; carries no provider details or raw exception. */
+export class RecordingUploadPaused extends Error {
+  readonly name = "RecordingUploadPaused";
+  constructor(public readonly reason: "maintenance" | "quota") {
+    super(
+      reason === "maintenance"
+        ? "清理扫描逾期或积压，已暂停新增上传。"
+        : "新增上传已暂停，等待维护者核实服务额度。",
+    );
+  }
+}
+
 /** Stable, private recording identity; never a signed download URL. */
 export type Recording = {
   reference: string;

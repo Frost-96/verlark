@@ -69,6 +69,8 @@ export class PracticeError extends Error {
       | "recording-expired"
       | "recording-missing"
       | "recording-unavailable"
+      | "recording-maintenance-paused"
+      | "recording-quota-paused"
       | "processing"
       | "stale"
       | "recognition-budget"
@@ -97,6 +99,10 @@ export class PracticeError extends Error {
         "recording-expired":
           "录音已到期，文字和反馈仍保留。无法重新识别，请再次作答。",
         "recording-missing": "原录音已不可用，文字和反馈仍保留。",
+        "recording-maintenance-paused":
+          "录音上传因维护暂时暂停，请联系维护者；恢复后可重试。",
+        "recording-quota-paused":
+          "录音上传已暂停，等待维护者核实服务额度；恢复后可重试。",
         "recording-unavailable": "录音存储尚未配置，暂时不能提交。",
       }[code],
     );
@@ -117,6 +123,8 @@ export function isPracticeErrorCode(
     code === "recording-expired" ||
     code === "recording-missing" ||
     code === "recording-unavailable" ||
+    code === "recording-maintenance-paused" ||
+    code === "recording-quota-paused" ||
     code === "processing" ||
     code === "stale" ||
     code === "feedback-unavailable" ||

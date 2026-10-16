@@ -1,3 +1,4 @@
 {
+  "regions": ["sin1"],
   "crons": [{ "path": "/api/maintenance/recordings", "schedule": "0 3 * * *" }]
 }

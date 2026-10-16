@@ -34,7 +34,10 @@ import {
   confirmedTranscript,
 } from "./schema";
 import type { ExpressionFeedback } from "../../integrations/expression-feedback/contracts";
-import type { RecordingFiles } from "../../integrations/files/contracts";
+import {
+  RecordingUploadPaused,
+  type RecordingFiles,
+} from "../../integrations/files/contracts";
 import {
   deletionMarkerSchema,
   type DeletionMarker,
@@ -460,11 +463,21 @@ export function createPractice(
       )
         throw new PracticeError("recording-invalid");
       if (!files?.issueUpload) throw new PracticeError("recording-unavailable");
-      const result = await files.issueUpload({
-        ...input,
-        learnerId: owner.learnerId,
-        practiceId: id,
-      });
+      const result = await files
+        .issueUpload({
+          ...input,
+          learnerId: owner.learnerId,
+          practiceId: id,
+        })
+        .catch((error: unknown) => {
+          if (error instanceof RecordingUploadPaused)
+            throw new PracticeError(
+              error.reason === "maintenance"
+                ? "recording-maintenance-paused"
+                : "recording-quota-paused",
+            );
+          throw error;
+        });
       const current = await owned(learner, id);
       if (current.endedAt) throw new PracticeError("ended");
       return result;

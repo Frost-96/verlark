@@ -172,6 +172,90 @@ test("私有回放 GET、HEAD、Range 均核对真实会话与所有权，删除
     await rm(directory, { recursive: true, force: true });
   }
 });
+test.each([
+  [
+    true,
+    true,
+    "recording-maintenance-paused",
+    "录音上传因维护暂时暂停，请联系维护者；恢复后可重试。",
+  ],
+  [
+    false,
+    true,
+    "recording-quota-paused",
+    "录音上传已暂停，等待维护者核实服务额度；恢复后可重试。",
+  ],
+  [true, false, "unavailable", "录音暂不可用，请稍后核对上传或回放结果。"],
+])(
+  "上传暂停通过真实会话和路由返回安全原因（uploadsEnabled=%s）",
+  async (uploadsEnabled, requireMaintenance, code, message) => {
+    const { createPrivateRecordingFiles } =
+      await import("../../integrations/files/private");
+    const { handleUploadRequest } =
+      await import("../../app/api/practices/audio-http");
+    const owner = await register();
+    let providerCalls = 0;
+    const files = createPrivateRecordingFiles(
+      connection.db,
+      {
+        authorize: async () => {
+          providerCalls++;
+          throw new Error("secret-provider-error");
+        },
+        read: async () => null,
+        put: async () => {},
+        remove: async () => {},
+      },
+      async () => ({ mediaType: "audio/webm", durationMs: 1000 }),
+      { now: () => new Date("2099-01-01T00:00:00Z") },
+      { uploadsEnabled, requireMaintenance },
+    );
+    const service = createPractice(connection.db, content, files);
+    const source = await content.publish({
+      materialKey: `paused-${crypto.randomUUID()}`,
+      revision: 1,
+      title: "计划",
+      summary: "周末",
+      materialText: "Any plans?",
+      translation: "有什么计划？",
+      task: "说说你的计划。",
+      keywords: ["plan"],
+      sentenceStarters: ["I will …"],
+      example: "I will read.",
+      audioPath: "/audio/weekend-v1.wav",
+    });
+    const started = await service.start(
+      owner.learner,
+      source.materialKey,
+      crypto.randomUUID(),
+    );
+    const response = await handleUploadRequest(
+      new Request(`http://localhost:3000/api/practices/${started.id}/uploads`, {
+        method: "POST",
+        headers: {
+          cookie: owner.cookie,
+          origin: "http://localhost:3000",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "issue",
+          uploadId: crypto.randomUUID(),
+          mediaType: "audio/webm",
+        }),
+      }),
+      { identity, practice: service },
+      started.id,
+    );
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ code, message });
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(providerCalls).toBe(uploadsEnabled && !requireMaintenance ? 1 : 0);
+    expect((await service.read(owner.learner, started.id)).attempts).toEqual(
+      [],
+    );
+  },
+);
+
 let alice: Learner;
 let bob: Learner;
 beforeAll(async () => {
