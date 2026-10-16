@@ -1,0 +1,80 @@
+{
+  "checkedAt": "2026-10-14T11:07:34.521Z",
+  "scope": {
+    "currentComputer": true,
+    "mainland": "deferred by user",
+    "phone": "not tested",
+    "overseasPhysicalLocation": "not established"
+  },
+  "production": {
+    "commit": "39fca6509daafd25ccb43a2674f52f55de5a7387",
+    "deployment": "HG31HG76LRXsoxDuaDWdTFouwpZS",
+    "url": "https://articu-lab.vercel.app",
+    "status": "Ready",
+    "region": "IAD1",
+    "runtime": "Node.js 24.x",
+    "functions": {
+      "uploads": {
+        "sizeMB": 32.9,
+        "maxDurationSeconds": 300
+      },
+      "feedback": {
+        "sizeMB": 32.9,
+        "maxDurationSeconds": 300
+      },
+      "transcription": {
+        "sizeMB": 32.4,
+        "maxDurationSeconds": 120
+      },
+      "maintenance": {
+        "sizeMB": 32.4,
+        "maxDurationSeconds": 60
+      }
+    }
+  },
+  "provider": {
+    "model": "qwen3.8-max-0902",
+    "freeRemainingDisplayed": 986339,
+    "freeTotalDisplayed": 1000000,
+    "stopOnExhaustion": true,
+    "expiryDateDisplayed": "2027/01/10"
+  },
+  "productionFeedbackLedger": {
+    "count": 0,
+    "reserved": 0
+  },
+  "authorization": {
+    "maxRequests": 10,
+    "additionalReservationTokens": 100000,
+    "durationHours": 2,
+    "productionEnable": "approved by user",
+    "startsAt": "2026-10-14T11:08:03.885Z",
+    "expiresAt": "2026-10-14T13:08:03.885Z"
+  },
+  "callsThisRun": 0,
+  "productionEnable": {
+    "deployment": "DWkW9XBdVw3aHYFz9wBETc6iTHYq",
+    "status": "Ready",
+    "commit": "39fca6509daafd25ccb43a2674f52f55de5a7387",
+    "configuredKeys": [
+      "REAL_FEEDBACK_ENABLED",
+      "FEEDBACK_MODEL",
+      "FEEDBACK_FREE_MODEL_VERIFIED",
+      "FEEDBACK_FREE_ONLY_VERIFIED",
+      "FEEDBACK_FREE_TOKEN_BUDGET",
+      "FEEDBACK_FREE_UNTIL",
+      "MAIL_PROVIDER",
+      "MAIL_ENABLED",
+      "MAIL_FROM",
+      "QQ_SMTP_USER",
+      "QQ_SMTP_AUTH_CODE"
+    ],
+    "scope": "Production only",
+    "savedAs": "Secret"
+  },
+  "accountSetup": {
+    "personalGmailAbsent": true,
+    "originalProductionAllowlist": "synthetic test identity only",
+    "userApprovedAddingPriorGmail": true
+  }
+}
